@@ -1,0 +1,155 @@
+Basic abstraction rules:
+
+#: number steps : rule
+
+1:  3:   011 <C10  ->  <C10  110
+2:  6:    01 <C10  ->  <C10  10
+
+3:  4:   111 <C10  ->  01  A> 110
+4:  1:     0 <C10  ->   1  A> 10
+
+5: 10: A> 110 110  ->  011 011  A>
+6:  7: A> 110 10   ->  011 01   A>
+7:  4: A> 10  10   ->    1 011  A>
+
+8:  6: A> 10  110  ->    1 <C10  10
+9:  2: A> $        ->    1 <C10  $
+10: 9: A> 110 $    ->      <C10  110 $  (rules 9, 1)
+11:  : A> 10 $     ->   **HALT**
+
+Counter notation can start simulating from base step 19:
+RLE:  5 | 19: 201 > 2
+Base:     19: 11001 A> 11
+
+need to add a missing case for counter simulation:
+
+counter sim
+rle sim
+131 | 315 | 1673: L C2 P x^4 C1 D > P x D R
+315 | 1673: 4222222222220121 > 222212
+132 | 316 | 1683: L C2 P x^4 C1 D x > P D R
+316 | 1683: 422222222222012122 > 2212
+(simulation crashed here due to the counter sim not knowing what to do with > P D R)
+rle can continue:
+317 | 1693: 42222222222201212222 > 12
+318 | 1699: 42222222222201212223 < 1
+319 | 1703: 422222222222012122201 > 21
+320 | 1710: 42222222222201212220121 > 
+321 | 1712: 42222222222201212220122 < 
+322 | 1715: 4222222222220121222012 < 2
+323 | 1718: 422222222222012122201 < 22
+324 | 1724: 42222222222201212220 < 122
+325 | 1725: 4222222222220121223 > 1122
+326 | 1729: 42222222222201212242 > 22
+327 | 1739: 4222222222220121224222 > 
+328 | 1741: 4222222222220121224223 < 
+329 | 1745: 42222222222201212242201 > 2
+
+We can also work out what the counter sim ought to do by hand
+
+> P D R ~ P D P
+> 2212
+U26. `> PDP` -> `1D >` (27)
+S27.  > P D P ==> C1 D > (27)
+
+C1 D >
+20121 >
+U3. `D > end` -> `< x` (8)
+
+C1 < x  (but the x ~ P R)
+201 < 22
+
+To get to this point required 323 - 316 = 7 rle steps and 1718 - 1683 = 35 base steps?
+First, the U26==S27 required (4, 27) steps;
+next, the U3 required (3, 8) steps;
+for a total of (7, 35) steps.
+
+Therefore we can write down a new rule:
+S30. > P D R ==> C1 < P R (7, 35)
+
+[[
+This position can be continued further but maybe it's not worth the manual effort
+S9.  C1 < ==> C2 > (11)
+
+C2 > x
+42 > 22
+S24.  > P R ==> < C x R (89)
+
+C2 < C x R
+42 < 11222
+S10.  C2 < ==> C x > (17)
+
+C x > C x R
+S7.  x > C ==> C0 > (4)
+
+C C0 > x R
+]]
+
+After adding rule S30. to my counter simulator, it goes like this:
+counter sim
+rle sim
+131 | 315 | 1673: L C2 P x^4 C1 D > P x D R
+315 | 1673: 4222222222220121 > 222212
+132 | 316 | 1683: L C2 P x^4 C1 D x > P D R
+316 | 1683: 422222222222012122 > 2212
+133 | 323 | 1718: L C2 P x^4 C1 D x C1 < P R
+323 | 1718: 422222222222012122201 < 22
+134 | 326 | 1729: L C2 P x^4 C1 D x C2 > P R
+326 | 1729: 42222222222201212242 > 22
+...
+154 | 385 | 2052: L C2 P x^4 C1 D x < C C x^3 R
+385 | 2052: 422222222222012122 < 11112222222
+
+======================
+The counter simulator can now print in color to the terminal.  I have colored and/or bolded some of the counter symbols.
+
+How to show this colored, formatted output outside of the terminal?
+If you have bsdutils installed you can use the script command:
+script -q -c "cargo run -r" my_file.txt
+
+This will produce a text file with the ANSI sequences that format it.
+
+Then I found some python program https://github.com/pycontribs/ansi2html which I used to convert the text file into a html file.
+cat my_file.txt | ansi2html > my_file.html
+
+====
+
+I added function for doing a stride (a kind of counter acceleration), and also kept track of how many steps a stride takes.  Have yet to type up the math I wrote down.
+
+====
+
+@uni-cycle:
+
+a (uni) = F (Shawn) = C2 x^7640 D x^10344
+G (Shawn) = x^300 D x^30826 D x^72142 D x^3076 D x^1538 D
+RIGHT_B (uni) = D x^72142 D x^3076 D x^1538 D x^300 D x^30826  (in no1.rs this is written in reverse though)
+LEFT_B (uni) = D x^72142 D x^3076 D x^1538 D x^300 D x^30826
+J = [lots of stuff, very long]
+
+Looking at uni-cycle... (haven't implemented the acceleration yet)
+
+The first uni-cycles:
+68699 | 6822702051640058434 | 36387744286913895568: L [left debris] [J] x^598640712 C1 D > x^300 D x^30826 [b]^7 D x^42804942 D x^3076 D x^1538 D x^300 D x^21397226 D x^13012670 D x^2139716 D x^1069858 D x^213964 D x^21621178 D x^3440996 D x^1720498 D x^344092 D x^1414318 D x^223068 D x^212070339 C x^673375351 R
+69786 | 6824751681081205261 | 36398675643934136445: L [left debris] [a] [J] x^598586766 C1 D > x^300 D x^30826 [b]^8 D x^42804942 D x^3076 D x^1538 D x^300 D x^21397226 D x^13012670 D x^2139716 D x^1069858 D x^213964 D x^21621178 D x^3440996 D x^1720498 D x^344092 D x^1414318 D x^223068 D x^211854560 C x^673806909 R
+70873 | 6826802349402390730 | 36409612541647916746: L [left debris] [a]^2 [J] x^598532820 C1 D > x^300 D x^30826 [b]^9 D x^42804942 D x^3076 D x^1538 D x^300 D x^21397226 D x^13012670 D x^2139716 D x^1069858 D x^213964 D x^21621178 D x^3440996 D x^1720498 D x^344092 D x^1414318 D x^223068 D x^211638781 C x^674238467 R
+
+The first time the repeated strides have broken down (the x^n to the left of the rightmost C ran out of x's):
+1135046 | 9332767779179918701 | 49774761501235918465: L [left debris] [a]^981 [J] x^545719686 C1 D > x^300 D x^30826 [b]^988 D x^42804942 D x^3076 D x^1538 D x^300 D x^21397226 D x^13012670 D x^2139716 D x^1069858 D x^213964 D x^21621178 D x^3440996 D x^1720498 D x^344092 D x^1414318 D x^223068 D x^391140 C x^1096733749 R
+1136133 | 9335836549938973330 | 49791128278618334286: L [left debris] [a]^982 [J] x^545665740 C1 D > x^300 D x^30826 [b]^989 D x^42804942 D x^3076 D x^1538 D x^300 D x^21397226 D x^13012670 D x^2139716 D x^1069858 D x^213964 D x^21621178 D x^3440996 D x^1720498 D x^344092 D x^1414318 D x^223068 D x^175361 C x^1097165307 R
+1177066 | 9338507124951112973 | 49805371345350536835: L [left debris] [a]^983 [J] x^545611794 C1 D > x^300 D x^30826 [b]^990 D x^42804942 D x^3076 D x^1538 D x^300 D x^21397226 D x^13012670 D x^2139716 D x^1069858 D x^213964 D x^21621178 D x^3440996 D x^1720498 D x^344092 D x^1414318 D x^1097698682 C x^80833 R
+1178153 | 9339446585262777197 | 49810381800346870496: L [left debris] [a]^984 [J] x^545557848 C1 D > x^300 D x^30826 [b]^991 D x^42804942 D x^3076 D x^1538 D x^300 D x^21397226 D x^13012670 D x^2139716 D x^1069858 D x^213964 D x^21621178 D x^3440996 D x^1720498 D x^344092 D x^1414318 D x^1097482903 C x^512391 R
+
+Test scenario to measure steps of a uni-cycle:
+   0 |              0 |               0: L     [J] x^100053946 C1 D >     x^100 D x^1000000 C x^1000000 R
+1087 | 19951813560171 | 106409673112045: L [a] [J] x^100000000 C1 D > [G] x^100 D  x^784221 C x^1431558 R
+
+
+If we write the @uni-cycle rule as
+    J x^(N+P) C1 D >       r   -->
+  F J x^N     C1 D > G s^T(r)
+
+I have measured and found that one uni-cycle should result in the following counter rules being applied this many times:
+S1: 854899, S2: 71930, S4: 854882, S7: 71913, S8: 71911, S9: 71932, S10: 71930, S11: 5, S12: 2, S13: 2, S14: 2, S15: 2, S16: 2, S17: 2, S18: 2, S19: 2, S20: 2, S21: 9, S25: 10, S26: 8, S27: 8, S28: 1
+S0: 13623629746 + 53951N, S3: 13623370507 + 53946N, S23: 151338 + 5N
+
+also, P = 53946, T = 215779.

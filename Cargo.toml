@@ -1,0 +1,11 @@
+[package]
+name = "turing_machine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+auto_ops = "0.3.0"
+colored = "2.1.0"
+itertools = "0.13.0"
+strum = "0.26.3"
+strum_macros = "0.26.4"

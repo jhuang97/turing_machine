@@ -1,0 +1,37 @@
+xn < | < xn
+D < | < D
+C < | < C
+> xn | xn >
+> D | D >
+
+> R | < R
+L < C x | L C1 D > P
+
+x > C | C0 >
+C0 < | C1 x >
+C1 < | C2 >
+C2 < | C x >
+
+D > C | P x >
+
+C2 > C | F0 >
+F0 < | F1 x >
+F1 < | F2 >
+F2 < | F3 x >
+x F3 < | P C1 D >
+
+C0 > C | G0 >
+G0 < | G1 x >
+G1 < | G2 >
+G2 < | P D x >
+
+P < | < P
+> P P | x >
+> P xn | xn > P
+> P R | < C x R
+> P D x | C1 D > P
+> P C x | < P D P
+> P D P | C1 D >
+> P D D x | C2 C1 D >
+> P D C x | G1 D > P
+> P D R | C1 < P R
