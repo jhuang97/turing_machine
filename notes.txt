@@ -152,4 +152,8 @@ I have measured and found that one uni-cycle should result in the following coun
 S1: 854899, S2: 71930, S4: 854882, S7: 71913, S8: 71911, S9: 71932, S10: 71930, S11: 5, S12: 2, S13: 2, S14: 2, S15: 2, S16: 2, S17: 2, S18: 2, S19: 2, S20: 2, S21: 9, S25: 10, S26: 8, S27: 8, S28: 1
 S0: 13623629746 + 53951N, S3: 13623370507 + 53946N, S23: 151338 + 5N
 
-also, P = 53946, T = 215779.
+also confirmed that P = 53946, T = 215779.
+
+Implemented uni-cycle.
+
+But now need to handle passing through a blocks and G blocks properly - sometimes G blocks are generated outside of the uni-cycle, need a way to handle that?

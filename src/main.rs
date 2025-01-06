@@ -1,6 +1,6 @@
 mod skelet1;
 
-use skelet1::{counter_to_rle, counter_transition_rules, left_block_definition, Binomial, CounterBlockType, CounterSimulator, CounterStepInfo, CounterSymbol, Direction, NSteps, measure_uni_cycle};
+use skelet1::{counter_to_rle, counter_transition_rules, measure_uni_cycle, CounterBlockType, CounterStepInfo, CounterSymbol, Direction};
 use turing_machine::{BasicSimulator, State, Symbol, TMDirection, TMTransition, TuringMachine};
 
 const SKELET_1: &str = "1RB1RD_1LC0RC_1RA1LD_0RE0LB_---1RC";
@@ -29,7 +29,7 @@ fn compare_basic_rle_skelet(n_steps: usize) {
 
 fn compare_rle_counter_skelet(n_steps: usize) {
     let mut rle = skelet1::RLESimulator::new();
-    let mut counter = skelet1::CounterSimulator::new(false);
+    let mut counter = skelet1::CounterSimulator::new(false, false);
 
     for _ in 0..n_steps {
         while rle.rle_steps < counter.rle_steps as usize {
@@ -42,8 +42,8 @@ fn compare_rle_counter_skelet(n_steps: usize) {
 }
 
 fn compare_counter_stride_skelet(n_steps: usize) {
-    let mut sim = skelet1::CounterSimulator::new(false);
-    let mut sim_stride = skelet1::CounterSimulator::new(true);
+    let mut sim = skelet1::CounterSimulator::new(false, false);
+    let mut sim_stride = skelet1::CounterSimulator::new(true, false);
 
     for _ in 0..=n_steps {
         while sim.rle_steps < sim_stride.rle_steps {
@@ -52,6 +52,93 @@ fn compare_counter_stride_skelet(n_steps: usize) {
         println!("{sim_stride:>width$}", width=(sim.self_steps.checked_ilog10().unwrap_or(0) + 1) as usize);
         println!("{sim}");
         sim_stride.step().unwrap();
+    }
+}
+
+fn compare_counter_unicycle_skelet_set_position(n_steps: usize, n_cycle_left: u128, extra_left: u128, n_cycle_right: u128, extra_right: u128) {
+    use CounterBlockType::*;
+    use CounterSymbol::*;
+
+    const UNI_CYCLE_P: u128 = 53946;
+    const UNI_CYCLE_T: u128 = 215779;
+
+    let lpart = [X(UNI_CYCLE_P*n_cycle_left+extra_left), C1, D];
+    let ltape = [&[L, Block(J, 1)], &lpart[..]].concat();
+    let ltape2 = [&[L], skelet1::left_block_definition()[&J].as_slice(), &lpart[..]].concat();
+
+    let mut rtape = vec![X(100), D, X(UNI_CYCLE_T * n_cycle_right + extra_right), C, X(1000000), R];
+    rtape.reverse();
+
+    let mut sim_uni = skelet1::CounterSimulator {
+        left_tape: ltape.clone(),
+        right_tape: rtape.clone(),
+        dir: Direction::Right,
+        base_steps: 0,
+        rle_steps: 0,
+        self_steps: 0,
+        do_strides: true,
+        do_uni_cycles: true
+    };
+
+    let mut sim = skelet1::CounterSimulator {
+        left_tape: ltape2,
+        right_tape: rtape,
+        dir: Direction::Right,
+        base_steps: 0,
+        rle_steps: 0,
+        self_steps: 0,
+        do_strides: true,
+        do_uni_cycles: false
+    };
+
+    for i in 0..n_steps { // 1300000
+        while sim.rle_steps < sim_uni.rle_steps {
+            sim.step().unwrap();
+        }
+
+        let mut sim_uni_p = sim_uni.clone();
+        sim_uni_p.rewrite_with_blocks(&vec![], &vec![]);
+
+        assert!(!sim.right_tape.iter().any(|&e| if let Block(G, _) = e { true } else { false }));
+        let mut sim_p = sim.clone();
+        sim_p.rewrite_with_blocks(&vec![A, G, J], &vec![G]);
+
+        println!("{sim_uni_p:>width$}", width=(sim.self_steps.checked_ilog10().unwrap_or(0) + 1) as usize);
+        println!("{sim_p}");
+
+        while sim_uni.rle_steps <= sim.rle_steps {
+            sim_uni.step().unwrap();
+        }
+    }
+}
+
+fn compare_counter_unicycle_skelet(n_steps: usize) {
+    use CounterBlockType::*;
+    use CounterSymbol::*;
+
+    let mut sim = skelet1::CounterSimulator::new(true, false);
+    let mut sim_uni = skelet1::CounterSimulator::new(true, true);
+
+    for i in 0..n_steps {
+        while sim.rle_steps < sim_uni.rle_steps {
+            sim.step().unwrap();
+        }
+
+        if i > 68000 {
+            let mut sim_uni_p = sim_uni.clone();
+            sim_uni_p.rewrite_with_blocks(&vec![LeftDebris], &vec![G]);
+
+            assert!(!sim.right_tape.iter().any(|&e| if let Block(G, _) = e { true } else { false }));
+            let mut sim_p = sim.clone();
+            sim_p.rewrite_with_blocks(&vec![LeftDebris, A, G, J], &vec![G]);
+
+            println!("{sim_uni_p:>width$}", width=(sim.self_steps.checked_ilog10().unwrap_or(0) + 1) as usize);
+            println!("{sim_p}");
+        }
+
+        while sim_uni.rle_steps <= sim.rle_steps {
+            sim_uni.step().unwrap();
+        }
     }
 }
 
@@ -113,7 +200,7 @@ fn main() {
 
     // let mut sim = skelet1::RLESimulator::new();
 
-    // let mut sim = skelet1::CounterSimulator::new(false);
+    // let mut sim = skelet1::CounterSimulator::new(false, false);
     // for i in 0..1000i64 {
     //     sim.step().unwrap();
     //     // if (i+1) % 100000000 == 0 {
@@ -122,7 +209,7 @@ fn main() {
     // }
 
     // prototype stride
-    // let mut sim = skelet1::CounterSimulator::new(false);
+    // let mut sim = skelet1::CounterSimulator::new(false, false);
     // for i in 0..840 {
     //     sim.step().unwrap();
     //     println!("{}", sim);
@@ -141,7 +228,7 @@ fn main() {
     // }
 
     // try sim with strides
-    // let mut sim = skelet1::CounterSimulator::new(true);
+    // let mut sim = skelet1::CounterSimulator::new(true, false);
     // for i in 0..68000 {
     //     sim.step().unwrap();
     // }
@@ -163,12 +250,48 @@ fn main() {
     //     }
     // }
 
-    measure_uni_cycle(false, 100000000, 100);
-    measure_uni_cycle(false, 100000000, 1000);
-    measure_uni_cycle(false, 1000000000, 100);
+    // measure_uni_cycle(false, 100000000, 100);
+    // measure_uni_cycle(false, 100000000, 1000);
+    // measure_uni_cycle(false, 1000000000, 100);
 
     // skelet1::count_G_block_steps();
     // skelet1::add_up_steps_for_one_uni_cycle();
+
+    // compare_counter_unicycle_skelet_set_position(5, 1, 0, 1, 0);
+    // compare_counter_unicycle_skelet_set_position(5, 1, 1, 1, 1);
+    // compare_counter_unicycle_skelet_set_position(5, 5, 0, 7, 1);
+    // compare_counter_unicycle_skelet_set_position(5, 5, 1, 7, 0);
+    // compare_counter_unicycle_skelet_set_position(5, 5, 1, 7, 1);
+    // compare_counter_unicycle_skelet_set_position(5, 7, 10, 5, 10);
+
+    // compare_counter_unicycle_skelet(68705);
+
+    {
+        use CounterBlockType::*;
+        use CounterSymbol::*;
+    
+        let mut sim_uni = skelet1::CounterSimulator::new(true, true);
+
+        fn n_J(v: &Vec<CounterSymbol>) -> usize {
+            v.iter().filter(|x| x == &&Block(J, 1)).count()
+        }
+    
+        for i in 0..1500001 {
+            let res = sim_uni.step().unwrap();
+            { // || (i > 69500 && i < 70000) || (i > 110610 && i < 110630) {
+                let mut sim_uni_p = sim_uni.clone();
+                sim_uni_p.rewrite_with_blocks(&vec![LeftDebris], &vec![]);
+                let mut sim_uni_p2 = sim_uni.clone();
+                sim_uni_p2.rewrite_with_blocks(&vec![LeftDebris, A, J, G], &vec![G]);
+    
+                if matches!(res, CounterStepInfo::UniCycle(_)) || (i > 68695 && i < 68705) || (i > 70000 && i % 50000 == 0) || 
+                    (n_J(&sim_uni_p2.left_tape) > n_J(&sim_uni_p.left_tape) && sim_uni.dir == Direction::Right) {
+                    println!("{sim_uni_p}");
+                    println!("{sim_uni_p2}");
+                }
+            }
+        }
+    }
 
     // check_rle_to_counter();
 
