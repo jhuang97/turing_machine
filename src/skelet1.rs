@@ -4,6 +4,8 @@ use std::error::Error;
 use itertools::izip;
 use strum_macros::EnumString;
 use auto_ops::impl_op_ex;
+use bnum::types::U256;
+use bnum::cast::CastFrom;
 
 /// Implement tape as two FIFO stacks; use Vec for the stacks
 pub struct RLESimulator {
@@ -214,6 +216,8 @@ pub enum CounterSymbol {
 
 const LEFT_DEBRIS_DEF: &str = "C2 P x^2 D x C2 x^6 C2 x^9 C2 x^68 C x D x^33 C2 x^4 D x^27 C2 x^26 C2 x^44 D x^193 C x^19 D x^69 C1 x^227 C2 x^62 D x^55 C1 x^211 C2 x^1208 C2 x^2003 C1 x^90 D x^4023 C x^361 D x^2351 C x^26366 C x^2699 D x^2680 D x^15030 C1 x^9752 D D x^37542 C2 x^110 C2 x^3276 D x^3671 C1 x^3382 D x^14760 C0 x^5477 D x^15869 C1 x^7129 C2 x^189259 C x^58491 D D x^234225 C1 x^14 C1 x^8 C0 x^17 D D x^42 C0 x^54 C1 x^1096 C x^137 D x^1089 C x^327 D D x^4290 C0 x^197 D x^120 C1 x^426 C0 x^2637 D x^3718 C2 x^426 D x^16997 C1 x^1706 D x^21471 C1 x^2183 C x^106451 C1 D x^24011 C1 D x^182957 C1 D x^28035 C1 D x^14017 C2 D x^2794 C0 x D x^48418 C x^7 D x^42429 C2 x^28 D x^19778 C2 x^114 D x^11676 C2 x^458 D x^3190 C0 x^3756 C0 x^1157 D D x^55 D x^31758 C0 x^4855 D x^36 D x^23660 D x^34176 D x^656500 C x^250927 D x^138060 D x^103378 D x^25012 D x^12348 D x^27884 D x^2194 D D x^805994 C1 x^915326 D D x^160025 D x^75368 D x^5019243 C0 x^865 D x^197504 C2 x^3462 D x^92692 C1 x^45899 C0 x^15565 D x^38884 C x^62261 D x^90819 C x^485729 D x^625256 D x^6794309 C2 x^731366 D x^21623 C x^1144213 D x^16795620 C x^230309 D D x^55 D x^10382827 C1 x^901464 D x^1374756 C2 x^2455726 C2 x^2212892 D D x^4846062 C2 x^2669248 D D x^10696273 C1 D x^3075 C1 D x^1537 C1 D x^299 C1 D x^24725225 C1 D x^21175357 C1 D x^2472515 C1 D x^1236257 C1 D x^247243 C1 D x^14786855 C1 D x^4139075 C1 D x^2069537 C1 D x^413899 C1 D x^1735319 C1 D x^491555 C1 D x^245777 C2 D x^49146 C1 x^2 D x^285225 C1 x^8 D x^46363 C x^33 D x^74211 C1 x^132 D x^24803 C1 x^528 D x^13889 C1 x^4912 C x^13 D D x^55 D x^16028 C1 x^278 D x^14 D D x^55 D x^63754 C x^1401 D x^36 D x^6700 D D x^44045 C2 x^152 D D x^11639 D x^27826 C0 x^2147 D D x^7151 C x^127 C2 x^16715 C1 x^2 D x^3071 C2 x^8 D x^1520 C1 x^34 D x^231 C2 x^136 D x^30552 C1 x^546 D x^129993 C1 x^3127 C0 x^2579 D x^21524 D x^72314 C0 x^150871 C1 x^51970 D x^168244 D x^800372 C0 x^365655 C2 x^62770 D x^15796 C x^223257 D x^735876 C1 x^893026 D x^509692 D x^124196 D x^62098 D x^12412 D x^36058 D x^14948 D x^4204 D x^3074 D x^1538 D x^300 D x^426 D x^1229734 D x^36 D x^1164202 D D x^3655 D x^3917187 C x^16238487 D x^2916 D x^1458 D x^284 D x^113735990 C1 D x^65191315 C x D x^16057625 C0 x^3 D x^16041738 C2 x^14 D x^7407086 C x^59 D x^6703333 C0 x^235 D x^3299196 C1 x^942 D x^744335 C0 x^3767 D x^959802 C0 x^15069 D x^518964 C1 x^60278 D x^152847 C1 x^241112 D x^22774 C x^50721 D x^3277336 C x^202885 D x^491945 C2 x^126069 C x^2503207 D x^1510632 D x^10693544";
 const J_DEF: &str = "C1 x^7640 D x^10345 C x^7639 D x^10347 C x^7635 D x^10355 C1 x^7618 D x^10389 C2 x^7550 D x^10524 C0 x^7279 D x^11066 C x^6197 D x^13231 C1 x^1866 D D x^7713 C0 x^95 C2 D";
+const H_DEF: &str = "C1 D x^299 C1 D x^30825 C1 D x^72141 C1 D x^3075 C1 D x^1537";
+const K_DEF: &str = "C0 x^7639 D x^10346 C0 x^7635 D x^10354 C0 x^7619 D x^10386 C0 x^7555 D x^10514 C0 x^7299 D x^11026 C0 x^6275 D x^13074 C0 x^2179 D D x^7087 C0 C0 x^3849";
 
 #[derive(Debug, PartialEq, EnumString, Copy, Clone, Eq, Hash)]
 pub enum CounterBlockType {
@@ -221,6 +225,8 @@ pub enum CounterBlockType {
     A,
     B,
     G,
+    H,
+    K,
     J
 }
 
@@ -253,6 +259,8 @@ pub fn left_block_definition() -> &'static HashMap<CounterBlockType, Vec<Counter
         m.insert(A, vec![C2, X(7640), D, X(10344)]);
         m.insert(B, vec![D, X(72142), D, X(3076), D, X(1538), D, X(300), D, X(30826)]);
         m.insert(G, vec![X(300), D, X(30826), D, X(72142), D, X(3076), D, X(1538), D]);
+        m.insert(H, parse_block_def(H_DEF));
+        m.insert(K, parse_block_def(K_DEF));
         m
     })
 }
@@ -282,7 +290,9 @@ impl fmt::Display for CounterSymbol {
             Block(A, _) => "[a]",
             Block(B, _) => "[b]",
             Block(G, _) => "[G]",
+            Block(H, _) => "[H]",
             Block(J, _) => "[J]",
+            Block(K, _) => "[K]",
             _ => &format!("{:?}", self),
         };
         let s1 = match *self {
@@ -291,9 +301,10 @@ impl fmt::Display for CounterSymbol {
             C => s0.green().bold(),
             P => s0.purple(),
             L => s0.dimmed(),
-            Block(A | LeftDebris, _) => s0.black().on_cyan().bold(),
+            Block(A | LeftDebris | H, _) => s0.black().on_cyan().bold(),
             Block(J, _) => s0.black().on_green().bold(),
             Block(B | G, _) => s0.black().on_white().bold(),
+            Block(K, _) => s0.black().on_bright_red().bold(),
             _ => s0.into(),
         };
 
@@ -477,8 +488,8 @@ pub struct CounterSimulator {
     pub left_tape: Vec<CounterSymbol>,
     pub right_tape: Vec<CounterSymbol>,
     pub dir: Direction,
-    pub base_steps: u128,
-    pub rle_steps: u128,
+    pub base_steps: BigInt,
+    pub rle_steps: BigInt,
     pub self_steps: u64,
     pub do_strides: bool,
     pub do_uni_cycles: bool,
@@ -570,6 +581,53 @@ impl NSteps {
         }
         None
     }
+
+    fn big(&self) -> BigNSteps {
+        BigNSteps(self.0.into(), self.1.into())
+    }
+}
+
+pub type BigInt = U256;
+
+/// (rle_steps, base_steps)
+#[derive(Debug, Clone)]
+pub struct BigNSteps(BigInt, BigInt);
+
+impl_op_ex!(+ |a: &BigNSteps, b: &BigNSteps| -> BigNSteps {
+    BigNSteps(a.0 + b.0, a.1 + b.1)
+});
+
+impl_op_ex!(* |a: &BigNSteps, c: &BigInt| -> BigNSteps {
+    BigNSteps(a.0 * c, a.1 * c)
+});
+
+impl_op_ex!(+= |a: &mut BigNSteps, b: &BigNSteps| {
+    a.0 += b.0;
+    a.1 += b.1;
+});
+
+impl BigNSteps {
+    pub fn checked_mul(&self, c: &BigInt) -> Option<Self> {
+        if let Some(r0) = self.0.checked_mul(*c) {
+            if let Some(r1) = self.1.checked_mul(*c) {
+                return Some(BigNSteps(r0, r1));
+            }
+        }
+        None
+    }
+
+    pub fn checked_add(&self, x: &Self) -> Option<Self> {
+        if let Some(r0) = self.0.checked_add(x.0) {
+            if let Some(r1) = self.1.checked_add(x.1) {
+                return Some(BigNSteps(r0, r1));
+            }
+        }
+        None
+    }
+
+    fn small(&self) -> NSteps {
+        NSteps(Exp::cast_from(self.0), Exp::cast_from(self.1))
+    }
 }
 
 /// this calculates N_SINGLE_UNICYCLE_CONST and N_SINGLE_UNICYCLE_N
@@ -637,6 +695,7 @@ const N_PCX_RIGHT: NSteps = NSteps(4, 19);
 const N_PDP_RIGHT: NSteps = NSteps(4, 27);
 const N_PDDX_RIGHT: NSteps = NSteps(14, 77);
 const N_G_BLOCK_RIGHT: NSteps = NSteps(107887, 1078855);
+const N_PDG_RIGHT_N: NSteps   = NSteps(107897, 1078905);
 
 /// this calculates N_G_BLOCK_LEFT and N_G_BLOCK_RIGHT
 pub fn count_G_block_steps() {
@@ -657,6 +716,11 @@ pub fn count_G_block_steps() {
     println!(">G steps {:?}", n_G_right);
 }
 
+/// this calculates N_PDG_RIGHT_N
+pub fn get_PDG_steps() {
+    println!("PDG steps {:?}", N_PX_RIGHT * 107877 + N_PDX_RIGHT * 5);
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum CounterStepInfo {
     S(usize),
@@ -667,6 +731,7 @@ pub enum CounterStepInfo {
     UniCycle(Exp),
     GLeft,
     Expand(CounterBlockType),
+    PDG
 }
 
 impl CounterSimulator {
@@ -675,8 +740,8 @@ impl CounterSimulator {
             left_tape: vec![CounterSymbol::L, CounterSymbol::C1],
             right_tape: vec![CounterSymbol::R],
             dir: Direction::Right,
-            base_steps: 19,
-            rle_steps: 5,
+            base_steps: 19u8.into(),
+            rle_steps: 5u8.into(),
             self_steps: 0,
             do_strides,
             do_uni_cycles
@@ -859,6 +924,14 @@ impl CounterSimulator {
                     self.add_or_merge_block(Right, G, exp);
                     (GLeft, N_G_BLOCK_LEFT * exp)
                 }
+                // H^n < ==> H^(n-1) expanded-H < (0, 0)
+                Some(Block(H, exp)) => {
+                    if exp > 1 {
+                        self.add_or_merge_block(Left, H, exp-1);
+                    }
+                    self.left_tape.extend_from_slice(&left_block_definition()[&H]);
+                    (Expand(H), NSteps(0, 0))
+                }
                 _ => return Err(SimError::UnreachableStateError),
             },
             Right => match self.right_tape.pop() {
@@ -889,34 +962,48 @@ impl CounterSimulator {
                     (S(5), N_R)
                 }
                 Some(C) => {
-                    let type_id = match self.left_tape.last() {
-                        // 7: x > C ==> C0 > (1, 4)
-                        Some(X(_)) => {
-                            self.consume_x(Left)?;
-
-                            if self.do_uni_cycles {
-                                if self.left_tape.ends_with(&left_block_definition()[&A]) {
-                                    pop_n(&mut self.left_tape, left_block_definition()[&A].len());
-                                    self.add_or_merge_block(Left, A, 1);
-                                }
+                    if matches!(self.left_tape.last(), Some(Block(G, _))) {
+                        // G^n > C ==> G^{n-1} expanded-G > C
+                        if let Some(Block(G, exp)) = self.left_tape.pop() {
+                            if exp > 1 {
+                                self.left_tape.push(Block(G, exp-1));
                             }
-
-                            self.left_tape.push(C0);
-                            7
+                            self.left_tape.extend_from_slice(left_block_definition()[&G].as_slice());
+                            self.right_tape.push(C);
+                        } else {
+                            unreachable!()
                         }
-                        // 11: D > C ==> P x > (1, 4)
-                        Some(D) => {
-                            self.left_tape.pop();
-                            self.left_tape.extend_from_slice(&[P, X(1)]);
-                            11
-                        }
-                        // 12: C2 > C ==> F0 > (1, 4)
-                        Some(C2) => { *self.left_tape.last_mut().unwrap() = F0; 12 }
-                        // 17: C0 > C ==> G0 > (1, 4)
-                        Some(C0) => { *self.left_tape.last_mut().unwrap() = G0; 17 }
-                        _ => return Err(SimError::UnreachableStateError)
-                    };
-                    (S(type_id), N_C_RIGHT)
+                        (Expand(G), NSteps(0, 0))
+                    } else {
+                        let type_id = match self.left_tape.last() {
+                            // 7: x > C ==> C0 > (1, 4)
+                            Some(X(_)) => {
+                                self.consume_x(Left)?;
+    
+                                if self.do_uni_cycles {
+                                    if self.left_tape.ends_with(&left_block_definition()[&A]) {
+                                        pop_n(&mut self.left_tape, left_block_definition()[&A].len());
+                                        self.add_or_merge_block(Left, A, 1);
+                                    }
+                                }
+    
+                                self.left_tape.push(C0);
+                                7
+                            }
+                            // 11: D > C ==> P x > (1, 4)
+                            Some(D) => {
+                                self.left_tape.pop();
+                                self.left_tape.extend_from_slice(&[P, X(1)]);
+                                11
+                            }
+                            // 12: C2 > C ==> F0 > (1, 4)
+                            Some(C2) => { *self.left_tape.last_mut().unwrap() = F0; 12 }
+                            // 17: C0 > C ==> G0 > (1, 4)
+                            Some(C0) => { *self.left_tape.last_mut().unwrap() = G0; 17 }
+                            _ => return Err(SimError::UnreachableStateError)
+                        };
+                        (S(type_id), N_C_RIGHT)
+                    }
                 }
                 Some(P) => match self.right_tape.pop() {
                     // 22: > P P ==> x > (1, 10)
@@ -939,6 +1026,12 @@ impl CounterSimulator {
                     // 26: > P C x ==> < P D P (4, 19)
                     Some(C) => {
                         self.consume_x(Right)?;
+                        if self.do_uni_cycles {
+                            if self.right_tape.ends_with(&right_block_definition()[&G]) {
+                                pop_n(&mut self.right_tape, right_block_definition()[&G].len());
+                                self.add_or_merge_block(Right, G, 1);
+                            }
+                        }
                         self.dir = Left;
                         self.right_tape.extend_from_slice(&[P, D, P]);
                         (S(26), N_PCX_RIGHT)
@@ -976,6 +1069,13 @@ impl CounterSimulator {
                                 self.left_tape.extend_from_slice(&[G1, D]);
                                 self.right_tape.push(P);
                                 (S(29), NSteps(5, 31))
+                            }
+                            // > P D G^n x ==> H^n C1 D > P
+                            Some(Block(G, n)) => {
+                                self.consume_x(Right)?;
+                                self.left_tape.extend_from_slice(&[Block(H, n), C1, D]);
+                                self.right_tape.push(P);
+                                (PDG, N_PDG_RIGHT_N * n + N_PDX_RIGHT)
                             }
                             _ => return Err(SimError::UnreachableStateError)
                         }
@@ -1046,7 +1146,7 @@ impl CounterSimulator {
     }
 
     /// Does a stride if possible. Returns None if stride not possible.
-    fn try_stride(&mut self) -> Option<(usize, NSteps)> {
+    fn try_stride(&mut self) -> Option<(usize, BigNSteps)> {
         use CounterSymbol::*;
         use Direction::*;
 
@@ -1088,30 +1188,179 @@ impl CounterSimulator {
                 }
             }
             self.dir = Left;
-            Some((0, (N_X_RIGHT+N_X_LEFT) * n_x + (N_D_RIGHT+N_D_LEFT) * n_D
-                + (N_G_BLOCK_LEFT+N_G_BLOCK_RIGHT) * n_G + N_R))
+            Some((0,
+                ((N_X_RIGHT+N_X_LEFT) * n_x + (N_D_RIGHT+N_D_LEFT) * n_D
+                + (N_G_BLOCK_LEFT+N_G_BLOCK_RIGHT) * n_G + N_R).big()))
         } else {
-            let mut powers_4: Vec<Exp> = vec![1];
+            let mut powers_4: Vec<BigInt> = vec![BigInt::ONE];
 
             // Verify that there are enough x's to the left of each C
             for (i, &part) in (&split[..split.len()-1]).iter().enumerate() {
                 let n_eat = if i == 0 {
-                    1
+                    BigInt::ONE
                 } else {
-                    let n_new = powers_4[i-1] * 4;
+                    let n_new = powers_4[i-1] * BigInt::FOUR;
                     powers_4.push(n_new);
                     n_new
                 };
 
                 match part.split_last() {
-                    Some((X(exp), _)) => if *exp < n_eat { return None },
+                    Some((X(exp), _)) => if BigInt::from(*exp) < n_eat { return None },
                     _ => return None,
                 }
             }
-            powers_4.push(powers_4.last().unwrap() * 4);
+            powers_4.push(powers_4.last().unwrap() * BigInt::FOUR);
 
             // > w0 x C     w1 x^4 C     ... w_n x^4^n C           w_{n+1} R ==>
             // < w0   C x^2 w1     C x^8 ... w_n       C x^(2*4^n) w_{n+1} R
+
+            // stride level is n+1, since there are n+1 C's
+
+            // count the number of x's and D's in each w_i; the x's to be eaten by a C do not count
+            let n = split.len() - 2;
+            let mut n_x: Vec<BigInt> = Vec::new();
+            let mut n_D: Vec<u32> = Vec::new();
+            let mut n_G: Vec<Exp> = Vec::new();
+            for (i, &part) in split.iter().enumerate() {
+                let mut curr_n_x = BigInt::ZERO;
+                let mut curr_n_D = 0;
+                let mut curr_n_G = 0;
+                for symb in part {
+                    match symb {
+                        X(exp) => curr_n_x += BigInt::from(*exp),
+                        D => curr_n_D += 1,
+                        Block(CounterBlockType::G, exp) => curr_n_G += exp,
+                        R => (),
+                        _ => unreachable!()
+                    }
+                }
+                if i <= n {
+                    curr_n_x -= powers_4[i];
+                }
+                n_x.push(curr_n_x);
+                n_D.push(curr_n_D);
+                n_G.push(curr_n_G);
+            }
+
+            // actually edit the parts to delete and add x's
+            let mut parts: Vec<_> = split.into_iter().map(|s| s.to_vec()).collect();
+            for i in 0..=n {
+                let X(exp) = parts[i].last_mut().unwrap() else { unreachable!() };
+                if BigInt::from(*exp) > powers_4[i] {
+                    *exp -= u128::cast_from(powers_4[i]);
+                } else if BigInt::from(*exp) == powers_4[i] {
+                    parts[i].pop();
+                } else {
+                    unreachable!()
+                }
+
+                if let X(exp) = parts[i+1].first_mut().unwrap() {
+                    *exp += u128::cast_from(powers_4[i]) * 2;
+                } else {
+                    parts[i+1].insert(0, X(u128::cast_from(powers_4[i]) * 2));
+                }
+            }
+
+            let mut rtape_new: Vec<CounterSymbol> = Vec::new();
+            rtape_new.extend(parts.pop().unwrap().into_iter().rev());
+            for part in parts.drain(..).rev() {
+                rtape_new.push(C);
+                rtape_new.extend(part.into_iter().rev());
+            }
+
+            self.right_tape = rtape_new;
+            self.dir = Left;
+
+            // step count
+            let mut w_steps = BigNSteps(BigInt::ZERO, BigInt::ZERO);
+            assert!(powers_4.len() >= n_x.len());
+            for (pow, curr_n_x, curr_n_D, curr_n_G) in izip!(&powers_4, n_x, n_D, n_G) {
+                w_steps += ((N_X_RIGHT+N_X_LEFT).big() * curr_n_x
+                    + ((N_D_RIGHT+N_D_LEFT) * curr_n_D as u128
+                    + (N_G_BLOCK_LEFT+N_G_BLOCK_RIGHT) * curr_n_G).big()) * pow;
+            }
+            let R_steps = N_R.big() * powers_4[n+1];
+            
+            let a1 = powers_4[n+1] - BigInt::ONE;
+            let a2 = a1 / BigInt::THREE;
+            let p16 = BigInt::ONE.checked_shl(4 * (n as u32 + 1)).unwrap();
+            let rep_x_both = ((p16 - BigInt::ONE) / BigInt::from(15u8) - a2) * BigInt::NINE / BigInt::TWO;
+            let rep_x_left = a2 * BigInt::FOUR;
+            let C_steps = (N_X_RIGHT+N_X_LEFT).big() * rep_x_both
+                + N_X_RIGHT.big() * a1 
+                + N_X_LEFT.big() * rep_x_left
+                + (N_C0_LEFT + N_C1_LEFT + N_C2_LEFT + N_C_LEFT + N_C_RIGHT).big() * a2;
+
+            Some((n+1, w_steps + R_steps + C_steps))
+        }
+    }
+
+    fn multi_stride(&mut self, k: Exp) -> Result<(usize, BigNSteps), SimError> {
+        use CounterSymbol::*;
+        use Direction::*;
+
+        if self.dir == Left {
+            return Err(SimError::UnreachableStateError);
+        }
+
+        match self.right_tape.last() {
+            Some(X(_)) | Some(D) => (),
+            Some(Block(CounterBlockType::G, _)) => (),
+            _ => return Err(SimError::UnreachableStateError),
+        }
+
+        for symb in self.right_tape.iter().rev() {
+            match symb {
+                X(_) | D | C | Block(CounterBlockType::G, _) | R => continue,
+                _ => return Err(SimError::UnreachableStateError),
+            }
+        }
+
+        let rtape_rev: Vec<CounterSymbol> = self.right_tape.iter().rev().cloned().collect();
+        let split: Vec<_> = rtape_rev.split(|&s| s == C).collect();
+
+        // w_i = (x|D)*
+
+        // > w0 R ==> < w0 R
+        // stride level 0
+        if split.len() == 1 {
+            let mut n_x = 0;
+            let mut n_D = 0;
+            let mut n_G = 0;
+            for symb in split[0] {
+                match symb {
+                    X(n) => n_x += n,
+                    D => n_D += 1,
+                    Block(CounterBlockType::G, n) => n_G += n,
+                    R => continue,
+                    _ => unreachable!()
+                }
+            }
+            self.dir = Left;
+            Ok((0, (((N_X_RIGHT+N_X_LEFT) * n_x + (N_D_RIGHT+N_D_LEFT) * n_D
+                + (N_G_BLOCK_LEFT+N_G_BLOCK_RIGHT) * n_G + N_R) * k).big()))
+        } else {
+            let mut k_powers_4: Vec<Exp> = vec![k];
+
+            // Verify that there are enough x's to the left of each C
+            for (i, &part) in (&split[..split.len()-1]).iter().enumerate() {
+                let n_eat = if i == 0 {
+                    k
+                } else {
+                    let n_new = k_powers_4[i-1].checked_mul(4).unwrap();
+                    k_powers_4.push(n_new);
+                    n_new
+                };
+
+                match part.split_last() {
+                    Some((X(exp), _)) => if *exp < n_eat { return Err(SimError::UnreachableStateError) },
+                    _ => return Err(SimError::UnreachableStateError),
+                }
+            }
+            k_powers_4.push(k_powers_4.last().unwrap() * 4);
+
+            // > w0 x^k C      w1 x^4k C      ... w_n x^{k*4^n} C            w_{n+1} R ==>
+            // < w0     C x^2k w1      C x^8k ... w_n           C x^(2k*4^n) w_{n+1} R
 
             // stride level is n+1, since there are n+1 C's
 
@@ -1134,149 +1383,11 @@ impl CounterSimulator {
                     }
                 }
                 if i <= n {
-                    curr_n_x -= powers_4[i];
-                }
-                n_x.push(curr_n_x);
-                n_D.push(curr_n_D);
-                n_G.push(curr_n_G);
-            }
-
-            // actually edit the parts to delete and add x's
-            let mut parts: Vec<_> = split.into_iter().map(|s| s.to_vec()).collect();
-            for i in 0..=n {
-                let X(exp) = parts[i].last_mut().unwrap() else { unreachable!() };
-                if *exp > powers_4[i] {
-                    *exp -= powers_4[i];
-                } else if *exp == powers_4[i] {
-                    parts[i].pop();
-                } else {
-                    unreachable!()
-                }
-
-                if let X(exp) = parts[i+1].first_mut().unwrap() {
-                    *exp += powers_4[i] * 2;
-                } else {
-                    parts[i+1].insert(0, X(powers_4[i] * 2));
-                }
-            }
-
-            let mut rtape_new: Vec<CounterSymbol> = Vec::new();
-            rtape_new.extend(parts.pop().unwrap().into_iter().rev());
-            for part in parts.drain(..).rev() {
-                rtape_new.push(C);
-                rtape_new.extend(part.into_iter().rev());
-            }
-
-            self.right_tape = rtape_new;
-            self.dir = Left;
-
-            // step count
-            let mut w_steps = NSteps(0, 0);
-            assert!(powers_4.len() >= n_x.len());
-            for (pow, curr_n_x, curr_n_D, curr_n_G) in izip!(&powers_4, n_x, n_D, n_G) {
-                w_steps += ((N_X_RIGHT+N_X_LEFT) * curr_n_x
-                    + (N_D_RIGHT+N_D_LEFT) * curr_n_D as u128
-                    + (N_G_BLOCK_LEFT+N_G_BLOCK_RIGHT) * curr_n_G) * pow;
-            }
-            let R_steps = N_R * powers_4[n+1];
-            
-            let a1 = powers_4[n+1] - 1;
-            let a2 = a1 / 3;
-            let p16 = 1u128.checked_shl(4 * (n as u32 + 1)).unwrap();
-            let rep_x_both = ((p16 - 1) / 15 - a2) * 9 / 2;
-            let rep_x_left = a2 * 4;
-            let C_steps = (N_X_RIGHT+N_X_LEFT) * rep_x_both + N_X_RIGHT * a1 + N_X_LEFT * rep_x_left
-                + (N_C0_LEFT + N_C1_LEFT + N_C2_LEFT + N_C_LEFT + N_C_RIGHT) * a2;           
-
-            Some((n+1, w_steps + R_steps + C_steps))
-        }
-    }
-
-    fn multi_stride(&mut self, k: Exp) -> Result<(usize, NSteps), SimError> {
-        use CounterSymbol::*;
-        use Direction::*;
-
-        if self.dir == Left {
-            return Err(SimError::UnreachableStateError);
-        }
-
-        match self.right_tape.last() {
-            Some(X(_)) | Some(D) => (),
-            _ => return Err(SimError::UnreachableStateError),
-        }
-
-        for symb in self.right_tape.iter().rev() {
-            match symb {
-                X(_) | D | C | R => continue,
-                _ => return Err(SimError::UnreachableStateError),
-            }
-        }
-
-        let rtape_rev: Vec<CounterSymbol> = self.right_tape.iter().rev().cloned().collect();
-        let split: Vec<_> = rtape_rev.split(|&s| s == C).collect();
-
-        // w_i = (x|D)*
-
-        // > w0 R ==> < w0 R
-        // stride level 0
-        if split.len() == 1 {
-            let mut n_x = 0;
-            let mut n_D = 0;
-            for symb in split[0] {
-                match symb {
-                    X(n) => n_x += n,
-                    D => n_D += 1,
-                    R => continue,
-                    _ => unreachable!()
-                }
-            }
-            self.dir = Left;
-            Ok((0, ((N_X_RIGHT+N_X_LEFT) * n_x + (N_D_RIGHT+N_D_LEFT) * n_D + N_R) * k))
-        } else {
-            let mut k_powers_4: Vec<Exp> = vec![k];
-
-            // Verify that there are enough x's to the left of each C
-            for (i, &part) in (&split[..split.len()-1]).iter().enumerate() {
-                let n_eat = if i == 0 {
-                    k
-                } else {
-                    let n_new = k_powers_4[i-1] * 4;
-                    k_powers_4.push(n_new);
-                    n_new
-                };
-
-                match part.split_last() {
-                    Some((X(exp), _)) => if *exp < n_eat { return Err(SimError::UnreachableStateError) },
-                    _ => return Err(SimError::UnreachableStateError),
-                }
-            }
-            k_powers_4.push(k_powers_4.last().unwrap() * 4);
-
-            // > w0 x^k C      w1 x^4k C      ... w_n x^{k*4^n} C            w_{n+1} R ==>
-            // < w0     C x^2k w1      C x^8k ... w_n           C x^(2k*4^n) w_{n+1} R
-
-            // stride level is n+1, since there are n+1 C's
-
-            // count the number of x's and D's in each w_i; the x's to be eaten by a C do not count
-            let n = split.len() - 2;
-            let mut n_x: Vec<Exp> = Vec::new();
-            let mut n_D: Vec<u32> = Vec::new();
-            for (i, &part) in split.iter().enumerate() {
-                let mut curr_n_x = 0;
-                let mut curr_n_D = 0;
-                for symb in part {
-                    match symb {
-                        X(exp) => curr_n_x += exp,
-                        D => curr_n_D += 1,
-                        R => (),
-                        _ => unreachable!()
-                    }
-                }
-                if i <= n {
                     curr_n_x -= k_powers_4[i];
                 }
                 n_x.push(curr_n_x);
                 n_D.push(curr_n_D);
+                n_G.push(curr_n_G);
             }
 
             // actually edit the parts to delete and add x's
@@ -1309,25 +1420,30 @@ impl CounterSimulator {
             // self.dir = Left; // handle direction change elsewhere???
 
             // step count
-            let mut w_steps = NSteps(0, 0);
+            let mut w_steps = BigNSteps(BigInt::ZERO, BigInt::ZERO);
             assert!(k_powers_4.len() >= n_x.len());
-            for (k_pow, curr_n_x, curr_n_D) in izip!(&k_powers_4, n_x, n_D) {
-                w_steps += ((N_X_RIGHT+N_X_LEFT) * curr_n_x + (N_D_RIGHT+N_D_LEFT) * curr_n_D as u128) * k_pow;
+            for (k_pow, curr_n_x, curr_n_D, curr_n_G) in izip!(&k_powers_4, n_x, n_D, n_G) {
+                w_steps += ((N_X_RIGHT+N_X_LEFT).big() * BigInt::from(curr_n_x)
+                    + (N_D_RIGHT+N_D_LEFT).big() * BigInt::from(curr_n_D)
+                    + (N_G_BLOCK_LEFT+N_G_BLOCK_RIGHT).big() * BigInt::from(curr_n_G)) * BigInt::from(*k_pow);
             }
             let R_steps = N_R * k_powers_4[n+1];
 
-            let p4 = 1u128 << (2 * (n as u32 + 1));
-            let sum_m3 = (p4 - 1) * k;
-            let sum_m = sum_m3 / 3;
-            let sum_m4 = sum_m * 4;
-            let p16 = 1u128.checked_shl(4 * (n as u32 + 1)).unwrap();
-            let sum_msq = (p16 - 1).checked_mul(k*k).unwrap() / 15;
-            let rep_x_both = (sum_msq - sum_m) * 9 / 2;
-            let rep_x_left = sum_m4;
-            let C_steps = (N_X_RIGHT+N_X_LEFT) * rep_x_both + N_X_RIGHT * sum_m3 + N_X_LEFT * rep_x_left
-            + (N_C0_LEFT + N_C1_LEFT + N_C2_LEFT + N_C_LEFT + N_C_RIGHT) * sum_m;
+            let k_b = BigInt::from(k);
 
-            Ok((n+1, w_steps + R_steps + C_steps))
+            let p4 = BigInt::ONE << (2 * (n as u32 + 1));
+            let sum_m3 = (p4 - BigInt::ONE) * k_b;
+            let sum_m = sum_m3 / BigInt::THREE;
+            let sum_m4 = sum_m * BigInt::FOUR;
+            let p16 = BigInt::ONE.checked_shl(4 * (n as u32 + 1)).unwrap();
+            let sum_msq = (p16 - BigInt::ONE).checked_mul(k_b).unwrap()
+                                                        .checked_mul(k_b).unwrap() / BigInt::from(15u8);
+            let rep_x_both = (sum_msq - sum_m) * BigInt::NINE / BigInt::TWO;
+            let rep_x_left = sum_m4;
+            let C_steps = (N_X_RIGHT+N_X_LEFT).big() * rep_x_both + N_X_RIGHT.big() * sum_m3 + N_X_LEFT.big() * rep_x_left
+            + (N_C0_LEFT + N_C1_LEFT + N_C2_LEFT + N_C_LEFT + N_C_RIGHT).big() * sum_m;
+
+            Ok((n+1, w_steps + R_steps.big() + C_steps))
         }
     }
 
@@ -1340,13 +1456,13 @@ impl CounterSimulator {
         }
 
         match self.right_tape.last() {
-            Some(X(_)) | Some(D) => (),
+            Some(X(_)) | Some(D) | Some(Block(CounterBlockType::G, _)) => (),
             _ => return 0,
         }
 
         for symb in self.right_tape.iter().rev() {
             match symb {
-                X(_) | D | C | R => continue,
+                X(_) | D | C | R | Block(CounterBlockType::G, _) => continue,
                 _ => return 0,
             }
         }
@@ -1385,7 +1501,7 @@ impl CounterSimulator {
     }
 
     /// Does uni-cycles if possible. Returns None if uni-cycle not possible.
-    fn try_uni_cycle(&mut self) -> Option<(Exp, NSteps)> {
+    fn try_uni_cycle(&mut self) -> Option<(Exp, BigNSteps)> {
         use CounterSymbol::*;
         use CounterBlockType::*;
         use Direction::*;
@@ -1411,18 +1527,19 @@ impl CounterSimulator {
             let max_cycles_left = *x_exp / UNI_CYCLE_P;
             let max_cycles_right = max_strides / UNI_CYCLE_T;
             let num_cycles = max_cycles_left.min(max_cycles_right);
+            let num_cycles_b = BigInt::from(num_cycles);
 
             // count the steps and do the strides
             let N = *x_exp - UNI_CYCLE_P;
             let N_final = *x_exp - UNI_CYCLE_P * num_cycles;
 
-            let left_steps_const = N_SINGLE_UNICYCLE_CONST.checked_mul(&num_cycles).unwrap();
-            let left_N_occurrences = (N + N_final).checked_mul(num_cycles).unwrap() / 2;
-            let left_steps_N = N_SINGLE_UNICYCLE_N.checked_mul(&left_N_occurrences).unwrap();
+            let left_steps_const = N_SINGLE_UNICYCLE_CONST.big().checked_mul(&num_cycles_b).unwrap();
+            let left_N_occurrences = BigInt::from(N + N_final).checked_mul(num_cycles_b).unwrap() / 2;
+            let left_steps_N = N_SINGLE_UNICYCLE_N.big().checked_mul(&left_N_occurrences).unwrap();
 
-            let G_occurrences = (num_cycles.checked_mul(num_cycles - 1).unwrap() / 2)
-                                            .checked_mul(UNI_CYCLE_T).unwrap();
-            let G_steps = (N_G_BLOCK_LEFT + N_G_BLOCK_RIGHT).checked_mul(&G_occurrences).unwrap();
+            let G_occurrences = (num_cycles_b.checked_mul(num_cycles_b - BigInt::ONE).unwrap() / BigInt::TWO)
+                                            .checked_mul(UNI_CYCLE_T.into()).unwrap();
+            let G_steps = (N_G_BLOCK_LEFT + N_G_BLOCK_RIGHT).big().checked_mul(&G_occurrences).unwrap();
 
             let (_, stride_steps) = self.multi_stride(num_cycles * UNI_CYCLE_T).unwrap();
             let total_steps = left_steps_const.checked_add(&left_steps_N).unwrap()
@@ -1447,7 +1564,7 @@ impl CounterSimulator {
 
     pub fn step(&mut self) -> Result<CounterStepInfo, SimError> {
         if self.do_uni_cycles {
-            if let Some((n_repeats, NSteps(new_rle_steps, new_base_steps))) = self.try_uni_cycle() {
+            if let Some((n_repeats, BigNSteps(new_rle_steps, new_base_steps))) = self.try_uni_cycle() {
                 self.rle_steps = self.rle_steps.checked_add(new_rle_steps).unwrap();
                 self.base_steps = self.base_steps.checked_add(new_base_steps).unwrap();
                 self.self_steps += 1;
@@ -1456,7 +1573,7 @@ impl CounterSimulator {
         }
 
         if self.do_strides {
-            if let Some((stride_level_val, NSteps(new_rle_steps, new_base_steps))) = self.try_stride() {
+            if let Some((stride_level_val, BigNSteps(new_rle_steps, new_base_steps))) = self.try_stride() {
                 self.rle_steps = self.rle_steps.checked_add(new_rle_steps).unwrap();
                 self.base_steps = self.base_steps.checked_add(new_base_steps).unwrap();
                 self.self_steps += 1;
@@ -1465,8 +1582,8 @@ impl CounterSimulator {
         }
 
         let (basic_step_info, NSteps(new_rle_steps, new_base_steps)) = self.basic_counter_step()?;
-        self.rle_steps = self.rle_steps.checked_add(new_rle_steps).unwrap();
-        self.base_steps = self.base_steps.checked_add(new_base_steps).unwrap();
+        self.rle_steps = self.rle_steps.checked_add(new_rle_steps.into()).unwrap();
+        self.base_steps = self.base_steps.checked_add(new_base_steps.into()).unwrap();
         self.self_steps += 1;
         Ok(basic_step_info)
     }
@@ -1537,18 +1654,44 @@ fn collapse_block_runs(v: &mut Vec<CounterSymbol>, t: CounterBlockType) {
 impl fmt::Display for CounterSimulator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use colored::*;
+
+        const LEFT_PRINT_THRESHOLD: usize = 200;
+        let l_th = LEFT_PRINT_THRESHOLD / 2;
         
         self.self_steps.fmt(f)?;
         write!(f, " | {} | {}: ", self.rle_steps, self.base_steps)?;
-        for symb in &self.left_tape {
-            write!(f, "{} ", symb)?;
+        if self.left_tape.len() <= LEFT_PRINT_THRESHOLD {
+            for symb in &self.left_tape {
+                write!(f, "{} ", symb)?;
+            }
+        } else {
+            for symb in &self.left_tape[..l_th] {
+                write!(f, "{} ", symb)?;
+            }
+            write!(f, " ...{} terms... ", self.left_tape.len() - LEFT_PRINT_THRESHOLD)?;
+            for symb in &self.left_tape[self.left_tape.len() - l_th..] {
+                write!(f, "{} ", symb)?;
+            }
         }
         match self.dir {
             Direction::Left => write!(f, "{}", "<".red().bold())?,
             Direction::Right => write!(f, "{}", ">".red().bold())?,
         }
-        for symb in self.right_tape.iter().rev() {
-            write!(f, " {}", symb)?;
+
+        const RIGHT_PRINT_THRESHOLD: usize = 200;
+        let r_th = RIGHT_PRINT_THRESHOLD / 2;
+        if self.right_tape.len() <= RIGHT_PRINT_THRESHOLD {
+            for symb in self.right_tape.iter().rev() {
+                write!(f, " {}", symb)?;
+            }
+        } else {
+            for symb in self.right_tape[self.right_tape.len() - r_th..].iter().rev() {
+                write!(f, " {}", symb)?;
+            }
+            write!(f, " ...{} terms... ", self.right_tape.len() - RIGHT_PRINT_THRESHOLD)?;
+            for symb in self.right_tape[..r_th].iter().rev() {
+                write!(f, " {}", symb)?;
+            }
         }
 
         Ok(())
@@ -1715,8 +1858,8 @@ pub fn measure_uni_cycle(do_print: bool, N0: u128, nr1: u128) {
         left_tape: ltape,
         right_tape: rtape,
         dir: Direction::Right,
-        base_steps: 0,
-        rle_steps: 0,
+        base_steps: BigInt::ZERO,
+        rle_steps: BigInt::ZERO,
         do_strides: true,
         do_uni_cycles: false,
         self_steps: 0
@@ -1757,7 +1900,7 @@ pub fn measure_uni_cycle(do_print: bool, N0: u128, nr1: u128) {
 
             if i == 0 {
                 let mut sim2 = sim.clone();
-                r_strides_step_count_prediction = Some(sim2.multi_stride(215779).unwrap().1);
+                r_strides_step_count_prediction = Some(sim2.multi_stride(215779).unwrap().1.small());
             }
 
             if i > 0 {

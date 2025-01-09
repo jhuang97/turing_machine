@@ -1,6 +1,6 @@
 mod skelet1;
 
-use skelet1::{counter_to_rle, counter_transition_rules, measure_uni_cycle, CounterBlockType, CounterStepInfo, CounterSymbol, Direction};
+use skelet1::{counter_to_rle, counter_transition_rules, measure_uni_cycle, BigInt, CounterBlockType, CounterStepInfo, CounterSymbol, Direction};
 use turing_machine::{BasicSimulator, State, Symbol, TMDirection, TMTransition, TuringMachine};
 
 const SKELET_1: &str = "1RB1RD_1LC0RC_1RA1LD_0RE0LB_---1RC";
@@ -32,7 +32,7 @@ fn compare_rle_counter_skelet(n_steps: usize) {
     let mut counter = skelet1::CounterSimulator::new(false, false);
 
     for _ in 0..n_steps {
-        while rle.rle_steps < counter.rle_steps as usize {
+        while BigInt::from(rle.rle_steps) < counter.rle_steps {
             rle.step().unwrap();
         }
         println!("{counter}");
@@ -73,8 +73,8 @@ fn compare_counter_unicycle_skelet_set_position(n_steps: usize, n_cycle_left: u1
         left_tape: ltape.clone(),
         right_tape: rtape.clone(),
         dir: Direction::Right,
-        base_steps: 0,
-        rle_steps: 0,
+        base_steps: BigInt::ZERO,
+        rle_steps: BigInt::ZERO,
         self_steps: 0,
         do_strides: true,
         do_uni_cycles: true
@@ -84,8 +84,8 @@ fn compare_counter_unicycle_skelet_set_position(n_steps: usize, n_cycle_left: u1
         left_tape: ltape2,
         right_tape: rtape,
         dir: Direction::Right,
-        base_steps: 0,
-        rle_steps: 0,
+        base_steps: BigInt::ZERO,
+        rle_steps: BigInt::ZERO,
         self_steps: 0,
         do_strides: true,
         do_uni_cycles: false
@@ -102,6 +102,62 @@ fn compare_counter_unicycle_skelet_set_position(n_steps: usize, n_cycle_left: u1
         assert!(!sim.right_tape.iter().any(|&e| if let Block(G, _) = e { true } else { false }));
         let mut sim_p = sim.clone();
         sim_p.rewrite_with_blocks(&vec![A, G, J], &vec![G]);
+
+        println!("{sim_uni_p:>width$}", width=(sim.self_steps.checked_ilog10().unwrap_or(0) + 1) as usize);
+        println!("{sim_p}");
+
+        while sim_uni.rle_steps <= sim.rle_steps {
+            sim_uni.step().unwrap();
+        }
+    }
+}
+
+fn test_H_block_creation_set_position(n_steps: usize, n_blocks: u128) {
+    use CounterBlockType::*;
+    use CounterSymbol::*;
+
+    let ltape = vec![L];
+    let rpart = [R, X(1), D, X(100)];
+    let rtape = [&rpart[..], &[Block(G, n_blocks), D, P]].concat();
+
+    let G_def = &skelet1::right_block_definition()[&G];
+    let G_repeat: Vec<_> = G_def.iter().cycle().take(G_def.len() * n_blocks as usize).cloned().collect();
+    let rtape2 = [&rpart[..], G_repeat.as_slice(), &[D, P]].concat();
+
+    let mut sim_uni = skelet1::CounterSimulator {
+        left_tape: ltape.clone(),
+        right_tape: rtape,
+        dir: Direction::Right,
+        base_steps: BigInt::ZERO,
+        rle_steps: BigInt::ZERO,
+        self_steps: 0,
+        do_strides: true,
+        do_uni_cycles: true
+    };
+
+    let mut sim = skelet1::CounterSimulator {
+        left_tape: ltape,
+        right_tape: rtape2,
+        dir: Direction::Right,
+        base_steps: BigInt::ZERO,
+        rle_steps: BigInt::ZERO,
+        self_steps: 0,
+        do_strides: true,
+        do_uni_cycles: false
+    };
+
+    for i in 0..n_steps { // 1300000
+        while sim.rle_steps < sim_uni.rle_steps {
+            sim.step().unwrap();
+        }
+
+        let mut sim_uni_p = sim_uni.clone();
+        // sim_uni_p.rewrite_with_blocks(&vec![], &vec![]);
+
+        assert!(!sim.right_tape.iter().any(|&e| if let Block(G, _) = e { true } else { false }));
+        assert!(!sim.left_tape.iter().any(|&e| if let Block(H, _) = e { true } else { false }));
+        let mut sim_p = sim.clone();
+        sim_p.rewrite_with_blocks(&vec![G, H], &vec![G]);
 
         println!("{sim_uni_p:>width$}", width=(sim.self_steps.checked_ilog10().unwrap_or(0) + 1) as usize);
         println!("{sim_p}");
@@ -266,6 +322,14 @@ fn main() {
 
     // compare_counter_unicycle_skelet(68705);
 
+    // skelet1::get_PDG_steps();
+
+    // test_H_block_creation_set_position(4, 1);
+    // test_H_block_creation_set_position(3, 2);
+    // test_H_block_creation_set_position(3, 3);
+    // test_H_block_creation_set_position(3, 4);
+    // test_H_block_creation_set_position(3, 5);
+
     {
         use CounterBlockType::*;
         use CounterSymbol::*;
@@ -275,19 +339,41 @@ fn main() {
         fn n_J(v: &Vec<CounterSymbol>) -> usize {
             v.iter().filter(|x| x == &&Block(J, 1)).count()
         }
+
+        let mut num_uni_cycle_rules = 0;
+        let mut times_seen_K = 0;
     
-        for i in 0..1500001 {
+        for i in 0..85258001 {
             let res = sim_uni.step().unwrap();
-            { // || (i > 69500 && i < 70000) || (i > 110610 && i < 110630) {
-                let mut sim_uni_p = sim_uni.clone();
-                sim_uni_p.rewrite_with_blocks(&vec![LeftDebris], &vec![]);
-                let mut sim_uni_p2 = sim_uni.clone();
-                sim_uni_p2.rewrite_with_blocks(&vec![LeftDebris, A, J, G], &vec![G]);
     
-                if matches!(res, CounterStepInfo::UniCycle(_)) || (i > 68695 && i < 68705) || (i > 70000 && i % 50000 == 0) || 
-                    (n_J(&sim_uni_p2.left_tape) > n_J(&sim_uni_p.left_tape) && sim_uni.dir == Direction::Right) {
+            let is_uni = matches!(res, CounterStepInfo::UniCycle(_));
+            if is_uni {
+                num_uni_cycle_rules += 1;
+            }
+
+            if (i > 71678 && i % 1000000 == 0) || (is_uni && num_uni_cycle_rules % 400 == 0) {
+                let mut sim_uni_p = sim_uni.clone();
+                sim_uni_p.rewrite_with_blocks(&vec![LeftDebris, K], &vec![]);
+                // let mut sim_uni_p2 = sim_uni.clone();
+                // sim_uni_p2.rewrite_with_blocks(&vec![LeftDebris, A, J, G], &vec![G]);
+                println!("uni cycle rule applied {num_uni_cycle_rules} times");
+                println!("{sim_uni_p}");
+                // println!("{sim_uni_p2}");
+            } else if num_uni_cycle_rules >= 11602 {
+                let mut sim_uni_p = sim_uni.clone();
+                // let mut sim_uni_p2 = sim_uni.clone();
+                // sim_uni_p2.rewrite_with_blocks(&vec![LeftDebris, A, J, G], &vec![G]);
+                // println!("{sim_uni_p2}");
+                if i % 1000 == 0 || i > 85256001 {
+                    // sim_uni_p.rewrite_with_blocks(&vec![LeftDebris, K], &vec![]);
+                    println!("uni cycle rule applied {num_uni_cycle_rules} times");
                     println!("{sim_uni_p}");
-                    println!("{sim_uni_p2}");
+                    // if sim_uni_p.left_tape.contains(&Block(K, 1)) {
+                    //     times_seen_K += 1;
+                    //     if times_seen_K > 50 {
+                    //         return;
+                    //     }
+                    // }
                 }
             }
         }

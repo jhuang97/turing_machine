@@ -157,3 +157,53 @@ also confirmed that P = 53946, T = 215779.
 Implemented uni-cycle.
 
 But now need to handle passing through a blocks and G blocks properly - sometimes G blocks are generated outside of the uni-cycle, need a way to handle that?
+...Now able to match G blocks.
+
+Need to handle > P D G^n case.
+Basically this is
+
+> P D x^e1 D x^e2 D ... x^en D
+C1 D > P x^(e1 - 1) D x^e2 D ... x^en D  (rule S25)
+C1 D x^(e1 - 1) > P D x^e2 D ... x^en D  (rule S23 x (e1 - 1))
+
+...I think the rule ought to be
+> P D (x^300 D x^30826 D x^72142 D x^3076 D x^1538 D)^n x ==>
+(C1 D x^299 C1 D x^30825 C1 D x^72141 C1 D x^3075 C1 D x^1537)^n C1 D > P
+
+Let
+block H := C1 D x^299 C1 D x^30825 C1 D x^72141 C1 D x^3075 C1 D x^1537
+block c (uni) = C1 D x^72141 C1 D x^3075 C1 D x^1537 C1 D x^299 C1 D x^30825
+
+H|H: C1 D x^299 C1 D x^30825 C1 D x^72141 C1 D x^3075 C1 D x^1537|C1 D x^299 C1 D x^30825 C1 D x^72141 C1 D x^3075 C1 D x^1537
+c:                           C1 D x^72141 C1 D x^3075 C1 D x^1537 C1 D x^299 C1 D x^30825
+
+In other words, the rule is
+> P D G^n x ==> H^n C1 D > P
+
+Step counts?
+rule S25 is applied (5n + 1) times. This is the number of D's the P had to pass through.
+rule S23 is applied (299 + 30825 + 72141 + 3075 + 1537) * n = 107877n times.  It is only applied inside the G blocks.
+(The final counter step is an instance of > P D x ==> C1 D > P (rule S25).)
+
+number of steps: n * (steps(S25) * 5 + steps(S23) * 107877) + steps(S25).
+steps(23) == N_PX_RIGHT
+steps(25) == N_PDX_RIGHT
+
+N_PDG_RIGHT_N := N_PX_RIGHT * 107877 + N_PDX_RIGHT * 5
+
+reached 200683915243461714338378229795174642656 base steps
+
+reached 606652996336267030781885103594277391733302 base steps
+
+at step
+20113671 | 311294807610316215345227540746020550152967 | 1659558409187844604918722343928021874947449
+the simulator crashed because it faced the situation:
+[G]^4998 > C x^2946414192
+
+Added a rule to expand a G block.
+
+Seems like I have reached the translated cycler.  Around step 4293570981765143470281234424194326623406668816298227 ~ 4.29e51 the first complete a block appears.  And by step 4293570981765143470281234424194326623406677284868090 there are two complete a blocks.
+42935709817651434702812344241943266234066 68816298227
+42935709817651434702812344241943266234066 77284868090
+
+85257342 - 85256365 = 977 simulator steps

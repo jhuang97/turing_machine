@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 auto_ops = "0.3.0"
+bnum = {version = "0.12.1", features = ["numtraits"]}
 colored = "2.1.0"
 itertools = "0.13.0"
 strum = "0.26.3"
