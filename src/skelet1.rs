@@ -1,6 +1,7 @@
 use std::ops::{Add, AddAssign};
 use std::{collections::HashMap, fmt, str::FromStr, sync::OnceLock};
 use std::error::Error;
+use bnum::BUint;
 use itertools::izip;
 use strum_macros::EnumString;
 use auto_ops::impl_op_ex;
@@ -587,7 +588,9 @@ impl NSteps {
     }
 }
 
-pub type BigInt = U256;
+// BUint<3> is 192 bits
+// U256 == BUint<4> is 256 bits
+pub type BigInt = BUint<3>;
 
 /// (rle_steps, base_steps)
 #[derive(Debug, Clone)]

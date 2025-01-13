@@ -330,6 +330,9 @@ fn main() {
     // test_H_block_creation_set_position(3, 4);
     // test_H_block_creation_set_position(3, 5);
 
+    use std::time::Instant;
+    let now = Instant::now();
+
     {
         use CounterBlockType::*;
         use CounterSymbol::*;
@@ -378,6 +381,10 @@ fn main() {
             }
         }
     }
+
+    let elapsed = now.elapsed();
+    println!("Elapsed: {:.2?}", elapsed);
+
 
     // check_rle_to_counter();
 
