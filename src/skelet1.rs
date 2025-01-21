@@ -219,10 +219,12 @@ const LEFT_DEBRIS_DEF: &str = "C2 P x^2 D x C2 x^6 C2 x^9 C2 x^68 C x D x^33 C2 
 const J_DEF: &str = "C1 x^7640 D x^10345 C x^7639 D x^10347 C x^7635 D x^10355 C1 x^7618 D x^10389 C2 x^7550 D x^10524 C0 x^7279 D x^11066 C x^6197 D x^13231 C1 x^1866 D D x^7713 C0 x^95 C2 D";
 const H_DEF: &str = "C1 D x^299 C1 D x^30825 C1 D x^72141 C1 D x^3075 C1 D x^1537";
 const K_DEF: &str = "C0 x^7639 D x^10346 C0 x^7635 D x^10354 C0 x^7619 D x^10386 C0 x^7555 D x^10514 C0 x^7299 D x^11026 C0 x^6275 D x^13074 C0 x^2179 D D x^7087 C0 C0 x^3849";
+const DEB2_DEF: &str = include_str!("../debris2_def.txt");
 
 #[derive(Debug, PartialEq, EnumString, Copy, Clone, Eq, Hash)]
 pub enum CounterBlockType {
     LeftDebris,
+    Debris2,
     A,
     B,
     G,
@@ -231,17 +233,30 @@ pub enum CounterBlockType {
     J
 }
 
+fn parse_exp(s: &str, block_rep: &str) -> Exp {
+    if s == block_rep {
+        1
+    } else {
+        let (s1, s2) = s.split_once("^").unwrap();
+        assert!(s1 == block_rep);
+        let exp = s2.parse::<Exp>().unwrap();
+        exp
+    }
+}
+
 pub fn parse_block_def(s: &str) -> Vec<CounterSymbol> {
+    use CounterBlockType::*;
+    use CounterSymbol::*;
+
     s.split(" ").map(|s2| {
         if s2.starts_with("x") {
-            if s2 == "x" {
-                CounterSymbol::X(1)
-            } else {
-                let (s3, s4) = s2.split_once("^").unwrap();
-                assert!(s3 == "x");
-                let exp = s4.parse::<Exp>().unwrap();
-                CounterSymbol::X(exp)
-            }
+            X(parse_exp(s2, "x"))
+        } else if s2.starts_with("[a]") {
+            Block(A, parse_exp(s2, "[a]"))
+        } else if s2.starts_with("[G]") {
+            Block(G, parse_exp(s2, "[G]"))
+        } else if s2.starts_with("[H]") {
+            Block(H, parse_exp(s2, "[H]"))
         } else {
             CounterSymbol::from_str(s2).unwrap()
         }
@@ -256,6 +271,7 @@ pub fn left_block_definition() -> &'static HashMap<CounterBlockType, Vec<Counter
     MAP.get_or_init(|| {
         let mut m = HashMap::new();
         m.insert(LeftDebris, parse_block_def(LEFT_DEBRIS_DEF));
+        m.insert(Debris2, parse_block_def(DEB2_DEF));
         m.insert(J, parse_block_def(J_DEF));
         m.insert(A, vec![C2, X(7640), D, X(10344)]);
         m.insert(B, vec![D, X(72142), D, X(3076), D, X(1538), D, X(300), D, X(30826)]);
@@ -288,6 +304,7 @@ impl fmt::Display for CounterSymbol {
         let s0 = match *self {
             X(_) => "x",
             Block(LeftDebris, _) => "[left debris]",
+            Block(Debris2, _) => "[debris 2]",
             Block(A, _) => "[a]",
             Block(B, _) => "[b]",
             Block(G, _) => "[G]",
@@ -302,7 +319,7 @@ impl fmt::Display for CounterSymbol {
             C => s0.green().bold(),
             P => s0.purple(),
             L => s0.dimmed(),
-            Block(A | LeftDebris | H, _) => s0.black().on_cyan().bold(),
+            Block(A | LeftDebris | Debris2 | H, _) => s0.black().on_cyan().bold(),
             Block(J, _) => s0.black().on_green().bold(),
             Block(B | G, _) => s0.black().on_white().bold(),
             Block(K, _) => s0.black().on_bright_red().bold(),
@@ -590,7 +607,7 @@ impl NSteps {
 
 // BUint<3> is 192 bits
 // U256 == BUint<4> is 256 bits
-pub type BigInt = BUint<3>;
+pub type BigInt = BUint<4>;
 
 /// (rle_steps, base_steps)
 #[derive(Debug, Clone)]
@@ -1340,8 +1357,8 @@ impl CounterSimulator {
                 }
             }
             self.dir = Left;
-            Ok((0, (((N_X_RIGHT+N_X_LEFT) * n_x + (N_D_RIGHT+N_D_LEFT) * n_D
-                + (N_G_BLOCK_LEFT+N_G_BLOCK_RIGHT) * n_G + N_R) * k).big()))
+            Ok((0, ((N_X_RIGHT+N_X_LEFT) * n_x + (N_D_RIGHT+N_D_LEFT) * n_D
+                + (N_G_BLOCK_LEFT+N_G_BLOCK_RIGHT) * n_G + N_R).big() * BigInt::from(k)))
         } else {
             let mut k_powers_4: Vec<Exp> = vec![k];
 
@@ -1658,7 +1675,7 @@ impl fmt::Display for CounterSimulator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use colored::*;
 
-        const LEFT_PRINT_THRESHOLD: usize = 200;
+        const LEFT_PRINT_THRESHOLD: usize = 100;
         let l_th = LEFT_PRINT_THRESHOLD / 2;
         
         self.self_steps.fmt(f)?;

@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::collections::VecDeque;
 use strum_macros::EnumString;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TuringMachine {
     transitions: Vec<Vec<Option<TMTransition>>>,
 }
@@ -52,7 +52,7 @@ impl TuringMachine {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Symbol(pub u8);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TMTransition {
     new_symbol: Symbol,
     direction: TMDirection,
@@ -99,6 +99,12 @@ pub enum State {
 
 const STATES: [State; 5] = [State::A, State::B, State::C, State::D, State::E];
 
+pub struct BasicStepInfo {
+    pub halted: bool,
+    pub record: Option<TMDirection>,
+}
+
+#[derive(Clone)]
 pub struct BasicSimulator {
     tm: TuringMachine,
     pub tape: VecDeque<Symbol>,
@@ -107,6 +113,7 @@ pub struct BasicSimulator {
     pub time: usize,
     pub halted: bool,
     pub prev_dir: Option<TMDirection>,
+    pub start_position: usize,
 }
 
 impl BasicSimulator {
@@ -118,13 +125,14 @@ impl BasicSimulator {
             position: 0,
             time: 0,
             halted: false,
-            prev_dir: None
+            prev_dir: None,
+            start_position: 0,
         }
     }
 
-    pub fn step(&mut self) -> bool {
+    pub fn step(&mut self) -> BasicStepInfo {
         if self.halted {
-            return true;
+            return BasicStepInfo { halted: true, record: None };
         }
 
         self.time += 1;
@@ -133,10 +141,15 @@ impl BasicSimulator {
         if let Some(transition) = &self.tm.transitions[self.state as usize][cell.0 as usize] {
             *cell = transition.new_symbol;
             self.state = transition.new_state;
+
+            let mut record: Option<TMDirection> = None;
+
             match transition.direction {
                 TMDirection::Left => {
                     if self.position == 0 {
                         self.tape.push_front(Symbol(0));
+                        self.start_position += 1;
+                        record = Some(TMDirection::Left);
                     } else {
                         self.position -= 1;
                     }
@@ -144,21 +157,26 @@ impl BasicSimulator {
                 TMDirection::Right => {
                     if self.position == self.tape.len()-1 {
                         self.tape.push_back(Symbol(0));
+                        record = Some(TMDirection::Right);
                     }
                     self.position += 1;
                 }
             }
             self.prev_dir = Some(transition.direction);
 
-            false
+            BasicStepInfo { halted: false, record }
         } else {
             self.halted = true;
-            true
+            BasicStepInfo { halted: true, record: None }
         }
     }
 
     pub fn display_directed_head(&self) -> impl fmt::Display + '_ {
         DirectedHead(self)
+    }
+
+    pub fn absolute_position(&self) -> i64 {
+        (self.position as i64) - (self.start_position as i64)
     }
 }
 

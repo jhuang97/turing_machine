@@ -207,3 +207,14 @@ Seems like I have reached the translated cycler.  Around step 429357098176514347
 42935709817651434702812344241943266234066 77284868090
 
 85257342 - 85256365 = 977 simulator steps
+
+Turns out there was a mistake in my code - where I calculate the number of steps taken during the multiple strides of a uni-cycle, I should have converted u128's to big integers sooner.  Because I didn't, I was getting integer overflows, which I only just realized when I ran my code in debug mode.
+
+With my revised code, I'm still seeing the a blocks appear at the same number of simulator steps but different number of base steps:
+1st a block:
+85256365 simulator steps, 5418883027667422764169643414989497193809945789706483 base steps
+2nd a block:
+85257342 simulator steps, 5418883027667422764169643414989497193809954258276346 base steps
+(this is 977 simulator steps, 8468569863 base steps later)
+
+So I would like to revise my estimate of the preperiod to 5418883027667422764169643414989497193809945789706483 ~ 5.42e51 base steps.  This is still inaccurate due to the higher level simulator steps and possibly being off by some fraction of a period.

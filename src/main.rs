@@ -1,7 +1,8 @@
 mod skelet1;
 
+use std::env;
 use skelet1::{counter_to_rle, counter_transition_rules, measure_uni_cycle, BigInt, CounterBlockType, CounterStepInfo, CounterSymbol, Direction};
-use turing_machine::{BasicSimulator, State, Symbol, TMDirection, TMTransition, TuringMachine};
+use turing_machine::{BasicSimulator, BasicStepInfo, State, Symbol, TMDirection, TMTransition, TuringMachine};
 
 const SKELET_1: &str = "1RB1RD_1LC0RC_1RA1LD_0RE0LB_---1RC";
 const TM_13502512: &str = "1RB1LD_1LC1RE_---1LD_1LA0LD_0RE0RC";
@@ -227,10 +228,105 @@ fn check_counter_transition_rules() {
     }
 }
 
-fn main() {
-    // dbg!(TuringMachine::from_standard_notation(SKELET_1));
-    let tm = TuringMachine::from_standard_notation(SKELET_1);
+fn run_to_tc() {
+    use std::time::Instant;
+    let now = Instant::now();
 
+    use CounterBlockType::*;
+    use CounterSymbol::*;
+
+    let mut sim_uni = skelet1::CounterSimulator::new(true, true);
+
+    let mut num_uni_cycle_rules = 0;
+
+    for i in 0..85257400 {
+        let res = sim_uni.step().unwrap();
+
+        let is_uni = matches!(res, CounterStepInfo::UniCycle(_));
+        if is_uni {
+            num_uni_cycle_rules += 1;
+        }
+
+        if (i > 71678 && i % 5000000 == 0) || (is_uni && num_uni_cycle_rules % 1000 == 0) || [1, 10, 100, 1000, 10000, 100000, 1000000].contains(&i) {
+            let mut sim_uni_p = sim_uni.clone();
+            sim_uni_p.rewrite_with_blocks(&vec![LeftDebris], &vec![]);
+            // let mut sim_uni_p2 = sim_uni.clone();
+            // sim_uni_p2.rewrite_with_blocks(&vec![LeftDebris, A, J, G], &vec![G]);
+            println!("{i}, uni cycle rule applied {num_uni_cycle_rules} times");
+            println!("{sim_uni_p}");
+            // println!("{sim_uni_p2}");
+        } else if num_uni_cycle_rules >= 11602 {
+            let mut sim_uni_p = sim_uni.clone();
+            // let mut sim_uni_p2 = sim_uni.clone();
+            // sim_uni_p2.rewrite_with_blocks(&vec![LeftDebris, A, J, G], &vec![G]);
+            // println!("{sim_uni_p2}");
+            if i > 85255000 && (i % 50 == 0) { //i % 1000 == 0 || (85256360 < i && i < 85256370) || (85257337 < i && i < 85257347) {
+                sim_uni_p.rewrite_with_blocks(&vec![Debris2], &vec![]);
+                // println!("uni cycle rule applied {num_uni_cycle_rules} times");
+                println!("{sim_uni_p}");
+            }
+        }
+    }
+
+    let elapsed = now.elapsed();
+    println!("Elapsed: {:.2?}", elapsed);
+}
+
+/// incomplete
+fn detect_rightward_translated_cycling_with_records(sim: &BasicSimulator, max_steps: usize) {
+    use itertools::izip;
+
+    let mut sim0 = sim.clone();
+
+    let mut record_steps: Vec<usize> = Vec::new();
+    let mut record_positions: Vec<i64> = Vec::new();
+    let mut distances_back: Vec<i64> = Vec::new();
+    for _ in 0..max_steps {
+        let BasicStepInfo { halted: _, record} = sim0.step();
+        let curr_pos = sim0.absolute_position();
+        
+        for (&record_pos, distance_back) in record_positions.iter().zip(distances_back.iter_mut()) {
+            if curr_pos < record_pos {
+                let dist = record_pos - curr_pos;
+                *distance_back = (*distance_back).max(dist);
+            }
+        }
+
+        if record == Some(TMDirection::Right) {
+            // println!("{} *", sim.display_directed_head());
+            record_steps.push(sim0.time);
+            record_positions.push(sim0.absolute_position());
+            distances_back.push(0);
+        }
+    }
+
+    for (a, b, c) in izip!(&record_steps, &record_positions, &distances_back) {
+        println!("time: {a}, pos: {b}, dist back: {c}");
+    }
+
+    let max_dist_back = distances_back.iter().max();
+    if let Some(&max_dist_back) = max_dist_back {
+        // run the simulation again and check on the record configurations
+        let mut sim0 = sim.clone();
+        let mut record_states: Vec<State> = Vec::new();
+        let mut record_local_tapes: Vec<Vec<Symbol>> = Vec::new();
+
+        for (i, &rec_time) in record_steps.iter().enumerate() {
+            while sim0.time < rec_time {
+                sim0.step();
+            }
+
+            todo!()
+        }
+    } else {
+        println!("oh no");
+    }
+}
+
+fn main() {
+    env::set_var("RUST_BACKTRACE", "1");
+    // dbg!(TuringMachine::from_standard_notation(SKELET_1));
+    // let tm = TuringMachine::from_standard_notation(SKELET_1);
     // let mut sim = BasicSimulator::new(tm);
 
     // for _ in 0..100 {
@@ -240,14 +336,19 @@ fn main() {
 
     // println!("{}", sim.display_directed_head());
     // for _ in 0..400 {
-    //     sim.step();
+    //     let BasicStepInfo { halted: _, record} = sim.step();
     // // while !sim.step() {
-    //     print!("{}", sim.display_directed_head());
-    //     if is_skelet1_basic_state(&sim) {
-    //         println!(" =======");
-    //     } else {
-    //         println!();
-    //     }
+    //     // if record == Some(TMDirection::Right) {
+    //     //     println!("{} *", sim.display_directed_head());
+    //     // } else {
+    //     //     println!("{}", sim.display_directed_head());
+    //     // }   
+
+    //     // if is_skelet1_basic_state(&sim) {
+    //     //     println!(" =======");
+    //     // } else {
+    //     //     println!();
+    //     // }
     // }
 
     // compare_basic_rle_skelet(50);
@@ -330,61 +431,9 @@ fn main() {
     // test_H_block_creation_set_position(3, 4);
     // test_H_block_creation_set_position(3, 5);
 
-    use std::time::Instant;
-    let now = Instant::now();
+    // run_to_tc();
 
-    {
-        use CounterBlockType::*;
-        use CounterSymbol::*;
-    
-        let mut sim_uni = skelet1::CounterSimulator::new(true, true);
-
-        fn n_J(v: &Vec<CounterSymbol>) -> usize {
-            v.iter().filter(|x| x == &&Block(J, 1)).count()
-        }
-
-        let mut num_uni_cycle_rules = 0;
-        let mut times_seen_K = 0;
-    
-        for i in 0..85258001 {
-            let res = sim_uni.step().unwrap();
-    
-            let is_uni = matches!(res, CounterStepInfo::UniCycle(_));
-            if is_uni {
-                num_uni_cycle_rules += 1;
-            }
-
-            if (i > 71678 && i % 1000000 == 0) || (is_uni && num_uni_cycle_rules % 400 == 0) {
-                let mut sim_uni_p = sim_uni.clone();
-                sim_uni_p.rewrite_with_blocks(&vec![LeftDebris, K], &vec![]);
-                // let mut sim_uni_p2 = sim_uni.clone();
-                // sim_uni_p2.rewrite_with_blocks(&vec![LeftDebris, A, J, G], &vec![G]);
-                println!("uni cycle rule applied {num_uni_cycle_rules} times");
-                println!("{sim_uni_p}");
-                // println!("{sim_uni_p2}");
-            } else if num_uni_cycle_rules >= 11602 {
-                let mut sim_uni_p = sim_uni.clone();
-                // let mut sim_uni_p2 = sim_uni.clone();
-                // sim_uni_p2.rewrite_with_blocks(&vec![LeftDebris, A, J, G], &vec![G]);
-                // println!("{sim_uni_p2}");
-                if i % 1000 == 0 || i > 85256001 {
-                    // sim_uni_p.rewrite_with_blocks(&vec![LeftDebris, K], &vec![]);
-                    println!("uni cycle rule applied {num_uni_cycle_rules} times");
-                    println!("{sim_uni_p}");
-                    // if sim_uni_p.left_tape.contains(&Block(K, 1)) {
-                    //     times_seen_K += 1;
-                    //     if times_seen_K > 50 {
-                    //         return;
-                    //     }
-                    // }
-                }
-            }
-        }
-    }
-
-    let elapsed = now.elapsed();
-    println!("Elapsed: {:.2?}", elapsed);
-
+    // dbg!(skelet1::left_block_definition()[&CounterBlockType::Debris2].len());
 
     // check_rle_to_counter();
 
@@ -413,4 +462,10 @@ fn main() {
     //     println!("{sim}");
     // }
     // println!("{sim}");
+
+    run_to_tc();
+
+    // let tm = TuringMachine::from_standard_notation("1RB0RE_0LC1RC_0RD1LA_1LE---_1LB1RC");
+    // let mut sim = BasicSimulator::new(tm);
+    // detect_rightward_translated_cycling_with_records(&sim, 60);
 }
