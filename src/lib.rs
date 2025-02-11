@@ -1,3 +1,6 @@
+pub mod skelet1;
+pub mod skelet1_basic;
+
 use core::str;
 use std::fmt;
 use std::str::FromStr;
@@ -95,9 +98,10 @@ pub enum State {
     C = 2,
     D = 3,
     E = 4,
+    F = 5,
 }
 
-const STATES: [State; 5] = [State::A, State::B, State::C, State::D, State::E];
+const STATES: [State; 6] = [State::A, State::B, State::C, State::D, State::E, State::F];
 
 pub struct BasicStepInfo {
     pub halted: bool,
