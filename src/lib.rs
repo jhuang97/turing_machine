@@ -5,6 +5,7 @@ use core::str;
 use std::fmt;
 use std::str::FromStr;
 use std::collections::VecDeque;
+use itertools::Itertools;
 use strum_macros::EnumString;
 
 #[derive(Debug, Clone)]
@@ -83,7 +84,7 @@ impl FromStr for TMTransition {
     }
 }
 
-#[derive(Debug, PartialEq, EnumString, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, EnumString, Copy, Clone)]
 pub enum TMDirection {
     #[strum(serialize = "L")]
     Left,
@@ -91,7 +92,7 @@ pub enum TMDirection {
     Right
 }
 
-#[derive(Debug, PartialEq, EnumString, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, EnumString, Copy, Clone)]
 pub enum State {
     A = 0,
     B = 1,
@@ -235,5 +236,254 @@ impl fmt::Display for DirectedHead<'_> {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum GeneralSymbol {
+    Basic(Symbol),
+    Wildcard,
+    End
+}
+
+impl fmt::Display for GeneralSymbol {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &self {
+            GeneralSymbol::Basic(s) => write!(f, "{}", s.0)?,
+            GeneralSymbol::Wildcard => write!(f, "*")?,
+            GeneralSymbol::End => write!(f, "$")?,
+        }
+        Ok(())
+    }
+}
+
+#[derive(Eq, PartialEq, Clone)]
+pub struct DirectedHeadConfig {
+    left_tape: Vec<GeneralSymbol>,
+    right_tape: Vec<GeneralSymbol>,
+    dir: TMDirection,
+    state: State,
+}
+
+impl DirectedHeadConfig {
+    fn replace_state(&mut self, leftward_state: State, rightward_state: State) {
+        match self.dir {
+            TMDirection::Left => self.state = leftward_state,
+            TMDirection::Right => self.state = rightward_state,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct ConfigTransitionRule {
+    before: DirectedHeadConfig,
+    after: DirectedHeadConfig
+}
+
+impl ConfigTransitionRule {
+    pub fn replace_state(&mut self, leftward_state: State, rightward_state: State) {
+        self.before.replace_state(leftward_state, rightward_state);
+        self.after.replace_state(leftward_state, rightward_state);
+    }
+}
+
+impl FromStr for ConfigTransitionRule {
+    type Err = ParseConfigError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (s1, s2) = s.split_once(" -> ").ok_or(ParseConfigError::NoArrowDelimiter)?;
+        let before = DirectedHeadConfig::from_str(s1)?;
+        let after = DirectedHeadConfig::from_str(s2)?;
+        Ok(Self { before, after })
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ParseConfigError {
+    NoArrowDelimiter,
+    NoHead,
+    NoState,
+    BadState,
+    BadSymbol
+}
+
+impl FromStr for DirectedHeadConfig {
+    type Err = ParseConfigError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let cs = s.chars().filter(|&c| c != ' ').collect_vec();
+
+        let head_idx = cs.iter().position(|&c| c == '<' || c == '>').ok_or(ParseConfigError::NoHead)?;
+        let (dir, i1, i2, state_idx) = if cs[head_idx] == '<' {
+            (TMDirection::Left, head_idx, head_idx+1, head_idx+1)
+        } else {
+            (TMDirection::Right, head_idx-1, head_idx, head_idx-1)
+        };
+
+        let state = State::from_str(&cs.get(state_idx)
+                .ok_or(ParseConfigError::NoState)?
+                .to_string())
+            .map_err(|_| ParseConfigError::BadState)?;
+
+        fn parse_symbol(c: &char) -> Result<GeneralSymbol, ParseConfigError> {
+            if c.is_numeric() {
+                Ok(GeneralSymbol::Basic(Symbol(
+                    c.to_string().parse::<u8>().map_err(|_| ParseConfigError::BadSymbol)?)
+                ))
+            } else if *c == '^' || *c == '$' {
+                Ok(GeneralSymbol::End)
+            } else {
+                Err(ParseConfigError::BadSymbol)
+            }
+        }
+
+        let mut ltape = cs[..i1].iter().map(parse_symbol).collect::<Result<Vec<_>,_>>()?;
+        let mut rtape = cs[i2+1..].iter().map(parse_symbol).rev().collect::<Result<Vec<_>,_>>()?;
+
+        if ltape.len() == 0 || ltape[0] != GeneralSymbol::End {
+            ltape.insert(0, GeneralSymbol::Wildcard);
+        }
+
+        if rtape.len() == 0 || rtape[0] != GeneralSymbol::End {
+            rtape.insert(0, GeneralSymbol::Wildcard);
+        }
+
+        Ok(Self {
+            left_tape: ltape,
+            right_tape: rtape,
+            dir,
+            state
+        })
+    }
+}
+
+impl fmt::Display for DirectedHeadConfig {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for s in &self.left_tape {
+            write!(f, "{}", s)?;
+        }        
+
+        match self.dir {
+            TMDirection::Left => write!(f, " <{:?} ", self.state)?,
+            TMDirection::Right => write!(f, " {:?}> ", self.state)?,
+        }
+
+        for s in (&self.right_tape).iter().rev() {
+            write!(f, "{}", s)?;
+        }
+
+        Ok(())
+    }
+}
+
+pub struct DirectedHeadSimulator<'a> {
+    pub config: DirectedHeadConfig,
+    tm: &'a TuringMachine,
+    pub time: usize,
+    undefined: bool,
+    time_limit: usize,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum DirectedHeadStepResult {
+    Success,
+    Undefined,
+    RanOffTape,
+    OutOfTime
+}
+
+impl<'a> DirectedHeadSimulator<'a> {
+    pub fn new(config: &DirectedHeadConfig, tm: &'a TuringMachine) -> Self {
+        DirectedHeadSimulator {
+            config: config.clone(),
+            tm,
+            time: 0,
+            undefined: false,
+            time_limit: 50,
+        }
+    }
+
+    pub fn step(&mut self) -> DirectedHeadStepResult {
+        if self.undefined {
+            return DirectedHeadStepResult::Undefined;
+        }
+
+        self.time += 1;
+
+        let curr_symbol = {
+            let tape = if self.config.dir == TMDirection::Left {
+                &mut self.config.left_tape
+            } else {
+                &mut self.config.right_tape
+            };
+            match tape.pop() {
+                Some(GeneralSymbol::Wildcard) => return DirectedHeadStepResult::RanOffTape,
+                Some(GeneralSymbol::End) => {
+                    tape.push(GeneralSymbol::End);
+                    Symbol(0)
+                },
+                Some(GeneralSymbol::Basic(s)) => s,
+                None => return DirectedHeadStepResult::RanOffTape,
+            }
+        };
+
+        if let Some(transition) = &self.tm.transitions[self.config.state as usize][curr_symbol.0 as usize] {
+            self.config.state = transition.new_state;
+            self.config.dir = transition.direction;
+            let tape = match transition.direction {
+                TMDirection::Left => &mut self.config.right_tape,
+                TMDirection::Right => &mut self.config.left_tape,
+            };
+            tape.push(GeneralSymbol::Basic(transition.new_symbol));
+
+            if self.time > self.time_limit {
+                DirectedHeadStepResult::OutOfTime
+            } else {
+                DirectedHeadStepResult::Success
+            }
+        } else {
+            self.undefined = true;
+            // technically the tape state here is inaccurate; would need to put that popped symbol back in
+            DirectedHeadStepResult::Undefined
+        }        
+    }
+}
+
+pub fn reduce_config(config: &DirectedHeadConfig) -> DirectedHeadConfig {
+    let mut config = config.clone();
+    for tape in [&mut config.left_tape, &mut config.right_tape] {
+        if tape.len() >= 1 && tape[0] == GeneralSymbol::End {
+            while tape.len() >= 2 && tape[1] == GeneralSymbol::Basic(Symbol(0)) {
+                tape.remove(1);
+            }
+        }
+    }    
+    config
+}
+
+pub fn check_transition_rule(rule: ConfigTransitionRule, tm: &TuringMachine, verbose: bool) -> Result<usize, DirectedHeadStepResult> {
+    let mut sim = DirectedHeadSimulator::new(&rule.before, tm);
+    if verbose {
+        println!("{}: {} ", &sim.time, &sim.config);
+    }
+    
+    loop {
+        let res = sim.step();
+        if verbose {
+            println!("{}: {} ", &sim.time, &sim.config);
+        }
+        
+        if res == DirectedHeadStepResult::Success {
+            if sim.config == rule.after {
+                return Ok(sim.time);
+            } else if reduce_config(&sim.config) == reduce_config(&rule.after) {
+                return Ok(sim.time);
+            }
+        } else {
+            if verbose {
+                println!("{:?}", res);
+            }
+            return Err(res);
+        }
     }
 }

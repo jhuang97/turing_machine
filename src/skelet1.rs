@@ -1,6 +1,7 @@
+#![allow(dead_code)]
+
 use std::ops::{Add, AddAssign};
 use std::{collections::HashMap, fmt, str::FromStr, sync::OnceLock};
-use std::error::Error;
 use bnum::BUint;
 use itertools::izip;
 use strum_macros::EnumString;
@@ -195,8 +196,8 @@ impl fmt::Display for Direction {
     }
 }
 
-static COUNTER_DEFINITION_FILE: &'static str = include_str!("counter_code_definition.txt");
-static COUNTER_TRANSITION_FILE: &'static str = include_str!("counter_transition_rules.txt");
+static COUNTER_DEFINITION_FILE: &'static str = include_str!("definitions/skelet1/counter_code_definition.txt");
+static COUNTER_TRANSITION_FILE: &'static str = include_str!("definitions/skelet1/counter_transition_rules.txt");
 
 type Exp = u128;
 
@@ -219,7 +220,7 @@ const LEFT_DEBRIS_DEF: &str = "C2 P x^2 D x C2 x^6 C2 x^9 C2 x^68 C x D x^33 C2 
 const J_DEF: &str = "C1 x^7640 D x^10345 C x^7639 D x^10347 C x^7635 D x^10355 C1 x^7618 D x^10389 C2 x^7550 D x^10524 C0 x^7279 D x^11066 C x^6197 D x^13231 C1 x^1866 D D x^7713 C0 x^95 C2 D";
 const H_DEF: &str = "C1 D x^299 C1 D x^30825 C1 D x^72141 C1 D x^3075 C1 D x^1537";
 const K_DEF: &str = "C0 x^7639 D x^10346 C0 x^7635 D x^10354 C0 x^7619 D x^10386 C0 x^7555 D x^10514 C0 x^7299 D x^11026 C0 x^6275 D x^13074 C0 x^2179 D D x^7087 C0 C0 x^3849";
-const DEB2_DEF: &str = include_str!("../debris2_def.txt");
+const DEB2_DEF: &str = include_str!("definitions/skelet1/debris2_def.txt");
 
 #[derive(Debug, PartialEq, EnumString, Copy, Clone, Eq, Hash)]
 pub enum CounterBlockType {
