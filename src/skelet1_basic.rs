@@ -2,7 +2,7 @@ use std::{fmt, str::FromStr};
 use std::collections::VecDeque;
 use itertools::Itertools;
 
-use crate::{check_transition_rule, BasicSimulator, BasicStepInfo, ConfigTransitionRule, State, Symbol, TMDirection, TuringMachine};
+use crate::{check_transition_rule, BasicSimulator, BasicStepInfo, CheckerVerbosity, ConfigTransitionRule, State, Symbol, TMDirection, TuringMachine};
 
 pub const SKELET_1: &str = "1RB1RD_1LC0RC_1RA1LD_0RE0LB_---1RC";
 
@@ -82,10 +82,14 @@ impl PartialSimulatorState {
     }
 }
 
-fn try_match_skelet1_single_tm(label: String, tm: &TuringMachine, basic_states: &Vec<PartialSimulatorState>, rules: &Vec<ConfigTransitionRule>) {
+fn try_match_skelet1_single_tm(label: String, tm: &TuringMachine, 
+    basic_states: &Vec<PartialSimulatorState>, 
+    rules: &Vec<ConfigTransitionRule>,
+    assume_match: bool
+) {
     let mut sim = BasicSimulator::new(tm.clone());
     let mut candidate_history: Vec<PartialSimulatorState> = Vec::new();
-    for _ in 0..200 {
+    for _ in 0..400 {
         sim.step();
         candidate_history.push(PartialSimulatorState::new(&sim, true));
     }
@@ -112,44 +116,43 @@ fn try_match_skelet1_single_tm(label: String, tm: &TuringMachine, basic_states: 
         sk1_matches.push(matches);
     }
 
-    let leftward_state = leftward_state.unwrap();
-    let rightward_state = rightward_state.unwrap();
+    print!("{label}: ");
 
-    let mut step_counts: Vec<usize> = Vec::new();
-    for rule in rules {
-        let mut rule2 = rule.clone();
-        rule2.replace_state(leftward_state, rightward_state);
+    if assume_match {
+        let leftward_state = leftward_state.unwrap();
+        let rightward_state = rightward_state.unwrap();
 
-        step_counts.push(check_transition_rule(rule2, &tm, false).unwrap_or_else(|_| 0));
-    }
-    let counts_str = step_counts.iter().map(|n| if *n == 0 {":(".to_owned()} else { format!("{n:>2}") }).join(",");
+        let mut step_counts: Vec<usize> = Vec::new();
+        for rule in rules {
+            let mut rule2 = rule.clone();
+            rule2.replace_state(leftward_state, rightward_state);
 
-    print!("{label}: {:?} {:?} {}; ", leftward_state, rightward_state, counts_str);
+            step_counts.push(check_transition_rule(rule2, &tm, CheckerVerbosity::Off).unwrap_or_else(|_| 0));
+        }
+        let counts_str = step_counts.iter().map(|n| if *n == 0 {":(".to_owned()} else { format!("{n:>2}") }).join(",");
 
-    match first_match {
-        Some(sim_state) => print!("{sim_state}"),
-        None => print!("--"),
-    }
-    
-    // for m in sk1_matches {
-    //     if m {
-    //         print!("Y");
-    //     } else {
-    //         print!("_");
-    //     }
-    // }
+        print!("{:?} {:?} {}; ", leftward_state, rightward_state, counts_str);
+
+        match first_match {
+            Some(sim_state) => print!("{sim_state}"),
+            None => print!("--"),
+        }
+    } else {
+        for m in sk1_matches {
+            print!("{}", if m { "Y" } else { "_" });
+        }
+    }    
     println!();
 }
 
-pub fn try_match_skelet1_basic_states() {
+pub fn try_match_skelet1_basic_states(candidates: &str, assume_match: bool) {
     let sk1 = TuringMachine::from_standard_notation(SKELET_1);
     let mut sk1_sim = BasicSimulator::new(sk1.clone());
 
-    let candidates: &str = include_str!("../bb6_skelet1_equiv_candidates.txt").trim();
     let cand_tms: Vec<TuringMachine> = candidates.lines().map(|s| TuringMachine::from_standard_notation(s)).collect();
 
     let mut basic_states: Vec<PartialSimulatorState> = Vec::new();
-    for _ in 0..200 {
+    for _ in 0..400 {
         let BasicStepInfo { halted, record: _} = sk1_sim.step();
         assert!(!halted);
 
@@ -168,11 +171,11 @@ pub fn try_match_skelet1_basic_states() {
         .map(|s| ConfigTransitionRule::from_str(s).unwrap())
         .collect();
 
-    try_match_skelet1_single_tm("Skelet 1".to_owned(), &sk1, &basic_states, &rules);
+    try_match_skelet1_single_tm("Skelet 1".to_owned(), &sk1, &basic_states, &rules, assume_match);
     println!("----------");
 
     for (i, tm) in cand_tms.into_iter().enumerate() {
-        try_match_skelet1_single_tm(format!("{i:>8}"), &tm, &basic_states, &rules);
+        try_match_skelet1_single_tm(format!("{i:>8}"), &tm, &basic_states, &rules, assume_match);
     }
 }
 
@@ -219,11 +222,10 @@ pub fn try_match_skelet1_basic_states_candidate_7() {
     }
 }
 
-pub fn try_match_skelet1_basic_states_alt() {
+pub fn try_match_skelet1_basic_states_alt(candidates: &str, assume_match: bool) {
     let sk1 = TuringMachine::from_standard_notation(SKELET_1);
     let mut sk1_sim = BasicSimulator::new(sk1.clone());
 
-    let candidates: &str = include_str!("../bb6_skelet1_equiv_candidates.txt").trim();
     let cand_tms: Vec<TuringMachine> = candidates.lines().map(|s| TuringMachine::from_standard_notation(s)).collect();
 
     let mut basic_states: Vec<PartialSimulatorState> = Vec::new();
@@ -246,10 +248,10 @@ pub fn try_match_skelet1_basic_states_alt() {
         .map(|s| ConfigTransitionRule::from_str(s).unwrap())
         .collect();
 
-    try_match_skelet1_single_tm("Skelet 1".to_owned(), &sk1, &basic_states, &rules);
+    try_match_skelet1_single_tm("Skelet 1".to_owned(), &sk1, &basic_states, &rules, assume_match);
     println!("----------");
 
     for (i, tm) in cand_tms.into_iter().enumerate() {
-        try_match_skelet1_single_tm(format!("{i:>8}"), &tm, &basic_states, &rules);
+        try_match_skelet1_single_tm(format!("{i:>8}"), &tm, &basic_states, &rules, assume_match);
     }
 }

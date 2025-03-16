@@ -240,7 +240,7 @@ impl fmt::Display for DirectedHead<'_> {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-enum GeneralSymbol {
+pub enum GeneralSymbol {
     Basic(Symbol),
     Wildcard,
     End
@@ -259,10 +259,10 @@ impl fmt::Display for GeneralSymbol {
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct DirectedHeadConfig {
-    left_tape: Vec<GeneralSymbol>,
-    right_tape: Vec<GeneralSymbol>,
-    dir: TMDirection,
-    state: State,
+    pub left_tape: Vec<GeneralSymbol>,
+    pub right_tape: Vec<GeneralSymbol>,
+    pub dir: TMDirection,
+    pub state: State,
 }
 
 impl DirectedHeadConfig {
@@ -276,8 +276,8 @@ impl DirectedHeadConfig {
 
 #[derive(Clone)]
 pub struct ConfigTransitionRule {
-    before: DirectedHeadConfig,
-    after: DirectedHeadConfig
+    pub before: DirectedHeadConfig,
+    pub after: DirectedHeadConfig
 }
 
 impl ConfigTransitionRule {
@@ -307,10 +307,8 @@ pub enum ParseConfigError {
     BadSymbol
 }
 
-impl FromStr for DirectedHeadConfig {
-    type Err = ParseConfigError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+impl DirectedHeadConfig {
+    pub fn parse_str(s: &str, enforce_end_wildcards: bool) -> Result<Self, ParseConfigError> {
         let cs = s.chars().filter(|&c| c != ' ').collect_vec();
 
         let head_idx = cs.iter().position(|&c| c == '<' || c == '>').ok_or(ParseConfigError::NoHead)?;
@@ -340,12 +338,14 @@ impl FromStr for DirectedHeadConfig {
         let mut ltape = cs[..i1].iter().map(parse_symbol).collect::<Result<Vec<_>,_>>()?;
         let mut rtape = cs[i2+1..].iter().map(parse_symbol).rev().collect::<Result<Vec<_>,_>>()?;
 
-        if ltape.len() == 0 || ltape[0] != GeneralSymbol::End {
-            ltape.insert(0, GeneralSymbol::Wildcard);
-        }
-
-        if rtape.len() == 0 || rtape[0] != GeneralSymbol::End {
-            rtape.insert(0, GeneralSymbol::Wildcard);
+        if enforce_end_wildcards {
+            if ltape.len() == 0 || ltape[0] != GeneralSymbol::End {
+                ltape.insert(0, GeneralSymbol::Wildcard);
+            }
+    
+            if rtape.len() == 0 || rtape[0] != GeneralSymbol::End {
+                rtape.insert(0, GeneralSymbol::Wildcard);
+            }
         }
 
         Ok(Self {
@@ -354,6 +354,14 @@ impl FromStr for DirectedHeadConfig {
             dir,
             state
         })
+    }
+}
+
+impl FromStr for DirectedHeadConfig {
+    type Err = ParseConfigError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::parse_str(s, true)
     }
 }
 
@@ -461,29 +469,89 @@ pub fn reduce_config(config: &DirectedHeadConfig) -> DirectedHeadConfig {
     config
 }
 
-pub fn check_transition_rule(rule: ConfigTransitionRule, tm: &TuringMachine, verbose: bool) -> Result<usize, DirectedHeadStepResult> {
+#[derive(Clone, Copy)]
+pub enum CheckerVerbosity {
+    Off = 0,
+    Some = 1,
+    All = 2
+}
+
+pub fn check_transition_rule(rule: ConfigTransitionRule, tm: &TuringMachine, verbose: CheckerVerbosity) -> Result<usize, DirectedHeadStepResult> {
     let mut sim = DirectedHeadSimulator::new(&rule.before, tm);
-    if verbose {
+    if verbose as isize >= 1 {
         println!("{}: {} ", &sim.time, &sim.config);
     }
     
     loop {
         let res = sim.step();
-        if verbose {
+        if verbose as isize >= 2 {
             println!("{}: {} ", &sim.time, &sim.config);
         }
         
         if res == DirectedHeadStepResult::Success {
             if sim.config == rule.after {
+                if verbose as isize >= 1 {
+                    println!("{}: {} ", &sim.time, &sim.config);
+                }
                 return Ok(sim.time);
             } else if reduce_config(&sim.config) == reduce_config(&rule.after) {
+                if verbose as isize >= 1 {
+                    println!("{}: {} ", &sim.time, &sim.config);
+                }
                 return Ok(sim.time);
             }
         } else {
-            if verbose {
+            if verbose as isize >= 1 {
+                println!("{}: {} ", &sim.time, &sim.config);
+            }
+            if verbose as isize >= 2 {
                 println!("{:?}", res);
             }
             return Err(res);
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct RLEDefinitionSymbol {
+    pub symbol: Symbol,
+    pub repeat: bool
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseRLEDefinitionSymbolError;
+
+impl FromStr for RLEDefinitionSymbol {
+    type Err = ParseRLEDefinitionSymbolError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let repeat = s.ends_with("^n");
+        let num_s = if repeat { &s[..s.len()-2] } else { s };
+        let num = num_s.parse::<u8>().map_err(|_| ParseRLEDefinitionSymbolError)?;
+        Ok(Self {
+            symbol: Symbol(num),
+            repeat
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct RLEDefinition {
+    pub left: Vec<RLEDefinitionSymbol>,
+    pub right: Vec<RLEDefinitionSymbol>
+}
+
+impl RLEDefinition {
+    pub fn new(left_def: &str, right_def: &str) -> Result<Self, ParseRLEDefinitionSymbolError> {
+        Ok(Self {
+            left: Self::parse_symbols(left_def)?,
+            right: Self::parse_symbols(right_def)?,
+        })
+    }
+
+    fn parse_symbols(s: &str) -> Result<Vec<RLEDefinitionSymbol>, ParseRLEDefinitionSymbolError> {
+        s.split_whitespace()
+            .map(|s2| s2.parse())
+            .collect()
     }
 }

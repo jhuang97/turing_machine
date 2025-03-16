@@ -85,8 +85,7 @@ fn main() {
     // let tm = TuringMachine::from_standard_notation("1RB1RF_1RC0RE_0LD1RE_---1LE_1RA1LF_0RC0LB");
     // let tm = TuringMachine::from_standard_notation("1RB1RE_1RC0RD_0LC1LD_1RA1LE_0RF0LB_---1RD");
     // let tm = TuringMachine::from_standard_notation("1RB---_1LC0RC_1RF1LD_0RE0LB_---1RC_1RB1RD");
-    let tm = TuringMachine::from_standard_notation("1RB2LA0RB1LB---_1LA3RA1RA4LB2RB");
-
+    // let tm = TuringMachine::from_standard_notation("1RB2LA0RB1LB---_1LA3RA1RA4LB2RB");
 
     // let mut sim = BasicSimulator::new(tm);
     // println!("{}", sim.display_directed_head());
@@ -104,20 +103,23 @@ fn main() {
     //     }
     // }
 
-    let init_config = DirectedHeadConfig::from_str("023 <A").unwrap();
+    // {
+    //     let init_config = DirectedHeadConfig::from_str("023 <A").unwrap();
 
-    println!("{}", &init_config);
-    let mut sim = DirectedHeadSimulator::new(&init_config, &tm);
-
-    loop {
-        let res = sim.step();
-        print!("{}: {} ", &sim.time, &sim.config);
-
-        match res {
-            DirectedHeadStepResult::Success => println!(),
-            _ => { println!("{:?}", res); break }
-        }
-    }
+    //     println!("{}", &init_config);
+    //     let mut sim = DirectedHeadSimulator::new(&init_config, &tm);
+    
+    //     loop {
+    //         let res = sim.step();
+    //         print!("{}: {} ", &sim.time, &sim.config);
+    
+    //         match res {
+    //             DirectedHeadStepResult::Success => println!(),
+    //             _ => { println!("{:?}", res); break }
+    //         }
+    //     }
+    // }
+    
 
     // let tm = TuringMachine::from_standard_notation("1RB0RE_0LC1RC_0RD1LA_1LE---_1LB1RC");
     // let mut sim = BasicSimulator::new(tm);

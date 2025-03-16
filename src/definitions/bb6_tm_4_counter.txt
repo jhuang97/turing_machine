@@ -1,0 +1,79 @@
+tm = 1RB0LC_1LA0RD_1RA0LA_1RE1RD_1RA1RF_1LC---
+
+[metastates]
+Right    >  0D>
+LeftEven <e 11<A1
+LeftOdd  <o 1<A1
+
+[rle]
+left = 0 1^n
+right = 0^n 1
+
+[symbols over rle]
+X(exp) = 3
+C0 = 5
+C1 = 11
+C = 00
+L = ^23
+R = $
+R0 = 0$
+R1 = 1$
+R2 = 2$
+R4 = 4$
+R12 = 21$
+F1 = 20
+F2 = 1
+F3 = 02
+F4 = 6
+F5 = 12
+F6 = 01
+F7 = 22
+
+[rules]
+> X -> X >
+X <e -> <e X
+X <o -> <o X
+
+C0 <e -> <e C0
+C0 <o -> <o C0
+C1 <e -> <e C1
+C1 <o -> <o C1
+> C0 -> <e C1
+> C1 -> <e C
+> C X -> C0 >
+
+L <e -> L X >
+L <o -> L C0 >
+
+> R -> <e R1
+X > R1 -> X <e R0
+> R2 -> <e R
+> R0 -> X <o R
+
+> C R -> <e X R
+> C R1 -> <e R2
+> C R2 -> <e R
+> C R0 -> <o C0 R
+
+> C C1 -> <e F1
+> C C0 -> <e X F2
+X > F1 -> <e X F2
+> F2 X -> <e F3
+> F3 X -> <o F4
+> F4 -> <e F5
+> F5 -> <e F6
+> F6 X -> <o F7
+> F7 -> <e X
+
+> F2 R -> <e R0
+> F2 R1 -> <e C R
+> F2 R2 -> <e F6 R
+
+> F3 R -> <o R
+> F3 R1 -> <o R4
+> F3 R2 -> <o C0 R
+> F3 R0 -> <o X R
+
+> F6 R -> <o R2
+> F6 R1 -> <o F1 R
+> F6 R2 -> <o R12

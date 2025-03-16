@@ -1,7 +1,7 @@
 use std::env;
 use std::str::FromStr;
 
-use turing_machine::{check_transition_rule, skelet1_basic, BasicSimulator, BasicStepInfo, ConfigTransitionRule, State, Symbol, TMDirection, TMTransition, TuringMachine};
+use turing_machine::{skelet1_basic, BasicSimulator, BasicStepInfo, CheckerVerbosity, ConfigTransitionRule, State, Symbol, TMDirection, TMTransition, TuringMachine};
 use turing_machine::skelet1;
 use turing_machine::skelet1::{counter_to_rle, counter_transition_rules, measure_uni_cycle, BigInt, CounterBlockType, CounterStepInfo, CounterSymbol, Direction, CounterSimulator};
 use turing_machine::skelet1_basic::{SKELET_1, is_skelet1_basic_state};
@@ -265,23 +265,6 @@ fn run_to_tc() {
     println!("Elapsed: {:.2?}", elapsed);
 }
 
-fn check_skelet1_config_transition_rules() {
-    let rules_txt = include_str!("../definitions/skelet1/config_transition_rules.txt");
-    let lines = rules_txt.lines().filter(|s| s.len() > 1);
-    for line in lines {
-        // let tm = TuringMachine::from_standard_notation(SKELET_1);
-        let tm = TuringMachine::from_standard_notation("1RB0LF_1LC0RC_1RA1LD_0RE0LB_---1RC_1RD1RF");
-        let rule = ConfigTransitionRule::from_str(line).unwrap();
-
-        let res = check_transition_rule(rule, &tm, true);
-        print!("{line}");
-        match res {
-            Ok(n_steps) => println!(" --- {n_steps} step(s)"),
-            Err(err) => println!(" {err:?}"),
-        }
-    }
-}
-
 fn main() {
     env::set_var("RUST_BACKTRACE", "1");
 
@@ -293,15 +276,15 @@ fn main() {
     //     sim.step();
     // }
 
-    // let sim = BasicSimulator::new(tm);
+    // let mut sim = BasicSimulator::new(tm);
     // println!("{}", sim.display_directed_head());
-    // for _ in 0..400 {
-    //     let BasicStepInfo { halted: _, record} = sim.step();
+    // for _ in 0..2000 {
+        // let BasicStepInfo { halted: _, record} = sim.step();
     // while !sim.step() {
         // if record == Some(TMDirection::Right) {
         //     println!("{} *", sim.display_directed_head());
         // } else {
-        //     println!("{}", sim.display_directed_head());
+            // println!("{}", sim.display_directed_head());
         // }
 
         // println!("{}", sim.display_directed_head());
@@ -395,7 +378,7 @@ fn main() {
     // test_H_block_creation_set_position(3, 4);
     // test_H_block_creation_set_position(3, 5);
 
-    // run_to_tc();
+    run_to_tc();
 
     // dbg!(skelet1::left_block_definition()[&CounterBlockType::Debris2].len());
 
@@ -426,17 +409,4 @@ fn main() {
     //     println!("{sim}");
     // }
     // println!("{sim}");
-
-    // skelet1_basic::try_match_skelet1_basic_states();
-    // skelet1_basic::try_match_skelet1_basic_states_candidate_7();
-    skelet1_basic::try_match_skelet1_basic_states_alt();
-
-    // let tm = TuringMachine::from_standard_notation(SKELET_1);
-    // let rule = ConfigTransitionRule::from_str("011 <C10  ->  <C10  110").unwrap();
-
-    // let tm = TuringMachine::from_standard_notation("1RB0LF_1LC0RC_1RA1LD_0RE0LB_---1RC_1RD1RF");
-    // let rule = ConfigTransitionRule::from_str("1 A> 110 110  -> 1 011 011  A>").unwrap();
-    // dbg!(check_transition_rule(rule, &tm, true));
-
-    // check_skelet1_config_transition_rules();
 }
