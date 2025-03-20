@@ -481,6 +481,18 @@ pub fn check_transition_rule(rule: ConfigTransitionRule, tm: &TuringMachine, ver
     if verbose as isize >= 1 {
         println!("{}: {} ", &sim.time, &sim.config);
     }
+
+    if sim.config == rule.after {
+        if verbose as isize >= 1 {
+            println!("{}: {} ", &sim.time, &sim.config);
+        }
+        return Ok(sim.time);
+    } else if reduce_config(&sim.config) == reduce_config(&rule.after) {
+        if verbose as isize >= 1 {
+            println!("{}: {} ", &sim.time, &sim.config);
+        }
+        return Ok(sim.time);
+    }
     
     loop {
         let res = sim.step();

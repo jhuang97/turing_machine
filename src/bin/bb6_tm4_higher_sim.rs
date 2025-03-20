@@ -453,6 +453,7 @@ impl fmt::Display for BlockSymbol {
 
 // End of customizable code
 
+
 impl BlockSimulator {
     pub fn new() -> Self {
         use BlockSymbol::*;
