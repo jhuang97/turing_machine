@@ -174,3 +174,81 @@ recall that D> 011 -> *HALT*
 
 ran into a > C C0 in block simulation...
 39775167316 | 3161152462952049567: L X^15 C0 X C0 X^774840950 C0 X^2310174000 C0 X^727011261 C0 X^227988162 C0 X^71213067 C0 X^22143348 C0 X^6849657 C0 X^2106054 C0 X^642951 C0 X^194616 C0 X^58293 C0 X^17226 C0 X^4995 C0 X^1404 C0 X^369 C0 X^78 > C C0 X^11 R
+
+Try another TM, "skelet 1-like TM #1"
+1RB0LB_1RC0LA_1LB0RD_1RE1RD_1RB1RF_1LA---
+============================================
+(this is line 2 from bb6_Sk1-like.txt but I'm zero-indexing these TMs)
+
+basic abstraction:
+C>1 010 -> 11 <B1 1
+C>1 001 -> 11 <B1 0
+C>1 0001 -> 0111 C>1
+C>1 0000 -> 01 11<B1
+C>1 $    -> 01 11<B1 $
+C>1 1$   -> 0111 1<B1 $
+C>1 11$    -> 0111 11<B1 $
+C>1 110001 -> 011111 C>1
+C>1 111$ -> 011111 1<B1 $
+0  <B1 ->  1 C>1
+01 <B1 -> 11 C>1
+01  1<B1 ->  1<B1 01
+01 11<B1 -> 11<B1 01
+0111  1<B1 ->  1<B1 0001
+0111 11<B1 -> 11<B1 0001
+C>1 011 -> *HALT*
+
+Basically, it seems like we can replace 0D>, 11<A1, 1<A1 from TM 4, with C>1, 11<B1, 1<B1 respectively here.
+
+Tried checking the higher rules with the new head definitions and the same old RLE definitions and symbol-over-RLE definitions.  It works.
+
+And it also does halt for these higher rules:
+> F2 R0 -> ***HALT***
+> F6 R0 -> ***HALT***
+
+Step counts are a bit different though.
+
+Starting state? tm 4 has
+L <e R0 = 0110111 11<B1 1 ???
+Not quite... Seems like sk1like #1 has
+38: 11011101111 <B 1 = L X <o R
+
+
+skelet 1-like TM #2
+1RB0LC_1LC0RE_1LD1LB_1LA1LD_1RF0RA_---1RE
+=========================================
+states:
+A>0
+11<A
+1<A
+
+rle: left 1 0^n, right 1^n 0
+
+basic abstraction (this is not complete):
+A>0 110 -> 100 A>0
+A>0 111 -> 1<A 110
+0000 A>0 0 -> 1<A 11011
+01 A>0 0 -> 100 A>0
+000010 A>0 0 -> 1<A 1101111
+1110 A>0 0 -> 1<A 11011
+10100 A>0 0 -> 1<A 111111
+11 A>0 0 -> 1<A 110
+000 1<A -> 100 A>0
+100 1<A -> 1<A 110
+1 11<A -> 00 A>0
+0000 11<A -> 1<A 11010
+000010 11<A -> 1<A 1101110
+0110 11<A -> 100 A>0 10
+1110 11<A -> 1<A 11010
+00100 11<A -> 1<A 110110
+001100 11<A -> 1<A 1101110
+
+not closed?
+A>0 101
+1010 A>0 0
+1100 A>0 0
+010 1<A
+110 1<A
+
+halt
+A>0 100 -> *HALT*

@@ -1,0 +1,105 @@
+tm = 1RB0LC_1LC0RE_1LD1LB_1LA1LD_1RF0RA_---1RE
+
+[metastates]
+Right    >  A>0
+LeftEven <e 11<A
+LeftOdd  <o 1<A
+
+[rle]
+left = 1 0^n
+right = 1^n 0
+
+[symbols over rle]
+X(exp) = 22
+P = 2
+L = ^
+R = $
+R3 = 3$
+C1 = 1
+C = 101
+C0 = 4
+D = 0
+F = 5
+F2 = 8
+G = 10001
+G2 = 6
+G3 = 3
+J = 7
+
+[rules]
+> X -> X >
+X <e -> <e X
+X <o -> <o X
+
+> P X -> X > P
+X P <e -> P <e X
+X P <o -> P <o X
+
+> P P -> X >
+P P <e -> <e X
+P P <o -> <o X
+
+L <o -> L P >
+L <e -> L <o P C1
+L P <e -> L <o X
+L P <o -> L X >
+X > R -> <e P R3
+> R3 -> <o P R
+> P R3 -> P > R3
+P > P -> X >
+P <o P -> <o X
+X > P R -> P <e P R3
+
+> C1 P -> C >
+C <o -> <o C0
+> C0 -> <o P C1
+
+> C1 X -> C > P
+> P C0 -> P > C0
+> P C1 -> P > C1
+C P <o -> C <o P
+
+C <e -> D P > C1
+C > R -> D X > R
+D P <o -> <e P
+P D <e -> C0 >
+X D <e -> P C0 >
+C0 <o -> C1 P >
+
+C1 P <e -> <o F
+> P F -> P > F
+> F -> <o X
+
+C P <e -> C1 <e F
+X C1 <e -> <e P C0
+X C1 <e -> <e P C0
+X P C1 <e -> P <e P C0
+> C1 F -> <o C0 P
+> C1 J -> <o C0 C0
+
+> C1 C0 -> <o C0 C1
+> C1 C1 P -> G >
+> C1 C1 X -> G > P
+G P <o -> G <o P
+G <o -> <o G2
+> P G2 -> P > G2
+> G2 -> <o P G3 
+> P G3 -> P > G3
+> G3 -> <o P D
+
+C C1 <e -> <e X D
+X C1 <o -> P <e P D
+X > P D F -> P <e P F2
+> P F2 -> P > F2
+> F2 -> <o P F
+
+X > D P -> <e P F
+P > P D P -> <e P F
+X > P D P -> P <e P F
+P D P C1 <e -> <e P F
+X D P C1 <e -> P <e P F
+
+G P <e -> C1 <o P X
+X > P D X -> P <e P F P
+C P C1 <e -> C1 <e J
+> C1 C1 F -> <o G2 P

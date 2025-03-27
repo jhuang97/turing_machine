@@ -483,18 +483,18 @@ impl BlockSimulator {
 }
 
 fn main() {
-    // let mut sim = BlockSimulator::new();
-    let mut sim = {
-        use BlockSymbol::*;
-        use RunSymbolType::*;
-        use HigherState::*;
-        // BlockSimulator::new_with_tape(vec![L, Run(X, 10)], Right, vec![R, Run(X, 100), C1, C])
-        // BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0, Run(X, 1), C0], LeftEven, vec![R, Run(X, 3)])
-        BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0], LeftEven, vec![R, Run(X, 5)])
-    };
+    let mut sim = BlockSimulator::new();
+    // let mut sim = {
+    //     use BlockSymbol::*;
+    //     use RunSymbolType::*;
+    //     use HigherState::*;
+    //     // BlockSimulator::new_with_tape(vec![L, Run(X, 10)], Right, vec![R, Run(X, 100), C1, C])
+    //     // BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0, Run(X, 1), C0], LeftEven, vec![R, Run(X, 3)])
+    //     BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0], LeftEven, vec![R, Run(X, 5)])
+    // };
 
     // let max_steps = 100000000000u64;
-    let max_steps = 1000;
+    let max_steps = 200;
     println!("{}", sim);
     for i in 1..max_steps {
         let res = sim.step();

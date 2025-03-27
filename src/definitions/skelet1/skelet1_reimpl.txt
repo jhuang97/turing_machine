@@ -1,0 +1,66 @@
+tm = 1RB1RD_1LC0RC_1RA1LD_0RE0LB_---1RC
+
+[metastates]
+Left  < <C10
+Right > A>
+
+[rle]
+left = 0 1^n
+right = 1^n 0
+
+[symbols over rle]
+X(exp) = 22
+D = 21
+C0 = 232
+C1 = 201
+C2 = 42
+C = 11
+R = 2$
+L = ^
+P = 2
+F0 = 432
+F1 = 401
+F2 = 62
+F3 = 31
+G0 = 2332
+G1 = 2301
+G2 = 252
+
+[rules]
+X < -> < X
+D < -> < D
+C < -> < C
+> X -> X >
+> D -> D >
+
+> R -> < R
+L < C X -> L C1 D > P
+
+X > C -> C0 >
+C0 < -> C1 X >
+C1 < -> C2 >
+C2 < -> C X >
+
+D > C -> P X >
+
+C2 > C -> F0 >
+F0 < -> F1 X >
+F1 < -> F2 >
+F2 < -> F3 X >
+X F3 < -> P C1 D >
+
+C0 > C -> G0 >
+G0 < -> G1 X >
+G1 < -> G2 >
+G2 < -> P D X >
+
+P < -> < P
+> P P -> X >
+> P X -> X > P
+> P R -> < C X R
+> P D X -> C1 D > P
+> P C X -> < P D P
+> P D P -> C1 D >
+> P D D X -> C2 C1 D >
+> P D C X -> G1 D > P
+> P D R -> C1 < P R

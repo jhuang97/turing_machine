@@ -407,7 +407,7 @@ impl<'a> DirectedHeadSimulator<'a> {
             tm,
             time: 0,
             undefined: false,
-            time_limit: 50,
+            time_limit: 100,
         }
     }
 

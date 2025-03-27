@@ -1,0 +1,66 @@
+tm = 1RB2LA0RB1LB---_1LA3RA1RA4LB1LB
+
+[metastates]
+Right  >   A>
+Left   <A  <A
+LeftB  <b  <B1
+
+[blocks]
+R = $
+R1 = 1$
+R2 = 2$
+L = ^11
+
+U = 12
+V = 21
+W = 03
+X = 11
+Y = 22
+Z = 01
+F = 141
+G = 241
+P1 = 1
+P2 = 2
+
+[rules]
+W <A -> <A X
+Z <A -> X >
+X <A -> <A Y
+
+W <b -> <A F
+Z <b -> <A X P2
+X <b -> <b Y
+
+> R -> <A V R
+> X -> <A V
+> V -> W >
+> Y -> Z >
+> U -> <A Y
+
+L <A -> L > P2
+
+> P2 R -> > R2
+> P2 X -> > V P1
+> P2 V -> > Y P1
+> P2 Y -> > Y P2
+> P2 U -> > V P2
+
+> P1 R -> > R1
+> P1 X -> > X P1
+> P1 V -> > U P1
+> P1 Y -> > U P2
+> P1 U -> > X P2
+
+> P2 P1 -> > V
+> P1 P2 -> > U
+
+> R1 -> <A R2
+> R2 -> <b Y R1
+
+> P1 R1 -> > X R
+> P1 R2 -> > U R
+> P2 R1 -> > V R
+> P2 R2 -> > Y R
+
+> F -> <A G
+> G -> <A X P1
