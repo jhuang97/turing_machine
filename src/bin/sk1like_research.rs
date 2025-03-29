@@ -38,41 +38,39 @@ fn main() {
     let candidates_s: Vec<_> = include_str!("../../bb6_Sk1-like.txt").trim().lines().collect();
     let candidates: Vec<_> = candidates_s.iter().map(|s| TuringMachine::from_standard_notation(s)).collect();
 
-    let tm_idx = 2;
+    let tm_idx = 3;
     println!("{}", candidates_s[tm_idx]);
 
     let tm = candidates[tm_idx].clone();
 
-    // D> 011 -> *HALT*
+    // 10A>, 1<E01
 
     let rules_guess = 
-"A>0 110 -> 100 A>0
-A>0 111 -> 1<A 110
-0000 A>0 0 -> 1<A 11011
-01 A>0 0 -> 100 A>0
-000010 A>0 0 -> 1<A 1101111
-1110 A>0 0 -> 1<A 11011
-10100 A>0 0 -> 1<A 111111
-11 A>0 0 -> 1<A 110
-000 1<A -> 100 A>0
-100 1<A -> 1<A 110
-1 11<A -> 00 A>0
-0000 11<A -> 1<A 11010
-000010 11<A -> 1<A 1101110
-0110 11<A -> 100 A>0 10
-1110 11<A -> 1<A 11010
-00100 11<A -> 1<A 110110
-001100 11<A -> 1<A 1101110";
+"10A> 0000 -> 1<E01 001
+10A> 0001 -> 1010 10A>
+10A> 001000 -> 10 1<E01 001
+10A> 00110 -> 1<E01 0011
+10A> 00111 -> 10110 10A>
+10A> 01000 -> 1<E01 0011
+10A> 01001 -> 10110 10A>
+000 10A> 01010 -> 10 1<E01 00100
+10A> 01011 -> 1011 1<E01
+10A> 1 -> 1<E01
+00000 1<E01 -> 10 10A> 0011
+00010000 1<E01 -> 10 10A> 0010011
+1000 1<E01 -> 1<E01 0011
+000100 1<E01 -> 10 10A> 00111
+10100 1<E01 -> 1<E01 00111
+101100 1<E01 -> 1<E01 001111
+00010 1<E01 -> 10 10A> 0001
+1010 1<E01 -> 1<E01 0001
+000110 1<E01 -> 10 10A> 00101
+10110 1<E01 -> 1<E01 00101
+101110 1<E01 -> 1<E01 001101
+10001 1<E01 -> 1<E01 00101
+10101 1<E01 -> 1<E01 00001";
 
-// not closed?
-// A>0 101
-// 1010 A>0 0
-// 1100 A>0 0
-// 010 1<A
-// 110 1<A
-
-//halt
-//A>0 100 -> F>";
+// 10A> 011 -> *HALT*
 
     // check_text_config_transition_rules(&tm, rules_guess);
 
@@ -99,12 +97,18 @@ A>0 111 -> 1<A 110
         (sim.state == State::A && sim.prev_dir == Some(TMDirection::Right) && sim.tape.get(sim.position) == Some(&Symbol(0))) ||
         (sim.state == State::A && sim.prev_dir == Some(TMDirection::Left) && sim.tape.get(sim.position) == Some(&Symbol(1)))
     };
+    let highlight4 = |sim: &BasicSimulator| {
+        (sim.state == State::A && sim.prev_dir == Some(TMDirection::Right) && sim.tape.get(sim.position-1) == Some(&Symbol(0))
+        && sim.tape.get(sim.position-2) == Some(&Symbol(1))) ||
+        (sim.state == State::E && sim.prev_dir == Some(TMDirection::Left) && sim.tape.get(sim.position) == Some(&Symbol(1))
+        && sim.tape.get(sim.position+1) == Some(&Symbol(0)) && sim.tape.get(sim.position+2) == Some(&Symbol(1)))
+    };
     let highlight_right_end = |sim: &BasicSimulator| {
         ((sim.state == State::D && sim.prev_dir == Some(TMDirection::Right)) ||
         (sim.state == State::A && sim.prev_dir == Some(TMDirection::Left) && sim.tape.get(sim.position+1) == Some(&Symbol(1))))
         && sim.position > sim.tape.len() - 10
     };
-    run_basic_sim(&tm, 6000, highlight3b);
+    run_basic_sim(&tm, 5000, highlight4);
 
     // let mut sim = BasicSimulator::new(tm);
     // println!("{}", sim.display_directed_head());

@@ -1,0 +1,68 @@
+tm = 1RB0LC_0RC1RF_1RD0RE_1LE0RA_0LA0LE_1RE---
+
+[metastates]
+Right    >  10A>
+LeftEven <e 1<E01
+LeftOdd  <o 101<E01
+
+[rle]
+left = 1 0^n
+right = 0^n 1
+
+[symbols over rle]
+X(exp) = 11
+Y(exp) = 3
+R = 2$
+L = ^1
+C = 101
+C0 = 21
+Ch = 4
+C1 = 20
+C2 = 202
+C3 = 201
+Cs = 1
+C4 = 200
+F = 2
+G = 02
+H = 0
+
+[rules]
+> Y -> X >
+X <e -> <e Y
+X <o -> <o Y
+
+L <e -> L > Y
+L <o -> L > C1 Y
+> R -> <o R
+
+C <e -> <e C0
+> C0 Y -> X <e C1
+> C1 Y -> <e C2
+> C2 -> <e C3
+> C3 -> <e C4
+> C4 -> C >
+
+X C <o -> <o Ch Y
+> Ch -> <e C1
+> Cs Y -> <e C4
+
+> F R -> X <o R
+> F Y -> <o C1
+> G -> <e F
+> H -> <e
+
+> C0 C0 -> X X > Cs
+> C0 C1 -> X X <e
+> C0 C2 -> X X <e F
+> C0 C3 -> X X <e Cs
+> C0 C4 -> X X <e H
+
+> C0 F -> X X >
+> C0 Cs Y -> X <o C1
+> C0 H Y -> <o C2
+
+> C1 C0 -> <e C3 Cs
+> C1 C1 -> <e C3 H
+> C1 C2 -> <e C3 G
+> C1 C3 -> <e C3 H Cs
+> C1 C4 -> <e C3 H H

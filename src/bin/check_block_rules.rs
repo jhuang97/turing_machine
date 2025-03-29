@@ -60,7 +60,7 @@ fn process_tm_block_file(fname: &str) -> (String, TuringMachine, Vec<Rc<Metastat
     let mut n_not_verified = 0;
     for (rule, base_rule) in rules.iter().zip(base_rules) {
         print!("{rule} ... ");
-        let res = check_transition_rule(base_rule, &tm, CheckerVerbosity::Off);
+        let res = check_transition_rule(base_rule, &tm, CheckerVerbosity::All);
         println!("{:?}", &res);
         match res {
             Ok(n_steps) => {

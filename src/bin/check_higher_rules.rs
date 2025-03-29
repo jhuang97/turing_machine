@@ -349,8 +349,8 @@ struct RuleImpl {
 }
 
 /// all tape slices are ordered from further-from-head to nearest-to-head
-/// most general rightward rule: [LI] > [RI] X^n -> X^n [LI] > [RI]
-/// most general leftward rule: X^n [LI] < [RI] -> [LI] < [RI] X^n
+/// most general rightward rule: [LI] > [RI] Y^n -> X^n [LI] > [RI]
+/// most general leftward rule: X^n [LI] < [RI] -> [LI] < [RI] Y^n
 /// the "from" half-tape should lose one RLE symbol
 /// the "to" half-tape should gain one RLE symbol
 fn directionless_pass_through(
@@ -365,8 +365,8 @@ fn directionless_pass_through(
         return None;
     }
 
-    // the RLE symbol passing through
-    if !from0[0].repeat || !to1[0].repeat || from0[0].name != to1[0].name {
+    // the symbol coming in and the symbol going out should both be run length-encoded
+    if !from0[0].repeat || !to1[0].repeat {
         return None;
     }
 
@@ -380,17 +380,19 @@ fn directionless_pass_through(
         return None;
     }
 
-    let passed_symbol = Rc::clone(&from0[0]);
+    let from_symbol = Rc::clone(&from0[0]);
+    let to_symbol = Rc::clone(&to1[0]);
     let from_block = from1.to_vec();
     let to_block = to0.to_vec();
 
-    let symb_ident = &passed_symbol.ident;
-    let symb_expr = quote! { Run(#symb_ident, exp) };
+    let from_symb_ident = &from_symbol.ident;
+    let to_symb_ident = &to_symbol.ident;
+    let from_symb_expr = quote! { Run(#from_symb_ident, exp) };
     let block_idents = (&from0[1..]).iter().map(|s| {
         let ident = s.ident.clone();
         quote! { #ident }
     });
-    let from_match = quote!{ [.., #symb_expr, #(#block_idents),*]};
+    let from_match = quote!{ [.., #from_symb_expr, #(#block_idents),*]};
     let to_match = half_tape_match(&to_block);
 
     let mut changes_vec: Vec<TokenStream> = vec![ quote!{ let n = *exp; } ];
@@ -405,7 +407,7 @@ fn directionless_pass_through(
     for _ in 0..to_block.len() {
         changes_vec.push(quote! { self.#to_ident.pop(); });
     }
-    changes_vec.push(quote!{ add_or_merge_run(&mut self.#to_ident, #symb_ident, n); });
+    changes_vec.push(quote!{ add_or_merge_run(&mut self.#to_ident, #to_symb_ident, n); });
     for s in &to_block {
         let s_ident = s.ident.clone();
         changes_vec.push(quote! { self.#to_ident.push(#s_ident); });
@@ -429,7 +431,6 @@ fn try_process_passing_through_run(rule: &CheckedRule) -> Option<RuleImpl> {
     let right1: Vec<_> = rule.after.rhs.iter()
         .rev()
         .map(|s| Rc::clone(s)).collect();
-    // if left0.is_empty() && right0.len() == 1 && left1.len() == 1 && right1.is_empty() {
 
     // most general rightward rule: [LI] > [RI] X^n -> X^n [LI] > [RI]
     // most general leftward rule: X^n [LI] < [RI] -> [LI] < [RI] X^n
@@ -444,23 +445,6 @@ fn try_process_passing_through_run(rule: &CheckedRule) -> Option<RuleImpl> {
     } else {
         return None;
     };
-
-    // let (left_match, right_match, sim_changes) = if rightward {
-    //     (quote! { _ }, quote! { [.., #symb_expr] },
-    //         quote! {
-    //             let n = *exp;
-    //             self.right_tape.pop();
-    //             add_or_merge_run(&mut self.left_tape, #symb_ident, n);
-    //         }
-    //     )
-    // } else {
-    //     (quote! { [.., #symb_expr] }, quote! { _ },
-    //         quote! {
-    //             let n = *exp;
-    //             self.left_tape.pop();
-    //             add_or_merge_run(&mut self.right_tape, #symb_ident, n);
-    //         })
-    // };
 
     let rule_steps = rule.n_steps as u128;
     let step_count = quote! { #rule_steps * n };
@@ -489,6 +473,14 @@ fn half_tape_match(half_tape0: &Vec<Rc<SymbolOverRLE>>) -> TokenStream {
     quote!{ [.., #(#symbols_match),*]}
 }
 
+enum TapeAddition {
+    Run {
+        symb: Rc<SymbolOverRLE>,
+        exp: u128
+    },
+    Normal(Rc<SymbolOverRLE>)
+}
+
 fn half_tape_changes(half_tape0: &Vec<Rc<SymbolOverRLE>>, half_tape_new: &Vec<Rc<SymbolOverRLE>>,
     tape_ident: Ident
 ) -> Vec<TokenStream> {
@@ -514,22 +506,41 @@ fn half_tape_changes(half_tape0: &Vec<Rc<SymbolOverRLE>>, half_tape_new: &Vec<Rc
         );
     }
 
-    // add new symbols to half tape
-    for idx in change_start_idx..half_tape_new.len() {
-        let t = half_tape_new[idx].ident.clone();
-        changes.push(
-            if half_tape_new[idx].repeat {
-                if idx == 0 {
-                    quote! { add_or_merge_run(&mut self.#tape_ident, #t, 1); }
-                } else {
-                    quote! { self.#tape_ident.push(Run(#t, 1)); }
-                }
-            } else {
-                quote! { self.#tape_ident.push(#t); }
-            }
-        );
-    }
+    use TapeAddition::*;
 
+    // add new symbols to half tape
+    let mut additions: Vec<_> = half_tape_new[change_start_idx..]
+        .to_vec()
+        .chunk_by(|a, b| a.repeat && b.repeat && a.name == b.name)
+        .map(|s| {
+            let s0 = s.first().unwrap();
+            if s0.repeat {
+                Run { symb: Rc::clone(s0), exp: s.len() as u128 }
+            } else {
+                assert_eq!(s.len(), 1);
+                Normal(Rc::clone(s0))
+            }
+        })
+        .enumerate()
+        .map(|(tidx, tadd)| {
+            match tadd {
+                Run { symb, exp } => {
+                    let t = symb.ident.clone();
+                    if change_start_idx == 0 && tidx == 0 {
+                        quote! { add_or_merge_run(&mut self.#tape_ident, #t, #exp); }
+                    } else {
+                        quote! { self.#tape_ident.push(Run(#t, #exp)); }
+                    }
+                }
+                Normal(symb) => {
+                    let t = symb.ident.clone();
+                    quote! { self.#tape_ident.push(#t); }
+                }
+            }
+        })
+        .collect();
+
+    changes.append(&mut additions);
     changes
 }
 
@@ -804,7 +815,7 @@ fn main() {
 
     // let fname = "src/definitions/bb6_tm_4_counter.txt";
     // let fname = "src/definitions/bb6_sk1like_1.txt";
-    let fname = "src/definitions/bb6_sk1like_2.txt";
+    let fname = "src/definitions/bb6_sk1like_3.txt";
     // let fname = "src/definitions/skelet1/skelet1_reimpl.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 
