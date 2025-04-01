@@ -448,15 +448,15 @@ fn main() {
     //     BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0], LeftEven, vec![R, Run(X, 5)])
     // };
 
-    // let max_steps = 1000u64;
-    let max_steps = 10000000000u64;
+    let max_steps = 1000u64;
+    // let max_steps = 10000000000u64;
     println!("{}", sim);
     for i in 1..=max_steps {
         let res = sim.step();
         // if i % 1 == 0 {
-        if i % 1000000000 == 0 || sim.right_tape.len() < 2 {
+        // if i % 1000000000 == 0 || sim.right_tape.len() < 2 {
             println!("{}", sim);
-        }
+        // }
         if res.is_err() {
             println!("{}", sim);
             println!("{:?}", res);

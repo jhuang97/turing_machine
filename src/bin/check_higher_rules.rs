@@ -96,6 +96,7 @@ struct Metastate {
     name: String,
     short_name: String,
     definition: DirectedHeadConfig,
+    original_def: String,
     ident: Ident
 }
 
@@ -110,6 +111,7 @@ fn parse_metastates(lines: &[String]) -> Result<Vec<Rc<Metastate>>, ParseConfigE
             name: parts[0].to_owned(),
             short_name: parts[1].to_owned(),
             definition: config,
+            original_def: parts[2].to_owned(),
             ident: format_ident!("{}", parts[0])
         }));
     }
@@ -581,7 +583,7 @@ fn try_process_rule_general(rule: &CheckedRule) -> Option<RuleImpl> {
 }
 
 fn generate_rule_code(rule: &CheckedRule, symbol_table: &Vec<Rc<SymbolOverRLE>>, state_table: &Vec<Rc<Metastate>>) -> TokenStream {
-    let case_comment = format!(" {}", rule.original_input);
+    let case_comment = format!("\\ {}", rule.original_input);
 
     let state0_ident = &rule.before.metastate.ident.clone();
 
@@ -792,7 +794,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
     };
 
     let syntax_tree1 = syn::parse2(code1).unwrap();
-    let formatted1 = prettyplease::unparse(&syntax_tree1);
+    let formatted1 = prettyplease::unparse(&syntax_tree1).replace(r"///\", "//");
     let mut file1 = fs::OpenOptions::new()
                 .read(true)
                 .write(true)
@@ -819,6 +821,6 @@ fn main() {
     // let fname = "src/definitions/skelet1/skelet1_reimpl.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 
-        process_tm_rle_file(fname, CheckerVerbosity::All);
+        process_tm_rle_file(fname, CheckerVerbosity::Off);
     generate_simulator_code(tm_def, state_table, symbol_table, checked_rules);
 }
