@@ -434,8 +434,6 @@ fn try_process_passing_through_run(rule: &CheckedRule) -> Option<RuleImpl> {
         .rev()
         .map(|s| Rc::clone(s)).collect();
 
-    // most general rightward rule: [LI] > [RI] X^n -> X^n [LI] > [RI]
-    // most general leftward rule: X^n [LI] < [RI] -> [LI] < [RI] X^n
     let (left_match, right_match, sim_changes) =     
     if let Some(res) = directionless_pass_through(&right0, &right1, format_ident!("right_tape"),
         &left0, &left1, format_ident!("left_tape"))
