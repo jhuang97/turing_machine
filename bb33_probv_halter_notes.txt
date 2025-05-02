@@ -1,0 +1,119 @@
+Checking low level rules
+========================
+halting transition:
+L <b -> ***HALT***
+equivalent to
+$1 <B 0* -> Halt immediately
+
+...I also checked the A(a,c) rules using the block simulation for small a, c values.
+
+
+@LegionMammal978 direct simulation results
+(# A(1,c) rules, # A(a,c) rules, a, c)
+8672133513216 317356143410968 1 713175774207038
+8672134561792 317356182208280 1 713175858093118
+8672135610368 317356221005592 1 713175941979198
+8672136658944 317356259802904 1 713176025865278
+8672137707520 317356298600216 1 713176109751358
+8672138756096 317356337397528 1 713176193637438
+8672139804672 317356376194840 1 713176277523518
+8672140853248 317356414992152 1 713176361409598
+8672141901824 317356453789464 1 713176445295678
+8672142950400 317356492586776 1 713176529181758
+I've gotten as far as
+   3463811057    100000000984 1    229132789716
+           Rust u64::MAX = 18446744073709551615
+
+Given that it is most probably going to take a colossal amount of A(a,c) steps before this TM halts, it is probably best to look for patterns and try to accelerate the simulation.
+
+I've tried simulating starting from A(1,c) for c = 1, 2, 3, 4, ..., 10000000 until it gets to the next A(1,c') value.  I notice patterns in the plot of # steps vs. c and of c'-c vs. c. The plot for odd c values looks like Cantor dust; the plot for even c values looks like a shifted version of the plot for odd values.
+
+It should be interesting to see what chain of A(a,c) rules follow from each of these c values.
+
+First of all, it seems like from every A(1,c) configuration we will have a chain of rules starting with
+* j^n ...   for odd c values
+* i j^n ... for even c values
+
+a starts at 1.  As long as a <= c, the j rule will be applied, increasing a and decreasing c. The larger the original c, the more j rules will be applied at the start.
+
+In fact, to start with j^n (specifically, at least n times) you need c >= 3^n - 2n (odd c). To start with i j^n you need c >= 2 * (3^n - n - 2) (even c). (I worked this out on paper.)
+    |    j^n    |    i j^n
+n   |  3^n - 2n | 2 * (3^n - n - 2)
+----------------+------------------
+2         5           10
+3        21           44
+4        73          150
+5       233          472
+6       717         1442
+
+number line:
+odd: 5-> j^2            21-> j^3            73-> j^4             233-> j^5
+even:        10-> i j^2          44-> i j^3          150-> i j^4           472-> i j^5
+
+Of the rules a-j, rules a and g seem to never show up in practice.
+Rule i is used once when starting from A(1, c) with even c.
+Rules d,e,f require a and c to be really close together, and are also very rare - though a simulator must include them.
+For a simple description, we only consider rules b, c, i, h, j.
+
+Consider these four cases for the values of a and c in A(a, c):
+1. a = 1, c odd
+2. a = 1, c even
+3. a odd, c odd (a > 1)
+4. a even, c odd
+
+Case 1 goes to 3 by rule j.
+Case 2 goes to 3 by rule i.
+Case 3 goes to 3 (itself) by rule j, or to case 4 by rule b or c.
+Case 4 goes to 3 by rule b or c, or to case 1 or 2 by rule h.
+
+An important thing to note here is that rule b or c flips the parity of the a value. After rule i or j, you should be in case 3 (a odd, c odd), and you will need rules (b|c)^n with even n before another rule j. Or, you need rules (b|c)^n with odd n before a rule h.
+
+For the purpose of getting a big picture of the fractal structure, it is useful to ignore constant terms in the rules and in the values of a and c.  Then, the rules j, b, and c become:
+J:  a, c -> 3a, c-a
+BC: a, c -> a-c, 3c/2
+
+Let the fraction f represent the fraction of tape symbols corresponding to c.  f = 2c / (a + 2c). We use 2c because the exponent c is over blocks of size 2.
+Then, we have:
+BC (0 < f < 2/3):        f -> 3f/2, parity of a is flipped
+J (2/3 < f < 1, a odd):  f -> 3f - 2 = 3(f - 1) + 1, a is still odd
+h (2/3 < f < 1, a even): go to the next A(1, c) value, f -> ~1
+f > 2/3 is roughly equivalent to a <= c. We can ignore edge cases while aiming to get a big picture of the fractal's structure.
+
+For the set of even c_initial values where the sequence of rules starts with i j^n for a specific n value, or for the set of odd c_initial values starting with j^n for a specific n values, let us define c_after, a_after, and f_after as the values of c, a, and f after the initial rules of j^n or ij^n.
+After the initial run of either j^n (for initial c odd) or ij^n (for initial c even), we have:
+* 0 < f_after < 2/3, neglecting small terms
+* a_after = 2 * 3^n - 1 (c_initial odd) OR 4 * 3^n - 1 (c_initial even)
+* c_after = c_initial - (3^n - 2n) + 1 (c_initial odd) OR c_initial - (2 * 3^n - 2n - 5) + 1 (c_initial even)
+* a_after is odd, c_after is odd
+
+The initial c will determine what value of f we have after the initial run of j^n or ij^n. Let's see what happens to f_after in the interval (0, 2/3) with odd a after subsequent rule applications.
+
+Firstly, let's denote the combination of f in (4/9, 2/3) and the parity of a being odd as "(4/9, 2/3) odd". We see this interval evolve as:
+(4/9, 2/3) odd --BC-> (2/3, 1) --> h (goes to next A(1, c') value)
+
+(0, 4/9) odd --BC-> (0, 2/3) even --BC-> (0, 1) odd
+In (0, 1) odd, either J or BC may be applied next depending on the value of f in that interval.
+So (0, 4/9) has multiple possible outcomes depending on the exact value of f.
+
+(0, 16/81) odd    --BC-> (0, 8/27) even   --BC-> (0, 4/9) odd
+(16/81, 8/27) odd --BC-> (8/27, 4/9) even --BC-> (4/9, 2/3) odd --BC-> (2/3, 1) even -> h
+(8/27, 4/9) odd   --BC-> (4/9, 2/3) even  --BC-> (2/3, 1) odd   --J->  (0, 1) odd
+
+Therefore, for the interval f in (0, 4/9), the behavior is a fractal:
+(0, 16/81) behaves like (0, 4/9) but with two extra BC steps.
+(16/81, 8/27) will go to A(1, c') after BC^3 h.
+(8/27, 4/9) behaves like (0, 4/9) but with an extra J step.
+(See where both intervals get mapped to (0, 1) odd and consider the rules it took to get there.)
+
+If we plot the number of A(a,c) rules after the initial j^n or ij^n until it gets to A(1, c') or halts against f_after, it will have a fractal for f in (0, 4/9) and it contains two smaller copies of itself, each of which are horizontally compressed and shifted upwards.
+
+We can also figure out c from f: c = fa / (2 * (1-f)).
+Some important values:
+f = 2/3   <=> c = a
+f = 4/9   <=> c = 2a/5
+f = 8/27  <=> c = 4a/19
+f = 16/81 <=> c = 8a/65
+
+To make this more general, c_initial can be either even or odd, and the number of j steps is also general.  So we need to plot number of A(a,c) rules against c_initial for both parities ranging over multiple powers of 3.  We can plot vertical lines in some notable places wherever the behavior changes.
+
+Annoyingly, the forward sequence of A(1,c) starting from A(0,1) has both odd and even values of c, so we need to always keep track of where we are in both fractals.

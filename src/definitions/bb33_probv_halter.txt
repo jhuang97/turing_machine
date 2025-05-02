@@ -1,0 +1,48 @@
+tm = 1RB2LC1RC_2LC---2RB_2LA0LB0RA
+
+[metastates]
+LeftA1   <a1  <C
+LeftA2   <A2  <A2
+LeftB    <b   <B0
+RightC   C>   C>
+RightB   B>   B>
+
+[blocks]
+L = ^1
+X(exp) = 22
+Y(exp) = 20
+U(exp) = 01
+P0 = 0
+P1 = 1
+P2 = 2
+R = $
+
+[rules]
+B> X -> X B>
+C> X -> U C>
+C> P2 X -> U C> P2
+C> P2 R -> U <a1 Y R
+U <a1 -> <a1 Y
+C> Y -> U B>
+B> Y -> U C>
+L <a1 -> L P2 B> Y
+B> R -> <a1 Y R
+L P0 <a1 -> L P2 B> X
+X <a1 Y -> P2 U <A2
+U <A2 -> <A2 X
+C> P2 Y -> U C> P0
+C> P0 -> <A2
+P1 <A2 -> <a1 X
+P1 <a1 -> <b
+C> R -> <A2 R
+L <A2 -> L P2 B> X
+P2 <b -> U C>
+X <b -> P2 U C>
+P0 <a1 -> <A2
+P2 <A2 -> P1 C> P2
+X <A2 -> P2 P1 C> P2
+
+P2 <a1 Y -> P0 <a1 X
+P2 <a1 P2 -> U C>
+X <a1 X -> P2 U C> P2
+P2 <a1 X -> U C> P2
