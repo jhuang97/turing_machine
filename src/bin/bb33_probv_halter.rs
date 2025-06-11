@@ -1,8 +1,10 @@
 use std::{env, str::FromStr};
 use std::{fmt, fs, io, u64};
 use npyz::{TypeStr, WriterBuilder};
+use syn::token::Mod;
 use turing_machine::{check_transition_rule, BasicSimulator, BasicStepInfo, CheckerVerbosity, ConfigTransitionRule, State, Symbol, TMDirection, TuringMachine};
 use strum_macros::Display;
+use num_rational::Ratio;
 
 fn check_text_config_transition_rules(tm: &TuringMachine, rules_txt: &str) {
     let lines = rules_txt.lines().filter(|s| s.len() > 1);
@@ -35,6 +37,10 @@ fn run_basic_sim<F>(tm: &TuringMachine, n_steps: u64, filter: F)
 }
 
 type Num = u64;
+type SNum = i64;
+const ONE: SNum = 1;
+const TWO: SNum = 2;
+const THREE: SNum = 3;
 
 #[derive(Clone, Copy)]
 enum AacState {
@@ -42,7 +48,7 @@ enum AacState {
     Halt(Num)
 }
 
-#[derive(Display, PartialEq, Eq, Clone, Copy)]
+#[derive(Display, Debug, PartialEq, Eq, Clone, Copy)]
 #[strum(serialize_all = "snake_case")]
 enum AacRule {
     A,
@@ -323,6 +329,334 @@ fn save_integer_range_c_vals() {
     write_array_1d_u16("aac_step_vals_c1-1e7.npy", ac_step_vals).unwrap();
 }
 
+/// 2 * 3^n - 1, c_i odd, value of a after rules j^n
+fn a_after_odd(n: u32) -> SNum {
+    THREE.checked_pow(n).unwrap() * 2 - 1
+}
+
+/// 4 * 3^n - 1, c_i even, value of a after rules i j^n
+fn a_after_even(n: u32) -> SNum {
+    THREE.checked_pow(n).unwrap() * 4 - 1
+}
+
+/// 3^n - 2n, c_i odd, rules j^n
+fn c_threshold_odd(n: u32) -> SNum {
+    THREE.checked_pow(n).unwrap() - (n as SNum * 2)
+}
+
+/// 2 * 3^n - 2n - 4, c_i even, rules i j^n
+fn c_threshold_even(n: u32) -> SNum {
+    THREE.checked_pow(n).unwrap() * 2 - (n as SNum * 2) - 4
+}
+
+/// Use this struct to track what happens to (a, c) after a sequence of b, c, j rules.
+/// 
+/// Here, we let ce (c_excess) remain as a variable.
+/// a = w * ce + x, 
+/// c = y * ce + z. 
+/// w, x, y, z are fractions
+#[derive(Clone, Debug)]
+struct FracCeState {
+    w: Ratio<SNum>,
+    x: Ratio<SNum>,
+    y: Ratio<SNum>,
+    z: Ratio<SNum>,
+}
+
+impl FracCeState {
+    fn new_after_odd(n: u32) -> Self {
+        FracCeState { w: Ratio::ZERO, x: Ratio::from_integer(a_after_odd(n)), y: Ratio::ONE, z: Ratio::ONE }
+    }
+
+    fn new_after_even(n: u32) -> Self {
+        FracCeState { w: Ratio::ZERO, x: Ratio::from_integer(a_after_even(n)), y: Ratio::ONE, z: Ratio::ONE }
+    }
+
+    fn apply_rule(&self, rule: AacRule) -> Self {
+        match rule {
+            AacRule::B => FracCeState {
+                w: self.w - self.y, 
+                x: self.x - self.z - 2, 
+                y: self.y * 3 / 2, 
+                z: (self.z * 3 + 7) / 2
+            },
+            AacRule::C => FracCeState {
+                w: self.w - self.y, 
+                x: self.x - self.z - 4, 
+                y: self.y * 3 / 2, 
+                z: (self.z * 3 + 13) / 2
+            },
+            AacRule::J => FracCeState {
+                w: self.w * 3, 
+                x: self.x * 3 + 2, 
+                y: self.y - self.w, 
+                z: self.z - self.x + 1
+            },
+            AacRule::H => FracCeState {
+                w: Ratio::ZERO, 
+                x: Ratio::ONE, 
+                y: self.w/2 + self.y, 
+                z: self.x/2 + self.z + 2
+            },
+            _ => unimplemented!()
+        }
+    }
+
+    fn threshold1(&self) -> Ratio<SNum> {
+        assert!(self.w < self.y);
+        (self.x - self.z) / (self.y - self.w)
+    }
+
+    fn threshold2(&self) -> Ratio<SNum> {
+        assert!(self.w < self.y);
+        (self.x - self.z - 4) / (self.y - self.w)
+    }
+
+    fn get_delta_c(&self, c_th: SNum) -> Option<SNum> {
+        // state needs to be A(1, c) for integer c
+        if !(self.w == Ratio::ZERO && self.x == Ratio::ONE && self.y == Ratio::ONE && self.z.is_integer()) {
+            None
+        } else {
+            Some(self.z.numer() - c_th)
+        }
+    }
+}
+
+impl fmt::Display for FracCeState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "a = {}/{} c_e + {}/{}; ", self.w.numer(), self.w.denom(), self.x.numer(), self.x.denom())?;
+        write!(f, "c = {}/{} c_e + {}/{}", self.y.numer(), self.y.denom(), self.z.numer(), self.z.denom())
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Copy)]
+enum CommonRule { BC, J, H }
+
+#[derive(PartialEq, Eq, Clone, Copy)]
+enum FractalRule {
+    L, // branch left
+    J, // branch right
+    E  // end
+}
+
+impl FractalRule {
+    fn num_halving(&self) -> u32 {
+        match &self {
+            FractalRule::L => 2,
+            FractalRule::J => 0,
+            FractalRule::E => 2,
+        }
+    }
+}
+
+fn fractal_to_common_rule_seq(v: &Vec<FractalRule>) -> Vec<CommonRule> {
+    let mut out = Vec::new();
+    for r in v {
+        match r {
+            FractalRule::L => out.extend_from_slice(&[CommonRule::BC, CommonRule::BC]),
+            FractalRule::J => out.push(CommonRule::J),
+            FractalRule::E => out.extend_from_slice(&[CommonRule::BC, CommonRule::H]),
+        }
+    }
+    out
+}
+
+#[derive(Clone, Debug)]
+struct ACModState {
+    a: SNum,
+    c: SNum,
+    m: SNum, // mod, needs to be a power of 2
+}
+
+impl fmt::Display for ACModState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {}) mod {}", self.a, self.c, self.m)
+    }
+}
+
+
+#[derive(Clone, Debug)]
+enum ACModError {
+    ModTooSmall,
+    BadRemainder,
+}
+
+impl ACModState {
+    fn new_after_odd(n: u32, c_excess: SNum, pow2: u32) -> Self {
+        let a_after = a_after_odd(n);
+        assert!(c_excess % 2 == 0);
+        let m: SNum = TWO.checked_pow(pow2).unwrap();
+
+        Self {
+            a: a_after % m,
+            c: (c_excess + 1) % m,
+            m
+        }
+    }
+
+    fn new_after_even(n: u32, c_excess: SNum, pow2: u32) -> Self {
+        let a_after = a_after_even(n);
+        assert!(c_excess % 2 == 0);
+        let m: SNum = TWO.checked_pow(pow2).unwrap();
+
+        Self {
+            a: a_after % m,
+            c: (c_excess + 1) % m,
+            m
+        }
+    }
+
+    fn try_apply_rule(&self, rule: CommonRule) -> Result<(ACModState, AacRule), ACModError> {
+        use ACModError::*;
+        match rule {
+            CommonRule::BC => {
+                if self.m < 4 {
+                    Err(ModTooSmall)
+                } else {
+                    match self.c.rem_euclid(4) {
+                        0 | 2 => Err(BadRemainder),
+                        1 => {
+                            let m_new = self.m / 2;
+                            Ok((Self {
+                                a: (self.a - self.c - 2).rem_euclid(m_new),
+                                c: (3 * (self.c - 1)/2 + 5).rem_euclid(m_new),
+                                m: m_new
+                            }, AacRule::B))
+                        },
+                        3 => {
+                            let m_new = self.m / 2;
+                            Ok((Self {
+                                a: (self.a - self.c - 4).rem_euclid(m_new),
+                                c: (3 * (self.c - 1)/2 + 8).rem_euclid(m_new),
+                                m: m_new
+                            }, AacRule::C))
+                        },
+                        _ => unreachable!()
+                    }
+                }
+            },
+            CommonRule::H => {
+                if self.m < 2 {
+                    Err(ModTooSmall)
+                } else if self.a.rem_euclid(2) != 0 || self.c.rem_euclid(2) != 1 {
+                    Err(BadRemainder)
+                } else {
+                    let m_new = self.m/2;
+                    Ok((Self {
+                        a: ONE.rem_euclid(m_new),
+                        c: (self.a/2 + self.c + 2).rem_euclid(m_new),
+                        m: m_new
+                    }, AacRule::H))
+                }
+            },
+            CommonRule::J => {
+                if self.m < 2 {
+                    Err(ModTooSmall)
+                } else if self.a.rem_euclid(2) != 1 || self.c.rem_euclid(2) != 1 {
+                    Err(BadRemainder)
+                } else {
+                    Ok((Self {
+                        a: (3 * self.a + 2).rem_euclid(self.m),
+                        c: (self.c - self.a + 1).rem_euclid(self.m),
+                        m: self.m
+                    }, AacRule::J))
+                }
+            },
+        }
+    }
+
+    fn try_rule_sequence(&self, rule_seq: &Vec<CommonRule>, verbose: bool) -> Result<(ACModState, Vec<AacRule>), ACModError> {
+        let mut state = self.clone();
+        if verbose {
+            println!("{:?}", state);
+        }
+
+        let mut aac_rules = Vec::new();
+        for r in rule_seq {
+            match state.try_apply_rule(*r) {
+                Ok((s_next, aac_rule)) => {
+                    state = s_next.clone();
+                    aac_rules.push(aac_rule);
+                    if verbose {
+                        println!("{} - {:?}", aac_rule, state);
+                    }
+                }
+                Err(e) => {
+                    if verbose {
+                        println!("{:?}", e);
+                    }
+                    return Err(e);
+                },
+            }
+        }
+        Ok((state, aac_rules))
+    }
+}
+
+enum FractalType { Even, Odd }
+
+impl FractalType {
+    fn parity(&self) -> usize {
+        match *self {
+            FractalType::Even => 0,
+            FractalType::Odd => 1,
+        }
+    }
+}
+
+struct FractalWalker {
+    n: u32,
+    c_th: SNum,
+    a_after: SNum,
+    c_th_fn: fn(u32) -> SNum,
+    a_after_fn: fn(u32) -> SNum,
+    fractal_type: FractalType,
+    // location: FractalLocation,
+}
+
+impl FractalWalker {
+    fn new_odd(n: u32) -> Self {
+        Self {
+            n,
+            c_th: c_threshold_odd(n),
+            a_after: a_after_odd(n),
+            c_th_fn: c_threshold_odd,
+            a_after_fn: a_after_odd,
+            fractal_type: FractalType::Odd,
+            // location: 
+        }
+    }
+
+    fn new_even(n: u32) -> Self {
+        todo!()
+    }
+}
+
+enum FractalLocation {
+    CantorSet(CantorTreeWalker),
+    End {
+        c_min: SNum,
+        c_max: SNum,
+    }
+}
+
+struct CantorTreeWalker {
+    path: Vec<NodeData>
+}
+
+enum TreeDirection {
+    Left,
+    Right
+}
+
+struct NodeData {
+    direction: TreeDirection,
+    can_branch_left: bool,
+    can_branch_right: bool,
+    c_min: SNum,
+    c_max: SNum,
+}
+
 fn main() {
     env::set_var("RUST_BACKTRACE", "1");
 
@@ -354,8 +688,10 @@ fn main() {
     // for c in (272..=470).step_by(2) {
     // for c in (150..=470).step_by(2) {
     // for c in (148..=472).step_by(2) {
-    for c in (472..=1442).step_by(2) {
-    // for c in (233..=717).step_by(2) {
+    // for c in (472..=1442).step_by(2) {
+    // let st = 70001;
+    // for c in (st..=st+1000).step_by(2) {
+    for c in (233..=717).step_by(2) {
         // println!("{} {}", c, get_rule_sequence(c));
 
         let (seq, states) = get_rule_ac_sequence(c);
@@ -402,4 +738,83 @@ fn main() {
     //     let BasicStepInfo { halted: _, record} = sim.step();
     //     println!("{}", sim.display_directed_head());
     // }
+
+    let state_j5 = FracCeState::new_after_odd(5);
+    let c_th_j5 = c_threshold_odd(5);
+
+    println!("{state_j5}");
+    let rule_seqs = {
+        use AacRule::*;
+        // vec![
+        //     vec![B, B, J, B, B, B],
+        //     vec![C, C, J, C, C, C],
+        //     vec![B, B, J, B, B],
+        //     vec![C, C, J, C, C]
+        // ]
+        // vec![
+        //     vec![B, B, B],
+        //     vec![C, C, C],
+        //     vec![B, B],
+        //     vec![C, C]
+        // ]
+        vec![
+            vec![B, B, J, B],
+            vec![C, C, J, C],
+            vec![B, B, J],
+            vec![C, C, J]
+        ]
+    };
+
+    for (i, rule_seq) in rule_seqs.iter().enumerate() {
+        let mut state = state_j5.clone();
+        for rule in rule_seq {
+            state = state.apply_rule(*rule);
+        }
+        let threshold = if i < 2 {
+            state.threshold1()
+        } else {
+            state.threshold2()
+        };
+        let threshold_f = c_th_j5 as f64 + *threshold.numer() as f64 / *threshold.denom() as f64;
+        println!("{state}, {threshold_f}");
+        if i >= 2 {
+            println!(" -(bh)-> delta c {:?}", state.apply_rule(AacRule::B).apply_rule(AacRule::H).get_delta_c(c_th_j5));
+            println!(" -(ch)-> delta c {:?}", state.apply_rule(AacRule::C).apply_rule(AacRule::H).get_delta_c(c_th_j5));
+        }
+    }
+
+    let fractal_rule_seq = {
+        use FractalRule::*;
+        vec![L, J, L, E]
+    };
+    let num_halvings: u32 = fractal_rule_seq.iter().map(FractalRule::num_halving).sum();
+    let rules2 = fractal_to_common_rule_seq(&fractal_rule_seq);
+
+    let mstate = ACModState::new_after_odd(11, 4, num_halvings);
+    if let Ok((_, rules)) = mstate.try_rule_sequence(&rules2, true) {
+        for r in rules {
+            print!("{}", r);
+        }
+        println!();
+    }
+
+    let my_n = 7;
+    let state_jn = FracCeState::new_after_odd(my_n);
+    let c_th_jn = c_threshold_odd(my_n);
+
+    for c_e in (0..2i64.pow(num_halvings)).step_by(2) {
+        let (_, rules) = ACModState::new_after_odd(my_n, c_e, num_halvings).try_rule_sequence(&rules2, false).unwrap();
+        print!("{c_e}: ");
+        for r in &rules {
+            print!("{}", r);
+        }
+
+        let mut state_from_ce = state_jn.clone();
+        for r in rules {
+            state_from_ce = state_from_ce.apply_rule(r);
+        }
+        print!(" delta c {:?}", state_from_ce.get_delta_c(c_th_jn));
+
+        println!();
+    }
 }
