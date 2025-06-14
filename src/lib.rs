@@ -100,6 +100,7 @@ pub enum State {
     D = 3,
     E = 4,
     F = 5,
+    G = 6,
 }
 
 const STATES: [State; 6] = [State::A, State::B, State::C, State::D, State::E, State::F];

@@ -1,0 +1,54 @@
+tm = 1RB1RC_0RC0LD_1LD1RA_0LE1LF_---1RA_0LG0LA_1LB0RB
+
+[metastates]
+LeftA    <a  1<A01
+RightA   a>  1A>11
+RightB   b>  011B>1
+Temp     <t  11<B10
+
+[blocks]
+L = ^
+R = $
+X(exp) = 11
+P = 1
+V = 0
+W = 00
+T = 010
+
+[rules]
+L P V <a -> L a>
+L P <a -> L P V a>
+
+X <a -> <a X
+a> X -> X a>
+P P <a -> <a X
+
+a> R -> X <a R
+L <a -> L b> X
+
+b> P -> P b>
+b> X -> X b>
+b> R -> P V <a R
+
+P V <a -> W a>
+X W <a -> <t P X
+X P W <a -> P <t P X
+P V P W <a -> X b> X
+
+X <t -> <a T
+X P <t -> P <a T
+P V P <t -> X b> V
+
+b> T P -> P V X b>
+b> V P X -> P V X V a>
+
+P V P <a -> X V a>
+V P <a -> P V a>
+
+a> T -> P <a W
+X P <a -> P <a X
+W P <a -> T a>
+T P <a -> V X V a>
+
+a> W P X -> X X V a>
+X V <a -> P W a>
