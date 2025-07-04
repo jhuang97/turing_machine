@@ -80,8 +80,6 @@ fn is_bicycle_right_end_state(sim: &BasicSimulator) -> bool {
     && (*sim.tape.get(sim.tape.len()-2).unwrap() == Symbol(2))
 }
 fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
-    
     // let tm = TuringMachine::from_standard_notation("1RB1RF_1RC0RE_0LD1RE_---1LE_1RA1LF_0RC0LB");
     // let tm = TuringMachine::from_standard_notation("1RB1RE_1RC0RD_0LC1LD_1RA1LE_0RF0LB_---1RD");
     // let tm = TuringMachine::from_standard_notation("1RB---_1LC0RC_1RF1LD_0RE0LB_---1RC_1RB1RD");

@@ -798,8 +798,6 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
 }
 
 fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
-
     let fname = "src/definitions/bb7_ram41G.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 

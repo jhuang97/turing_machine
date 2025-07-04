@@ -811,8 +811,6 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
 }
 
 fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
-
     // let fname = "src/definitions/bb6_tm_4_counter.txt";
     // let fname = "src/definitions/bb6_sk1like_1.txt";
     let fname = "src/definitions/bb6_sk1like_3.txt";

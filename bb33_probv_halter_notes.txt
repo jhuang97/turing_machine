@@ -7,23 +7,6 @@ $1 <B 0* -> Halt immediately
 
 ...I also checked the A(a,c) rules using the block simulation for small a, c values.
 
-
-@LegionMammal978 direct simulation results
-(# A(1,c) rules, # A(a,c) rules, a, c)
-8672133513216 317356143410968 1 713175774207038
-8672134561792 317356182208280 1 713175858093118
-8672135610368 317356221005592 1 713175941979198
-8672136658944 317356259802904 1 713176025865278
-8672137707520 317356298600216 1 713176109751358
-8672138756096 317356337397528 1 713176193637438
-8672139804672 317356376194840 1 713176277523518
-8672140853248 317356414992152 1 713176361409598
-8672141901824 317356453789464 1 713176445295678
-8672142950400 317356492586776 1 713176529181758
-I've gotten as far as
-   3463811057    100000000984 1    229132789716
-           Rust u64::MAX = 18446744073709551615
-
 Given that it is most probably going to take a colossal amount of A(a,c) steps before this TM halts, it is probably best to look for patterns and try to accelerate the simulation.
 
 I've tried simulating starting from A(1,c) for c = 1, 2, 3, 4, ..., 10000000 until it gets to the next A(1,c') value.  I notice patterns in the plot of # steps vs. c and of c'-c vs. c. The plot for odd c values looks like Cantor dust; the plot for even c values looks like a shifted version of the plot for odd values.
@@ -117,3 +100,75 @@ f = 16/81 <=> c = 8a/65
 To make this more general, c_initial can be either even or odd, and the number of j steps is also general.  So we need to plot number of A(a,c) rules against c_initial for both parities ranging over multiple powers of 3.  We can plot vertical lines in some notable places wherever the behavior changes.
 
 Annoyingly, the forward sequence of A(1,c) starting from A(0,1) has both odd and even values of c, so we need to always keep track of where we are in both fractals.
+
+========================
+
+Made progress in tracking the fractal.
+
+Currently looking for runs of A(1,c) configurations of a single parity for c.  Found some:
+
+Runs:
+len  start  end before
+2, 23, 56
+4, 154, 315
+5, 315, 448
+6, 907, 1072
+9, 1782, 2125
+18, 2683, 3264
+26, 5512, 6445
+38, 8191, 9462
+71, 16410, 18719
+107, 24567, 28034
+217, 49028, 56121
+324, 73599, 84106
+554, 147190, 168017
+972, 220727, 252134
+
+====
+working on accelerated simulator
+have a crash.
+
+even walker bounds, earlier:
+206407149914
+216841634582
+
+c =
+230377346358
+new c_max
+191540111210
+
+i32 max:
+2147483647
+i64 max:
+9223372036854775807
+
+running with overflow checks turned on, it crashes even earlier:
+c =
+93058138814
+Seems to crash in the fraction arithmetic, which makes sense.
+
+Switching to use u128 and i128.
+
+Seems to run okay now? 22 hours in, I have reached c =
+741208075540690
+I ended the program after 28.5 hours. It had reached c =
+1059491543272883
+
+@LegionMammal978 direct simulation results
+(# A(1,c) rules, # A(a,c) rules, a, c)
+8672133513216 317356143410968 1 713175774207038
+8672134561792 317356182208280 1 713175858093118
+8672135610368 317356221005592 1 713175941979198
+8672136658944 317356259802904 1 713176025865278
+8672137707520 317356298600216 1 713176109751358
+8672138756096 317356337397528 1 713176193637438
+8672139804672 317356376194840 1 713176277523518
+8672140853248 317356414992152 1 713176361409598
+8672141901824 317356453789464 1 713176445295678
+8672142950400 317356492586776 1 713176529181758
+
+My direct simulations previously
+   3463811057    100000000984 1    229132789716
+The current accelerated simulation had printed something at
+8586532529571 314188907016066 1 706327695515355; Even 30 LRR 706327695515222 719878346748126, Odd 31 LL 677118655475117 711348982450159
+8983595714434 329911138661675 1 741208075521102; Even 30 End 741208075540670 1235346792567824, Odd 31 LLR 736158974208649 749224469036529

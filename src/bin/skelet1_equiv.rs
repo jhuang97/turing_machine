@@ -22,8 +22,6 @@ fn check_skelet1_config_transition_rules() {
 }
 
 fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
-
     // dbg!(TuringMachine::from_standard_notation(SKELET_1));
     // let tm = TuringMachine::from_standard_notation(SKELET_1);
 

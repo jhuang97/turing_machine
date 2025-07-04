@@ -408,8 +408,6 @@ fn generate_rule_code(rule: &CheckedRule, symbol_table: &Vec<Rc<Block>>, state_t
 }
 
 fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
-
     let (tm_def, tm, state_table, block_table, checked_rules) = 
         process_tm_block_file("src/definitions/bb25_family_0LB.txt");
 

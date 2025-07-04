@@ -33,8 +33,6 @@ fn run_basic_sim<F>(tm: &TuringMachine, n_steps: u64, filter: F)
 }
 
 fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
-
     let candidates_s: Vec<_> = include_str!("../../bb6_Sk1-like.txt").trim().lines().collect();
     let candidates: Vec<_> = candidates_s.iter().map(|s| TuringMachine::from_standard_notation(s)).collect();
 

@@ -19,8 +19,6 @@ fn run_basic_sim<F>(tm: &TuringMachine, n_steps: u64, filter: F)
 }
 
 fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
-
     let tm = TuringMachine::from_standard_notation("1RB1RC_0RC0LD_1LD1RA_0LE1LF_---1RA_0LG0LA_1LB0RB");
 
     let always = |_: &BasicSimulator| true;
