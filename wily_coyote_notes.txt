@@ -1,0 +1,210 @@
+left accelerations
+==================
+L X^n < -> L X^n >
+
+L X^n <
+L < X^n
+L > X^n
+L X^n >
+--------------
+L X^n Q X < -> L X^n+1 D s>
+
+L X^n Q < X
+L X^n < C P
+L X^n > C P
+L X^n < D F
+L X^n > D F
+L X^n X s> F
+L X^n+1 s> F
+L X^n+1 D s>
+----------------
+L X^n D < -> L X^n+1 Q >
+
+L X^n < F
+L X^n > F
+L X^n < D Q
+L X^n > D Q
+L X^n X s> Q
+L X^n+1 Q >
+----------------
+L X^n Q X^2 < -> L X^n+1 D Q > P
+----------------
+L X^n Q X^3 < -> L X^n+4 Q X Q D s>
+
+L X^n Q X < X^2
+L X^n+1 D s> X^2
+L X^n+1 D Q > P X
+L X^n+1 D Q > C P
+L X^n+1 D Q < D F
+L X^n+1 D < C Q F
+L X^n+2 Q > C Q F
+L X^n+2 Q < D C F
+...?
+L X^n+4 Q X Q D s>
+-----------------
+L X^n Q X^4 < -> L X^n+4 Q X D^2 > P  ???
+-----------------
+L X^n Q X^5 < -> L X^n+5 D^2 Q D X > P ???
+-----------------
+L X^n Q X^6 < -> L X^n+8 Q X^2 Q X^2 D s> ???
+-----------------
+L X^n Q X D < -> L X^n+1 D^2 s>
+-----------------
+L X^n Q X^2 D < -> L X^n+4 Q X D > P
+
+Now if there was some efficient way to compute if the left side will return > or s> or > P, that would be nice...
+
+Maybe memoize it? Basically whenever the head is <, solve the left tape either directly or with help of a lookup table that is being built up.  Has to be generic over L X^n for whatever n. Also need to canonicalize the left tape - collapse runs of D^n and Q. Aside from the L X^n, the other exponents of D and X will not be large.
+
+left accelerations with more compact notation
+=============================================
+x1, x2, x3, x4, ...
+= Q^x1 X^x2 Q^x3 X^x4 ...
+(the L X^n < -> L X^n > is to the left of all this and is not shown)
+
+1 < -> [] >
+
+2 < -> n+=1 1 >
+
+3 <   -> n+=1 1 > P
+1,1 < -> n+=1 2 s>
+
+4 <     -> n+=2 2 > Q
+2,1 <   -> n+=1 1,1 >
+1,1,1 < -> n+=1 2,1 s>
+
+5 <     -> n+=2 2,1 >
+3,1 <   -> n+=3 1,1,1 >
+2,1,1 < -> n+=1 1,1 > P
+1,2 <   -> n+=1 2,1 > P
+1,1,2 < -> n+=1 4 s>
+
+6 <     -> n+=2 2,1 > P
+4,1 <   -> n+=2 2,1,1 s>
+3,1,1 < -> n+=3 1,1,1 > P
+2,2 <   -> n+=1 1,2 >
+2,1,2 < -> n+=2 3,1 s>
+
+left tapes in the actual forward simulation, not counting []:
+1 .....
+2 .....
+3 .
+1,1 .
+4 .
+2,1 .
+1,1,1 .
+
+5 .
+1,2
+1,2,1
+1,1,3 .
+7 .
+1,1,2,2 .
+7,1 .
+
+1,2,1,2
+
+1,2,1,2,2
+
+attempt at backward reasoning
+==============================
+
+> P R -> < D F R
+> Q R -> < X P R
+> R -> ***HALT***
+s> R -> < C X P R
+
+I haven't gotten an easy solution by backward reasoning. RIP.
+
+The right end starts off as (step 13) ... D F R.
+If the head is s> when it reaches R, then the TM is safe and will not halt, but if the head is > then it will halt.
+We need to find some closed set of situations of a rightward head and configurations at the right end of the tape.
+
+Possible rightward heads:
+s>
+>
+> P
+> Q
+The last two can lead to regrouping of symbols.
+
+D Q R = 111$ is not safe enough:
+> D Q R
+X s> Q R
+X Q > R
+HALT
+
+Possible situations at the right end of the tape (actually seen in simulations):
+PDQR = CDR = 2111$
+DFR = 1122$
+CFR = 2122$
+QCQR = XDR = 1211$
+XFR = 1222$
+
+CXPR is redundant: CXPR = 2 1122$ = P DFR
+DXPR is redundant: DXPR = 1 1122$ = Q DFR
+
+DFR closed.
+CFR closed.
+
+> P CDR -> ...1111$, a new configuration
+> Q CDR halts
+
+s> XDR -> ...1121$, a new configuration
+> P XDR -> ...2211$, a new configuration
+
+s> XFR -> ...1112$, a new configuration
+> P XFR -> ...2222$, a new configuration
+
+s> XCDR ->  ...111111$, a new configuration
+> Q FCDR -> ...111111$
+> FCDR -> ...112111$, a new configuration
+
+> DDDR halts. this does not seem to work very well.
+
+add situations?
+XCDR = 122111$ (from > Q DFR)
+FCDR = 222111$ (from s> CFT)
+DDDR = 111111$ (from s> XCDR, > Q FCDR)
+
+...Seems like this can just go on forever.
+
+===============
+
+I think it's cleaner to restrict the left tape to have no D symbols, only Q, and run-length-encode Q in the simulation.
+
+Double checking the new block sim:
+
+24138 fiery sim:
+B 1212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121211111121 >2 1222212112122
+=
+(12)^61 1^5 12 1B>2 12 22 21 2 11 21 22
+
+block sim:
+1000 | 24138: L X^61 Q^5 X > X F C P D C F R
+
+=======
+step counts:
+
+L X^n <
+L < X^n (2n)
+L > X^n (1)
+L X^n > (4n)
+therefore
+L X^n < ---(6n + 1)--> L X^n >
+
+L X^n Q <
+L X^n < P (1)
+L X^n > P (6n+1)
+=>
+L X^n Q < ---(6n + 2)--> L X^n > P
+
+L X^n Q^2 <
+L X^n Q < P (1)
+L X^n > P P (6n + 2)
+L X^n > F
+L X^n < D Q (6)
+L X^n > D Q (6n+1)
+L X^n+1 s> Q (4)
+L X^n+1 Q > (3)
+=>
+L X^n Q^2 < ---(12n+17)--> L X^n+1 Q >

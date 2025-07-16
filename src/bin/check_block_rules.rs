@@ -342,7 +342,7 @@ struct RuleImpl {
 /// most general leftward rule: X^n [LI] < [RI] -> [LI] < [RI] Y^n
 /// the "from" half-tape should lose one RLE symbol
 /// the "to" half-tape should gain one RLE symbol
-fn directionless_pass_through(
+fn directionless_shift_rule(
     from0: &[Rc<Block>], from1: &[Rc<Block>], from_ident: Ident,
     to0: &[Rc<Block>], to1: &[Rc<Block>], to_ident: Ident)
     -> Option<(TokenStream, TokenStream, TokenStream)>
@@ -405,7 +405,8 @@ fn directionless_pass_through(
     Some((from_match, to_match, quote! { #(#changes_vec)* }))
 }
 
-fn try_process_passing_through_run(rule: &CheckedRule) -> Option<RuleImpl> {
+/// When the tape head passes through a Run.
+fn try_process_shift_rule(rule: &CheckedRule) -> Option<RuleImpl> {
     let state0 = &rule.before.metastate;
     let state1 = &rule.after.metastate;
     if state0 != state1 {
@@ -422,11 +423,11 @@ fn try_process_passing_through_run(rule: &CheckedRule) -> Option<RuleImpl> {
         .map(|s| Rc::clone(s)).collect();
 
     let (left_match, right_match, sim_changes) =     
-    if let Some(res) = directionless_pass_through(&right0, &right1, format_ident!("right_tape"),
+    if let Some(res) = directionless_shift_rule(&right0, &right1, format_ident!("right_tape"),
         &left0, &left1, format_ident!("left_tape"))
     {
         (res.1, res.0, res.2)
-    } else if let Some(res) = directionless_pass_through(&left0, &left1, format_ident!("left_tape"),
+    } else if let Some(res) = directionless_shift_rule(&left0, &left1, format_ident!("left_tape"),
         &right0, &right1, format_ident!("right_tape")) {
         res
     } else {
@@ -439,28 +440,84 @@ fn try_process_passing_through_run(rule: &CheckedRule) -> Option<RuleImpl> {
     Some(RuleImpl { left_match, right_match, sim_changes, step_count })
 }
 
-fn half_tape_match(half_tape0: &Vec<Rc<Block>>) -> TokenStream {
+/// Let X be some run-length encoded symbol.  This tries to handle where the rule is
+/// something like ... X X ... < ... -> ..., and the half-tape is something like [..., X^n, ...]
+/// for n >= 2.  This will infer the exponent to match on, as the rules currently can't
+/// have exponents in them -- a bit of a hack...
+fn get_half_tape_tokens_infer_exp(
+    half_tape0: &Vec<Rc<Block>>, 
+    half_tape_new: &Vec<Rc<Block>>, 
+    tape_ident: Ident) -> Option<HalfTapeTokens>
+{
     if half_tape0.is_empty() {
-        return quote! { _ };
+        return None;
     }
 
-    let symbols_match = half_tape0.iter().enumerate().map(|(idx, s)| {
-        let ident = s.ident.clone();
-        if s.repeat {
-            if idx == 0 {
-                quote! { Run(#ident, _) }
+    use TapePortion::*;
+    let half_tape0_rle: Vec<_> = half_tape0.chunk_by(|a, b| a.repeat && b.repeat && a.name == b.name)
+        .map(|s| {
+            let s0 = s.first().unwrap();
+            if s0.repeat {
+                Run { symb: Rc::clone(s0), exp: s.len() as u128 }
             } else {
-                quote! { Run(#ident, 1) }
+                assert_eq!(s.len(), 1);
+                Normal(Rc::clone(s0))
             }
-        } else {
-            quote! { #ident }
+        }).collect();
+
+    let run_exists = half_tape0_rle.iter().any(|t| matches!(t, TapePortion::Run { symb: _, exp: 2..}));
+    if !run_exists {
+        return None;
+    }
+
+    let symbols_match = half_tape0_rle.iter().enumerate().map(|(idx, tp)| {
+        match tp {
+            Run { symb, exp } => {
+                assert!(symb.repeat);
+                let ident = symb.ident.clone();
+                if idx == 0 {
+                    quote! { Run(#ident, #exp..) }
+                } else {
+                    quote! { Run(#ident, #exp) }
+                }
+            }
+            Normal(symb) => {
+                let ident = symb.ident.clone();
+                quote!{ #ident }
+            }
         }
     });
+    let match_tokens= quote!{ [.., #(#symbols_match),*]};
 
-    quote!{ [.., #(#symbols_match),*]}
+    let mut removals = Vec::new();
+    for idx in (0..half_tape0_rle.len()).rev() {
+        removals.push(
+            match &half_tape0_rle[idx] {
+                Run { symb, exp } => {
+                    if idx == 0 {
+                        let t = symb.ident.clone();
+                        if *exp == 1 {
+                            quote! { decrement_run(&mut self.#tape_ident, #t); }
+                        } else {
+                            quote! { decrease_run_by(&mut self.#tape_ident, #t, #exp); }
+                        }
+                    } else {
+                        quote! { self.#tape_ident.pop(); }
+                    }
+                }
+                Normal(_) => {
+                    quote! { self.#tape_ident.pop(); }
+                }
+            }
+        );
+    }
+
+    let additions = half_tape_add(half_tape_new, 0, tape_ident);
+
+    Some(HalfTapeTokens { match_tokens, remove: removals, add: additions})
 }
 
-enum TapeAddition {
+enum TapePortion {
     Run {
         symb: Rc<Block>,
         exp: u128
@@ -468,35 +525,10 @@ enum TapeAddition {
     Normal(Rc<Block>)
 }
 
-fn half_tape_changes(half_tape0: &Vec<Rc<Block>>, half_tape_new: &Vec<Rc<Block>>,
-    tape_ident: Ident
-) -> Vec<TokenStream> {
-    let mut change_start_idx = 0;
-    while half_tape0.len() > change_start_idx
-        && half_tape_new.len() > change_start_idx
-        && half_tape0[change_start_idx].name == half_tape_new[change_start_idx].name
-    {
-        change_start_idx += 1;
-    }
-
-    let mut changes = Vec::new();
-
-    // remove old symbols from half tape
-    for idx in (change_start_idx..half_tape0.len()).rev() {
-        changes.push(
-            if idx == 0 && half_tape0[0].repeat {
-                let t = half_tape0[0].ident.clone();
-                quote! { decrement_run(&mut self.#tape_ident, #t); }
-            } else {
-                quote! { self.#tape_ident.pop(); }
-            }
-        );
-    }
-
-    use TapeAddition::*;
-
-    // add new symbols to half tape
-    let mut additions: Vec<_> = half_tape_new[change_start_idx..]
+/// Generate code for adding new symbols to half tape
+fn half_tape_add(half_tape_new: &Vec<Rc<Block>>, change_start_idx: usize, tape_ident: Ident) -> Vec<TokenStream> {
+    use TapePortion::*;
+    half_tape_new[change_start_idx..]
         .to_vec()
         .chunk_by(|a, b| a.repeat && b.repeat && a.name == b.name)
         .map(|s| {
@@ -525,20 +557,76 @@ fn half_tape_changes(half_tape0: &Vec<Rc<Block>>, half_tape_new: &Vec<Rc<Block>>
                 }
             }
         })
-        .collect();
-
-    changes.append(&mut additions);
-    changes
+        .collect()
 }
 
-fn try_process_rule_general(rule: &CheckedRule) -> Option<RuleImpl> {
+/// Generated code for matching on a pattern on a half tape, removing some symbols from that half tape,
+/// and adding symbols to that half tape.
+#[derive(Clone)]
+struct HalfTapeTokens {
+    match_tokens: TokenStream,
+    remove: Vec<TokenStream>,
+    add: Vec<TokenStream>,
+}
+
+fn half_tape_match(half_tape0: &Vec<Rc<Block>>) -> TokenStream {
+    if half_tape0.is_empty() {
+        return quote! { _ };
+    }
+
+    let symbols_match = half_tape0.iter().enumerate().map(|(idx, s)| {
+        let ident = s.ident.clone();
+        if s.repeat {
+            if idx == 0 {
+                quote! { Run(#ident, _) }
+            } else {
+                quote! { Run(#ident, 1) }
+            }
+        } else {
+            quote! { #ident }
+        }
+    });
+
+    quote!{ [.., #(#symbols_match),*]}
+}
+
+fn get_half_tape_tokens(half_tape0: &Vec<Rc<Block>>, half_tape_new: &Vec<Rc<Block>>, tape_ident: Ident) -> HalfTapeTokens {
+    let match_tokens = half_tape_match(half_tape0);
+
+    let mut change_start_idx = 0;
+    while half_tape0.len() > change_start_idx
+        && half_tape_new.len() > change_start_idx
+        && half_tape0[change_start_idx].name == half_tape_new[change_start_idx].name
+    {
+        change_start_idx += 1;
+    }
+
+    // remove old symbols from half tape
+    let mut removals = Vec::new();
+    for idx in (change_start_idx..half_tape0.len()).rev() {
+        removals.push(
+            if idx == 0 && half_tape0[0].repeat {
+                let t = half_tape0[0].ident.clone();
+                quote! { decrement_run(&mut self.#tape_ident, #t); }
+            } else {
+                quote! { self.#tape_ident.pop(); }
+            }
+        );
+    }
+
+    let additions = half_tape_add(half_tape_new, change_start_idx, tape_ident);
+
+    HalfTapeTokens { match_tokens, remove: removals, add: additions}
+}
+
+fn process_rule_general(rule: &CheckedRule) -> Vec<RuleImpl> {
     let state0 = &rule.before.metastate;
     let state1 = &rule.after.metastate;
 
-    let mut changes_vec: Vec<TokenStream> = Vec::new();
+    let mut state_change: Vec<TokenStream> = Vec::new();
     if state0 != state1 {
         let state_new = state1.ident.clone();
-        changes_vec.push(quote! {
+        state_change.push(quote! {
             self.state = #state_new;
         });
     }
@@ -553,44 +641,83 @@ fn try_process_rule_general(rule: &CheckedRule) -> Option<RuleImpl> {
         .rev()
         .map(|s| Rc::clone(s)).collect();
 
-    let left_match = half_tape_match(lhs0);
-    let right_match = half_tape_match(&rtape0);
-    changes_vec.extend(half_tape_changes(lhs0, lhs1, format_ident!("left_tape")));
-    changes_vec.extend(half_tape_changes(&rtape0, &rtape1, format_ident!("right_tape")));
-
-    let sim_changes = quote! { #(#changes_vec)* };
     let rule_steps = rule.n_steps as u128;
 
-    Some(RuleImpl {
-        left_match, right_match, sim_changes,
-        step_count: quote! { #rule_steps }
-    })
+    let mut left_tokens: Vec<HalfTapeTokens> = Vec::new();
+    let mut right_tokens: Vec<HalfTapeTokens> = Vec::new();
+
+    if let Some(tokens) = get_half_tape_tokens_infer_exp(lhs0, lhs1, format_ident!("left_tape")) {
+        left_tokens.push(tokens);
+    }
+    if let Some(tokens) = get_half_tape_tokens_infer_exp(&rtape0, &rtape1, format_ident!("right_tape")) {
+        right_tokens.push(tokens);
+    }
+
+    left_tokens.push(get_half_tape_tokens(lhs0, lhs1, format_ident!("left_tape")));
+    right_tokens.push(get_half_tape_tokens(&rtape0, &rtape1, format_ident!("right_tape")));
+    
+    
+    let mut rules_impl: Vec<RuleImpl> = Vec::new();
+    for l_token in left_tokens {
+        for r_token in right_tokens.iter() {
+            let HalfTapeTokens { match_tokens: l_match, add: l_add, remove: l_remove } = l_token.clone();
+            let HalfTapeTokens { match_tokens: r_match, add: r_add, remove: r_remove } = r_token.clone();
+            let change_commands = [l_remove, r_remove, l_add, r_add].concat();
+            rules_impl.push(RuleImpl {
+                left_match: l_match,
+                right_match: r_match,
+                sim_changes: quote! { 
+                    #(#state_change)*
+                    #(#change_commands)*
+                },
+                step_count: quote! { #rule_steps }
+            });
+        }
+    }
+    rules_impl
+}
+
+fn generate_one_case(r_impl: RuleImpl, state0_ident: &Ident, original_input: &String) -> TokenStream {
+    let case_comment = format!("\\ {}", original_input);
+    let RuleImpl {left_match, right_match, sim_changes, step_count} = r_impl;
+    quote! {
+        #[doc = #case_comment]
+        (#state0_ident, #left_match, #right_match) => {
+            #sim_changes
+            #step_count
+        }
+    }
+}
+
+fn generate_cases(r_impls: Vec<RuleImpl>, state0_ident: &Ident, original_input: &String) -> TokenStream {
+    let match_cases: Vec<TokenStream> = r_impls.iter().enumerate()
+        .map(|(i, r_impl) | {
+            let case_comment = if r_impls.len() > 1 {
+                format!("\\ {} ({}/{})", original_input, i+1, r_impls.len())
+            } else {
+                format!("\\ {}", original_input)
+            };
+            let RuleImpl {left_match, right_match, sim_changes, step_count} = r_impl;
+            quote! {
+                #[doc = #case_comment]
+                (#state0_ident, #left_match, #right_match) => {
+                    #sim_changes
+                    #step_count
+                }
+            }
+        }).collect();
+    quote! { #(#match_cases)* }
 }
 
 fn generate_rule_code(rule: &CheckedRule, symbol_table: &Vec<Rc<Block>>, state_table: &Vec<Rc<Metastate>>) -> TokenStream {
-    let case_comment = format!("\\ {}", rule.original_input);
-
     let state0_ident = &rule.before.metastate.ident.clone();
 
-    let rule_impl: Option<RuleImpl> = try_process_passing_through_run(rule)
-        .or_else(|| try_process_rule_general(rule));
-
-    if let Some(RuleImpl {left_match, right_match, sim_changes, step_count}) = rule_impl {
-        quote! {
-            #[doc = #case_comment]
-            (#state0_ident, #left_match, #right_match) => {
-                #sim_changes
-                #step_count
-            }
-        }
+    if let Some(rule_impl) = try_process_shift_rule(rule) {
+        generate_one_case(rule_impl, state0_ident, &rule.original_input)
     } else {
-        quote! {
-            #[doc = #case_comment]
-            (#state0_ident, _, _) => {
-                #[doc = "oh no"]
-                0
-            }
-        }
+        let r_impls = process_rule_general(rule);
+        assert!(!r_impls.is_empty());
+        generate_cases(r_impls, state0_ident, &rule.original_input)
     }
 }
 
@@ -673,6 +800,15 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
                 Some(Run(t, 1)) if *t == run_type => { tape.pop(); },
                 Some(Run(t, n @ 2..)) if *t == run_type => *n -= 1,
                 _ => unreachable!("expected at least one of run symbol")
+            }
+        }
+
+        fn decrease_run_by(tape: &mut Vec<BlockSymbol>, run_type: RunSymbolType, nsub: Exp) {
+            use BlockSymbol::*;
+            match tape.last_mut() {
+                Some(Run(t, n)) if *t == run_type && *n == nsub => { tape.pop(); },
+                Some(Run(t, n)) if *t == run_type && *n > nsub => *n -= nsub,
+                _ => unreachable!("expected at least {} of run symbol", nsub)
             }
         }
 
@@ -798,7 +934,9 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
 }
 
 fn main() {
-    let fname = "src/definitions/bb7_ram41G.txt";
+    // let fname = "src/definitions/wily_coyote_R_test.txt";
+    let fname = "src/definitions/wily_coyote_v2.txt";
+
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 
         process_tm_block_file(fname, CheckerVerbosity::All);

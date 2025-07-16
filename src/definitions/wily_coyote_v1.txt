@@ -1,0 +1,60 @@
+tm = 1RB2LA1LA_2LA0RA2RC_---0LC2RA
+
+[metastates]
+Left        <  <A2
+Right       >  1B>2
+RightSlow   s> 1B>1
+
+[blocks]
+L = ^
+R = $
+X(exp) = 12
+P = 2
+Q = 1
+C = 21
+D(exp) = 11
+F(exp) = 22
+
+[rules]
+Q Q > -> D >
+
+L < -> L >
+X < -> < X
+D < -> < F
+Q < D -> < C Q
+Q < C -> < F Q
+Q < X -> < C P
+Q < F -> < F P
+Q < -> < P
+
+> X -> X >
+> D -> X s>
+> C P -> < D F
+> C Q -> < D C
+> C -> < D P
+> F P -> < D X
+> F Q -> < D D
+> F -> < D Q
+> P X -> > C P
+> P D -> > C Q
+> P C -> > F Q
+> P F -> > F P
+> P P -> > F
+> P Q -> > C
+> Q X -> > D P
+> Q D -> > D Q
+> Q C -> > X Q
+> Q F -> > X P
+> Q P -> > X
+> Q Q -> > D
+
+> P R -> < D F R
+> Q R -> < Q F R
+
+s> X -> Q > P
+s> D -> Q > Q
+s> C -> D >
+s> F -> D s>
+s> P -> Q s>
+s> Q -> Q >
+s> R -> < P D F R
