@@ -359,9 +359,9 @@ fn directionless_shift_rule(
         return None;
     }
 
-    // the block must not have other RLE symbols; the blocks must match
+    // the block must match
     let cannot_match_preserved_block = 
-        |(s1, s2): (&Rc<Block>, &Rc<Block>)| s1.repeat || s2.repeat || s1.name != s2.name;
+        |(s1, s2): (&Rc<Block>, &Rc<Block>)| s1.name != s2.name;
     if (&to0[..]).iter().zip((&to1[1..]).iter()).any(cannot_match_preserved_block) {
         return None;
     }
@@ -379,7 +379,11 @@ fn directionless_shift_rule(
     let from_symb_expr = quote! { Run(#from_symb_ident, exp) };
     let block_idents = (&from0[1..]).iter().map(|s| {
         let ident = s.ident.clone();
-        quote! { #ident }
+        if s.repeat {
+            quote! { Run(#ident, 1) }
+        } else {
+            quote! { #ident }
+        }
     });
     let from_match = quote!{ [.., #from_symb_expr, #(#block_idents),*]};
     let to_match = half_tape_match(&to_block);
@@ -388,9 +392,17 @@ fn directionless_shift_rule(
     for _ in 0..from0.len() {
         changes_vec.push(quote! { self.#from_ident.pop(); });
     }
-    for s in &from_block {
+    for (i, s) in (&from_block).iter().enumerate() {
         let s_ident = s.ident.clone();
-        changes_vec.push(quote! { self.#from_ident.push(#s_ident); });
+        changes_vec.push(if s.repeat {
+            if i == 0 {
+                quote! { add_or_merge_run(&mut self.#from_ident, #s_ident, 1); }
+            } else {
+                quote! { self.#from_ident.push(Run(#s_ident, 1)); }
+            }
+        } else {
+            quote! { self.#from_ident.push(#s_ident); }
+        });
     }
 
     for _ in 0..to_block.len() {
@@ -399,7 +411,11 @@ fn directionless_shift_rule(
     changes_vec.push(quote!{ add_or_merge_run(&mut self.#to_ident, #to_symb_ident, n); });
     for s in &to_block {
         let s_ident = s.ident.clone();
-        changes_vec.push(quote! { self.#to_ident.push(#s_ident); });
+        changes_vec.push(if s.repeat {
+            quote! { self.#from_ident.push(Run(#s_ident, 1)); }    
+        } else {
+            quote! { self.#from_ident.push(#s_ident); }
+        });
     }
 
     Some((from_match, to_match, quote! { #(#changes_vec)* }))
@@ -935,7 +951,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
 
 fn main() {
     // let fname = "src/definitions/wily_coyote_R_test.txt";
-    let fname = "src/definitions/wily_coyote_v2.txt";
+    let fname = "src/definitions/wily_coyote_v3.txt";
 
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 

@@ -208,3 +208,14 @@ L X^n+1 s> Q (4)
 L X^n+1 Q > (3)
 =>
 L X^n Q^2 < ---(12n+17)--> L X^n+1 Q >
+
+====
+
+wrote an accelerated simulator which makes use of memoizing whatever happens whenever the head goes to the left and comes back.
+
+it would be convenient to run-length-encode C, since there are runs of C at the right end of the tape.
+however my code isn't autogenerating the right thing for the rule
+> Q C -> X > Q
+probably because Q is also run length encoded.
+
+need to improve check_block_rules for this...
