@@ -103,7 +103,7 @@ pub enum State {
     G = 6,
 }
 
-const STATES: [State; 6] = [State::A, State::B, State::C, State::D, State::E, State::F];
+const STATES: [State; 7] = [State::A, State::B, State::C, State::D, State::E, State::F, State::G];
 
 pub struct BasicStepInfo {
     pub halted: bool,
@@ -133,6 +133,19 @@ impl BasicSimulator {
             halted: false,
             prev_dir: None,
             start_position: 0,
+        }
+    }
+
+    pub fn from_tape(tm: TuringMachine, tape: &[u8], state: State, position: usize, prev_dir: Option<TMDirection>) -> Self {
+        Self {
+            tm,
+            tape: tape.iter().map(|&x| Symbol(x)).collect(),
+            state,
+            position,
+            time: 0,
+            halted: false,
+            prev_dir,
+            start_position: position
         }
     }
 
