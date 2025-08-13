@@ -218,4 +218,65 @@ however my code isn't autogenerating the right thing for the rule
 > Q C -> X > Q
 probably because Q is also run length encoded.
 
-need to improve check_block_rules for this...
+needed to improve check_block_rules for this...
+
+====
+
+Now I can look at the result of the accelerated simulation and see what is going on at the right end of the tape.
+This is a lot easier to do now that all the time-consuming stuff happening on the left side of tape is memoized away and is not printed.
+
+A brief list of things that happen at the right side of the tape
+---
+D F R
+> => X Q^2 < P D F R
+> P => < D C F R ***very common***
+s> => Q X < D F R
+---
+D C^n F R
+> P => < D C^n+1 F R ***very common***
+>
+  (n=1) => X Q^2 < D Q R
+  (n=2) => X Q^2 < D P F R
+  (n>2) => X Q^2 < D P C^n-2 F R
+s> => Q X^n+1 < D F R ***very common***
+> Q
+  (n=1) => X Q < D P F R
+---
+F R
+s> => Q^2 < P D F R
+---
+P D F R
+> => < D C F R
+s> => Q^2 X < D F R
+> P => < D Q D F R
+---
+D P F R
+> => X Q^3 < P D F R
+s> => Q X < D Q R
+---
+D Q R
+> P => < D C Q R
+s> => Q X < P D F R
+---
+D C^n Q R
+s> => Q X^n+1 < P D F R
+>
+  (n=1) => X Q^2 < Q F R
+> P => < D C^n+1 Q R
+---
+D Q D F R
+> Q => X Q X Q < D Q R
+s> => Q X Q X < D F R
+> P => < D C Q D F R
+---
+Q F R
+s> => Q < D Q R
+---
+D C^n Q D F R
+> P => < D C^n+1 Q D F R
+s> => Q X^n+1 Q X < D F R
+
+common rules:
+>P D F R => < D C F R
+>P D C^n F R => < D C^n+1 F R
+s> D C^n F R => Q X^n+1 < D F R

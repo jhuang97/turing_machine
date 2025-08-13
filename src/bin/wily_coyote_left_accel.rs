@@ -1093,6 +1093,7 @@ fn get_or_calculate(position: &EncodedLTape, memo: &mut Memo) -> BlockInfo {
 
 fn main() {
     try_outer_sim();
+    // compare_accel();
 }
 
 fn compare_accel() {
@@ -1113,7 +1114,7 @@ fn compare_accel() {
 fn try_outer_sim() {
     let mut sim = OuterSimulator::new(true);
 
-    let max_steps = 990; // u128 too small after ~1305 steps
+    let max_steps = 1305; // u128 too small after ~1305 steps
     println!("{}", sim);
     for i in 1..=max_steps {
         let res = sim.step();
@@ -1135,6 +1136,21 @@ fn try_outer_sim() {
                 println!("  {}: {}", &s, counts.get(&s).unwrap());
             }
         }
+
+        // let mut entries: Vec<_> = memo.positions.into_iter().collect();
+        // entries.sort_by_key(|(_, p_info)| p_info.steps.a0 + p_info.steps.a1);
+
+        // for (enc_tape, p_info) in &entries[entries.len()-30..] {
+        //     // for v in &enc_tape.0 {
+        //     //     print!("{v} ");
+        //     // }
+        //     // println!();
+        //     // for v in &p_info.pos_new.0 {
+        //     //     print!("{v} ");
+        //     // }
+        //     // println!();
+        //     println!("nadd {}, steps {}", p_info.nadd, p_info.steps);
+        // }
     }
 }
 

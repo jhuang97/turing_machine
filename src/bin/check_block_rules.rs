@@ -783,7 +783,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
         use std::fmt;
         const TM_DEF: &str = #tm_def;
 
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, PartialEq)]
         pub enum SimError {
             Halted,
             UndefinedTransition,
@@ -950,9 +950,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
 }
 
 fn main() {
-    // let fname = "src/definitions/wily_coyote_R_test.txt";
-    let fname = "src/definitions/wily_coyote_v3.txt";
-
+    let fname = "src/definitions/bb6_vampire.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 
         process_tm_block_file(fname, CheckerVerbosity::All);
