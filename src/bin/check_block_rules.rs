@@ -405,16 +405,21 @@ fn directionless_shift_rule(
         });
     }
 
-    for _ in 0..to_block.len() {
-        changes_vec.push(quote! { self.#to_ident.pop(); });
+    for (i, s) in (&to_block).iter().enumerate() {
+        let s_ident = s.ident.clone();
+        changes_vec.push(if i == 0 && s.repeat {
+            quote! { decrement_run(&mut self.#to_ident, #s_ident); }
+        } else {
+            quote! { self.#to_ident.pop(); }
+        });
     }
     changes_vec.push(quote!{ add_or_merge_run(&mut self.#to_ident, #to_symb_ident, n); });
     for s in &to_block {
         let s_ident = s.ident.clone();
         changes_vec.push(if s.repeat {
-            quote! { self.#from_ident.push(Run(#s_ident, 1)); }    
+            quote! { self.#to_ident.push(Run(#s_ident, 1)); }    
         } else {
-            quote! { self.#from_ident.push(#s_ident); }
+            quote! { self.#to_ident.push(#s_ident); }
         });
     }
 
@@ -950,7 +955,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
 }
 
 fn main() {
-    let fname = "src/definitions/bb6_vampire.txt";
+    let fname = "src/definitions/lefty_coyote.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 
         process_tm_block_file(fname, CheckerVerbosity::All);

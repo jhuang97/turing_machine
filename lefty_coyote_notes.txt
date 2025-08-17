@@ -1,0 +1,4 @@
+ways to halt:
+L2 < -> ***HALT***
+LT < -> ***HALT***
+LT D < -> ***HALT***
