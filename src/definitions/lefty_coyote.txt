@@ -3,7 +3,9 @@ tm = 1RB1LB2LC_1LA2RB1RB_---0LA2LA
 [metastates]
 Left      <  <C
 Right     >  B>
-RightBack b> B>0
+RightD    d> 11B>0
+RightT    t> 21B>0
+RightWide w> 221B>0
 
 [blocks]
 L = ^12
@@ -59,53 +61,53 @@ T Q < -> Q < T
 P Q < -> T <
 Q Q < -> D <
 
-T b> R -> Q P < S R
-D b> R -> < X R
+t> R -> Q P < S R
+d> R -> < X R
 
 D > R -> P < T R
 F > R -> P < S R
 
-D b> X -> Y D b>
-T b> X -> Q P T D b>
-F Q b> X -> T P T D b>
+d> X -> Y d>
+t> X -> Q P T d>
+w> X -> T P T d>
 
-F > X -> P T D b>
-Q > X -> D D b>
-D > X -> D Q D b>
+F > X -> P T d>
+Q > X -> D d>
+D > X -> D Q d>
 > X F -> Q Y Q >
 > X T -> Q Y > Q
-> X S -> Q F T b>
-> X -> Q D b>
+> X S -> Q F t>
+> X -> Q d>
 
 > F -> D >
-D b> F -> Y Q >
-T b> F -> Q F D >
-F Q b> F -> T F D >
+d> F -> Y Q >
+t> F -> Q F D >
+w> F -> T F D >
 
 Y > S -> F F F >
-D > S -> Q D b>
+D > S -> Q d>
 F > S -> T F >
 T > S -> F F >
-Q > S -> D b>
+Q > S -> d>
 
-D b> S -> F T b>
-T b> S -> Q F Q b>
-F Q b> S -> T P T b>
+d> S -> F t>
+t> S -> Q w>
+w> S -> T P t>
 
 > T R -> Q < S R
-> T X -> Q T D b>
+> T X -> Q T d>
 > T F -> Q T Q >
-> T S -> Q T b>
+> T S -> Q t>
 > T T -> Q T > Q
 
-D b> T -> Y > Q
-F Q b> T -> T F Q > Q
-Q T b> T -> D P T > Q
-T b> T -> Q P T > Q
+d> T -> Y > Q
+w> T -> T F Q > Q
+Q t> T -> D P T > Q
+t> T -> Q P T > Q
 
-> Q X -> T D b>
+> Q X -> T d>
 > Q F -> T Q >
-> Q S -> T b>
+> Q S -> t>
 > Q T -> T > Q
 
 L Q P < -> L1 T >
