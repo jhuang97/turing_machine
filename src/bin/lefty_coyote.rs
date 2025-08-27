@@ -19,6 +19,7 @@ impl fmt::Display for SimError {
 enum HigherState {
     Left,
     Right,
+    RightQ,
     RightD,
     RightT,
     RightWide,
@@ -87,14 +88,13 @@ impl BlockSimulator {
                 self.left_tape.push(Run(T, 1u128));
                 7u128
             }
-            // L D < -> L T Q T > Q
+            // L D < -> L T Q T q>
             (Left, [.., L, D], _) => {
-                self.state = Right;
+                self.state = RightQ;
                 self.left_tape.pop();
                 self.left_tape.push(Run(T, 1u128));
                 self.left_tape.push(Q);
                 self.left_tape.push(Run(T, 1u128));
-                self.right_tape.push(Q);
                 24u128
             }
             // L P < -> L F D >
@@ -372,6 +372,13 @@ impl BlockSimulator {
                 self.right_tape.push(Run(S, 1u128));
                 6u128
             }
+            // q> X -> T d>
+            (RightQ, _, [.., Run(X, _)]) => {
+                self.state = RightD;
+                decrement_run(&mut self.right_tape, X);
+                add_or_merge_run(&mut self.left_tape, T, 1u128);
+                4u128
+            }
             // d> X -> Y d>
             (RightD, _, [.., Run(X, exp)]) => {
                 let n = *exp;
@@ -430,13 +437,13 @@ impl BlockSimulator {
                 self.left_tape.push(Q);
                 10u128
             }
-            // > X T -> Q Y > Q
+            // > X T -> Q Y q>
             (Right, _, [.., Run(T, _), Run(X, 1)]) => {
+                self.state = RightQ;
                 self.right_tape.pop();
                 decrement_run(&mut self.right_tape, T);
                 self.left_tape.push(Q);
                 self.left_tape.push(Run(Y, 1u128));
-                self.right_tape.push(Q);
                 9u128
             }
             // > X S -> Q F t>
@@ -460,6 +467,14 @@ impl BlockSimulator {
                 decrement_run(&mut self.right_tape, F);
                 self.left_tape.push(D);
                 2u128
+            }
+            // q> F -> T Q >
+            (RightQ, _, [.., Run(F, _)]) => {
+                self.state = Right;
+                decrement_run(&mut self.right_tape, F);
+                add_or_merge_run(&mut self.left_tape, T, 1u128);
+                self.left_tape.push(Q);
+                3u128
             }
             // d> F -> Y Q >
             (RightD, _, [.., Run(F, _)]) => {
@@ -525,6 +540,12 @@ impl BlockSimulator {
                 decrement_run(&mut self.right_tape, S);
                 1u128
             }
+            // q> S -> t>
+            (RightQ, _, [.., Run(S, _)]) => {
+                self.state = RightT;
+                decrement_run(&mut self.right_tape, S);
+                2u128
+            }
             // d> S -> F t>
             (RightD, _, [.., Run(S, _)]) => {
                 self.state = RightT;
@@ -581,93 +602,64 @@ impl BlockSimulator {
                 self.left_tape.push(Q);
                 3u128
             }
-            // > T T -> Q T > Q (1/2)
+            // > T T -> Q T q> (1/2)
             (Right, _, [.., Run(T, 2u128..)]) => {
+                self.state = RightQ;
                 decrease_run_by(&mut self.right_tape, T, 2u128);
                 self.left_tape.push(Q);
                 self.left_tape.push(Run(T, 1u128));
-                self.right_tape.push(Q);
                 3u128
             }
-            // > T T -> Q T > Q (2/2)
+            // > T T -> Q T q> (2/2)
             (Right, _, [.., Run(T, _), Run(T, 1)]) => {
+                self.state = RightQ;
                 self.right_tape.pop();
                 decrement_run(&mut self.right_tape, T);
                 self.left_tape.push(Q);
                 self.left_tape.push(Run(T, 1u128));
-                self.right_tape.push(Q);
                 3u128
             }
-            // d> T -> Y > Q
+            // q> T -> T q>
+            (RightQ, _, [.., Run(T, exp)]) => {
+                let n = *exp;
+                self.right_tape.pop();
+                add_or_merge_run(&mut self.left_tape, T, n);
+                2u128 * n
+            }
+            // d> T -> Y q>
             (RightD, _, [.., Run(T, _)]) => {
-                self.state = Right;
+                self.state = RightQ;
                 decrement_run(&mut self.right_tape, T);
                 add_or_merge_run(&mut self.left_tape, Y, 1u128);
-                self.right_tape.push(Q);
                 6u128
             }
-            // w> T -> T F Q > Q
+            // w> T -> T F Q q>
             (RightWide, _, [.., Run(T, _)]) => {
-                self.state = Right;
+                self.state = RightQ;
                 decrement_run(&mut self.right_tape, T);
                 add_or_merge_run(&mut self.left_tape, T, 1u128);
                 self.left_tape.push(Run(F, 1u128));
                 self.left_tape.push(Q);
-                self.right_tape.push(Q);
                 6u128
             }
-            // Q t> T -> D P T > Q
+            // Q t> T -> D P T q>
             (RightT, [.., Q], [.., Run(T, _)]) => {
-                self.state = Right;
+                self.state = RightQ;
                 self.left_tape.pop();
                 decrement_run(&mut self.right_tape, T);
                 self.left_tape.push(D);
                 self.left_tape.push(P);
                 self.left_tape.push(Run(T, 1u128));
-                self.right_tape.push(Q);
                 6u128
             }
-            // t> T -> Q P T > Q
+            // t> T -> Q P T q>
             (RightT, _, [.., Run(T, _)]) => {
-                self.state = Right;
+                self.state = RightQ;
                 decrement_run(&mut self.right_tape, T);
                 self.left_tape.push(Q);
                 self.left_tape.push(P);
                 self.left_tape.push(Run(T, 1u128));
-                self.right_tape.push(Q);
                 6u128
-            }
-            // > Q X -> T d>
-            (Right, _, [.., Run(X, _), Q]) => {
-                self.state = RightD;
-                self.right_tape.pop();
-                decrement_run(&mut self.right_tape, X);
-                add_or_merge_run(&mut self.left_tape, T, 1u128);
-                4u128
-            }
-            // > Q F -> T Q >
-            (Right, _, [.., Run(F, _), Q]) => {
-                self.right_tape.pop();
-                decrement_run(&mut self.right_tape, F);
-                add_or_merge_run(&mut self.left_tape, T, 1u128);
-                self.left_tape.push(Q);
-                3u128
-            }
-            // > Q S -> t>
-            (Right, _, [.., Run(S, _), Q]) => {
-                self.state = RightT;
-                self.right_tape.pop();
-                decrement_run(&mut self.right_tape, S);
-                2u128
-            }
-            // > Q T -> T > Q
-            (Right, _, [.., Run(T, exp), Q]) => {
-                let n = *exp;
-                self.right_tape.pop();
-                self.right_tape.pop();
-                self.right_tape.push(Q);
-                add_or_merge_run(&mut self.left_tape, T, n);
-                2u128 * n
             }
             // L Q P < -> L1 T >
             (Left, [.., L, Q, P], _) => {
@@ -726,6 +718,7 @@ impl fmt::Display for BlockSimulator {
         match self.state {
             HigherState::Left => write!(f, "{}", "<".red().bold())?,
             HigherState::Right => write!(f, "{}", ">".red().bold())?,
+            HigherState::RightQ => write!(f, "{}", "q>".red().bold())?,
             HigherState::RightD => write!(f, "{}", "d>".red().bold())?,
             HigherState::RightT => write!(f, "{}", "t>".red().bold())?,
             HigherState::RightWide => write!(f, "{}", "w>".red().bold())?,
@@ -812,7 +805,7 @@ fn main() {
     let mut sim = BlockSimulator::new();
 
     // let max_steps = 100000000000u64; //10000000  452
-    let max_steps = 1000;
+    let max_steps = 100000;
     println!("{}", sim);
     for i in 1..=max_steps {
         let res = sim.step();
@@ -826,6 +819,7 @@ fn main() {
             break;
         } else {
             // if sim.left_tape.len() < 5 {
+            // if sim.right_tape.len() <= 5 {
                 println!("{}", sim);
             // }
         }

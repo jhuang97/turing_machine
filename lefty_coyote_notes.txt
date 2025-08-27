@@ -2,3 +2,40 @@ ways to halt:
 L2 < -> ***HALT***
 LT < -> ***HALT***
 LT D < -> ***HALT***
+
+base cases for accelerating this machine?
+> X^n R -> Q < X^n R
+> T X^n R -> Q < S X^n R
+> T S X^n R -> < F X^n+1 R
+
+> X^n R
+Q d> X^n-1 R (3)
+Q Y^n-1 d> R (8n - 8)
+Q Y^n-1 < X R (13)
+Q < X^n R (4n - 4)
+therefore
+> X^n R ---(12n + 4)--> Q < X^n R
+also
+d> X^n-1 R ---(12n + 1)--> < X^n R
+
+> T X^n R
+Q T d> X^n-1 R (5)
+Q T < X^n R (12n + 1)
+Q < S X^n R (2)
+therefore
+> T X^n R ---(12n + 8)--> Q < S X^n R
+
+> T S X^n R
+Q t> X^n R (3)
+Q Q P T d> X^n-1 R (8)
+Q Q P T < X^n R (12n + 1)
+Q Q P < S X^n R (2)
+P T > S X^n R (5)
+P F F > X^n R (6)
+P F F Q < X^n R (12n + 4)
+P F P T < X^n R (0)
+P F P < S X^n R (2)
+P P < X^n+1 R (2)
+< F X^n+1 R (2)
+therefore
+> T S X^n R ---(24n + 35)--> < F X^n+1 R
