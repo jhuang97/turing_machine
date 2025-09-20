@@ -175,6 +175,76 @@ recall that D> 011 -> *HALT*
 ran into a > C C0 in block simulation...
 39775167316 | 3161152462952049567: L X^15 C0 X C0 X^774840950 C0 X^2310174000 C0 X^727011261 C0 X^227988162 C0 X^71213067 C0 X^22143348 C0 X^6849657 C0 X^2106054 C0 X^642951 C0 X^194616 C0 X^58293 C0 X^17226 C0 X^4995 C0 X^1404 C0 X^369 C0 X^78 > C C0 X^11 R
 
+...
+
+L X^15 C0 X C0 <e X^3
+--(6294)-->
+L X^15 C0 X C0 > X^21
+
+C0 <e -> <e C0
+> C0 -> <e C1
+> C1 -> <e C
+> C X -> C0 >
+
+l C0 X <e -> s^3(l) C0 >
+s^T(l C0 X^T) = s^{3T}(l) C0
+
+............
+step counts:
+
+(n >= 3)
+L X^15 C0 X C0 X^n <e
+L X^15 C0 X C0 <e X^n (8n)
+L X^15 C0 X C0 > X^n+18 (6294)
+L X^15 C0 X C0 X^n+18 > (4n + 72)
+
+L X^15 C0 X C0 X^n <e --(12n + 6366)--> L X^15 C0 X C0 X^n+18 >
+
+after T strides / T times the <e head comes:
+6366T + sum i=0, .., T-1 (12*(n + 18i))
+= 6366T + 12nT + 12*9(T-1)T
+= (12n + 6258 + 108T)T
+
+L X^15 C0 X C0 X^n <e --(T strides)--> L X^15 C0 X C0 X^n+18T >
+
+...
+(n >= 1)
+C0 X^n <e
+C0 <e X^n (8n)
+<e C0 X^n (10)
+> C0 X^n (left stride)
+<e C1 X^n (10)
+> C1 X^n (left stride)
+<e C X^n (8)
+> C X^n (left stride)
+C0 > X^n-1 (6)
+C0 X^n-1 > (4n - 4)
+
+C0 X^n <e --(12n + 30 steps)--> C0 X^n-1 (3 left strides)
+
+C0 X^n <e --(T strides)--> C0 X^n-T (3T left strides)
+steps:
+30T + sum i=0, .., T-1 (12 * (n-i))
+= 30T + 12nT - 12 * T(T-1)/2
+= (30 + 12n - 6(T-1))T
+= (12n + 36 - 6T)T
+
+...
+L X^n <e
+L <e X^n (8n)
+L X > X^n (26)
+L X^n+1 > (4n)
+
+L X^n <e --(12n + 26)--> L X^n+1
+
+L X^n <e --(T strides)--> L X^n+T
+steps:
+26T + sum i=0, .., T-1 (12 * (n+i))
+= 26T + 12nT + 12 * T(T-1)/2
+= (26 + 12n + 6(T-1))T
+= (12n + 20 + 6T)T
+
+
 Try another TM, "skelet 1-like TM #1"
 1RB0LB_1RC0LA_1LB0RD_1RE1RD_1RB1RF_1LA---
 ============================================

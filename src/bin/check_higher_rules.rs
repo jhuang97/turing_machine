@@ -811,9 +811,9 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
 }
 
 fn main() {
-    // let fname = "src/definitions/bb6_tm_4_counter.txt";
+    let fname = "src/definitions/bb6_tm_4_counter.txt";
     // let fname = "src/definitions/bb6_sk1like_1.txt";
-    let fname = "src/definitions/bb6_sk1like_3.txt";
+    // let fname = "src/definitions/bb6_sk1like_3.txt";
     // let fname = "src/definitions/skelet1/skelet1_reimpl.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 
