@@ -244,6 +244,77 @@ steps:
 = (26 + 12n + 6(T-1))T
 = (12n + 20 + 6T)T
 
+-----------------
+found a new pattern that looks something like
+L X^15 C0 X C0 X^7262 C0 C0 X^100000000 <e C0 X^100 C0 X^100 C0 X^100 C0 X^100 C0 X^100 C0 X^100 R
+-->
+L X^15 C0 X C0 X^7262 C0 C0 X^100007304 > C1 X^86 C X^96 C1 X^99 C1 X^100 C0 X^100 C0 X^100 R
+
+dissecting this pattern...
+
+L X^15 C0 X C0 X^7262 C0 C0 <e X^3
+--(1143292)-->
+L X^15 C0 X C0 X^296 C0 X^129 C0 X^7350 >
+
+L X^15 C0 X C0 X^296 C0 X^129 C0 X^n
+--(43 strides)-->
+L X^15 C0 X C0 X^7262 C0 C0 X^n-43
+
+so overall there are 44 configurations.
+L X^15 C0 X C0 X^a C0 X^b C0 X^c
+
+  a   b   c      i   c range
+---- --- ---    ---  -------
+ 296 129 n        0  >= 46
+ 458 126 n-1      1  >= 45
+ 620 123 n-2      2  >= 44
+ ...
+7262   0 n-43    43   >= 3
+
+296 + 162*i, 129 - 3*i, n-i
+
+n-43 >= 3
+n >= 46
+
+Such a bicycle configuration first seen at
+10043 | 206008373488264504629313835958771690: L X^15 C0 X C0 X^296 C0 X^129 C0 X^600379486881408714 <e C1 X^289071150278774871 C0 X^90797989526369416 C X^28412976319937947 C X^8853318710362018 C X^2745215104692673 C X^846441324199324 C X^259270315611463 C X^78797841052150 C X^23724081189037 C X^7060738453552 C X^2071149948019 C X^596240137162 C X^167365652761 C X^45328197700 C X^11622614815 C X^2711943454 C X^3314597491 C1 X^2027978815 C X^632946200 C1 X^196633142 C1 X^60761394 C0 X^18659457 C0 X^5688360 C0 X^1718955 C0 X^513918 C0 X^151605 C0 X^43956 C0 X^12447 C0 X^3402 C0 X^873 C0 X^192 C0 X^46 R0
+
+Let Bicycle(i, c) = L X^15 C0 X C0 X^(296 + 162i) C0 X^(129 - 3i) C0 X^c
+
+Step counts...
+
+0   |       0: L X^15 C0 X C0 X^7262 C0 C0 <e X^3 C0 X^100 R
+253 | 1143292: L X^15 C0 X C0 X^296 C0 X^129 C0 X^7350 > C0 X^100 R
+
+reset phase: stride starting from i = 43 (c >= 3)
+L X^15 C0 X C0 X^7262 C0 C0 X^c <e
+L X^15 C0 X C0 X^7262 C0 C0 <e X^c (8c)
+L X^15 C0 X C0 X^296 C0 X^129 C0 X^7350 > X^c-3 (1143292)
+L X^15 C0 X C0 X^296 C0 X^129 C0 X^c+7347 > (4c - 12)
+total: 12c + 1143280
+
+stride phase: 43 strides, applied to i=0, 1, ..., 42:
+L X^15 C0 X C0 X^296 C0 X^129 C0 X^c --> L X^15 C0 X C0 X^7262 C0 C0 X^c-43
+LXC(296) 43*9 = 387 strides -> 19971522 steps
+CX(129) 43*3 = 129 strides -> 104490 steps
+CX(c) 43 strides -> (12c + 36 - 6*43)*43 = (12c - 222)*43 = 516c - 9546 steps
+total: 516c + 20066466
+
+full cycle: 44 strides, starting from i=0:
+516c + 20066466 + 12(c-43) + 1143280
+= 528c + 21209230
+also c increases by 7347 - 43 = 7304
+
+T full cycles:
+21209230T + sum i=0, .., T-1 (528 * (c + 7304i))
+= 21209230T + 528cT + 3856512 * sum i=0, .., T-1 i
+= 21209230T + 528cT + 1928256 * T(T-1)
+= (21209230 + 528c + 1928256(T-1)) * T
+= (528c + 19280974 + 1928256T) * T
+
+Implementing bicycle acceleration.
+Things are faster now - what once took 8321289096 simulator steps now only takes 10095 simulator steps.
+
 
 Try another TM, "skelet 1-like TM #1"
 1RB0LB_1RC0LA_1LB0RD_1RE1RD_1RB1RF_1LA---

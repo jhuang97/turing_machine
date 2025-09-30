@@ -47,6 +47,7 @@ L <o -> L C0 >
 
 > R -> <e R1
 X > R1 -> X <e R0
+C0 > R1 -> <e C0 R0
 > R2 -> <e R
 > R0 -> X <o R
 
@@ -58,12 +59,15 @@ X > R1 -> X <e R0
 > C C1 -> <e F1
 > C C0 -> <e X F2
 X > F1 -> <e X F2
+C0 > F1 -> <e C0 F2
 > F2 X -> <e F3
 > F3 X -> <o F4
 > F4 -> <e F5
 > F5 -> <e F6
 > F6 X -> <o F7
 > F7 -> <e X
+
+> C F2 X -> <e F7
 
 > F2 R -> <e R0
 > F2 R1 -> <e C R

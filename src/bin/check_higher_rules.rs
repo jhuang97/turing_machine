@@ -629,7 +629,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
         .map(|st| st.ident.clone());
 
     let state_def = quote! {
-        #[derive(PartialEq, Eq)]
+        #[derive(Debug, PartialEq, Eq)]
         enum HigherState {
             #(#state_names),*
         }
@@ -817,6 +817,6 @@ fn main() {
     // let fname = "src/definitions/skelet1/skelet1_reimpl.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 
-        process_tm_rle_file(fname, CheckerVerbosity::Off);
+        process_tm_rle_file(fname, CheckerVerbosity::All);
     generate_simulator_code(tm_def, state_table, symbol_table, checked_rules);
 }

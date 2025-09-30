@@ -15,7 +15,7 @@ impl fmt::Display for SimError {
         }
     }
 }
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 enum HigherState {
     Right,
     LeftEven,
@@ -367,6 +367,33 @@ impl BlockSimulator {
                 self.right_tape.push(R12);
                 9u128
             }
+            // C0 > R1 -> <e C0 R0
+            (Right, [.., C0], [.., R1]) => {
+                self.state = LeftEven;
+                self.left_tape.pop();
+                self.right_tape.pop();
+                self.right_tape.push(R0);
+                self.right_tape.push(C0);
+                18u128
+            }
+            // C0 > F1 -> <e C0 F2
+            (Right, [.., C0], [.., F1]) => {
+                self.state = LeftEven;
+                self.left_tape.pop();
+                self.right_tape.pop();
+                self.right_tape.push(F2);
+                self.right_tape.push(C0);
+                18u128
+            }
+            // > C F2 X -> <e F7
+            (Right, _, [.., Run(X, _), F2, C]) => {
+                self.state = LeftEven;
+                self.right_tape.pop();
+                self.right_tape.pop();
+                decrement_run(&mut self.right_tape, X);
+                self.right_tape.push(F7);
+                12u128
+            }
             _ => return Err(SimError::UndefinedTransition),
         };
         Ok(n_steps)
@@ -422,13 +449,16 @@ impl fmt::Display for BlockSimulator {
 
 // Start of customizable code
 type Exp = u128;
+type BigInt = bnum::BUint<4>;
+
 struct BlockSimulator {
     pub left_tape: Vec<BlockSymbol>,
     pub right_tape: Vec<BlockSymbol>,
     pub state: HigherState,
-    pub base_steps: u128,
+    pub base_steps: BigInt,
     pub self_steps: u64,
     do_strides: bool,
+    do_bicycle: bool,
 }
 
 impl fmt::Display for BlockSymbol {
@@ -456,6 +486,7 @@ impl fmt::Display for BlockSymbol {
 
 // End of customizable code
 
+#[derive(Debug)]
 enum StrideComponent {
     /// L X^15 C0 X C0 X^n
     LXC(Exp),
@@ -463,6 +494,27 @@ enum StrideComponent {
     LX(Exp),
     /// C0 X^n
     CX(Exp),
+    /// L X^15 C0 X C0 X^a C0 X^b C0 X^c.
+    /// More specifically, L X^15 C0 X C0 X^(296 + 162i) C0 X^(129 - 3i) C0 X^c
+    Bicycle { i: u8, c: Exp },
+}
+
+fn valid_bicycle(a: Exp, b: Exp, c: Exp) -> bool {
+    if b % 3 != 0 || b > 129 {
+        return false;
+    }
+    let i = 43 - b/3;
+    a == 296 + 162*i && c >= 46 - i
+}
+
+fn check_bicycle_stride_steps() {
+    let mut a = StrideComponent::LXC(296);
+    println!("{}", a.do_strides(43*9));
+    println!("{a:?}");
+
+    let mut b = StrideComponent::CX(129);
+    println!("{}", b.do_strides(43*3));
+    println!("{b:?}");
 }
 
 impl StrideComponent {
@@ -473,28 +525,88 @@ impl StrideComponent {
             Self::LXC(n) => if *n >= 3 { Some(0) } else { None },
             Self::LX(_) => Some(0),
             Self::CX(n) => if *n >= n_strides { Some(n_strides * 3) } else { None },
+            Self::Bicycle { i, c } => if *c >= (46 - *i).into() { Some(0) } else { None }
         }
     }
 
     /// do strides (updating n) and return step count. this does not check if it can actually 
     /// receive this number of strides.
-    fn do_strides(&mut self, n_strides: Exp) -> Exp {
+    fn do_strides(&mut self, n_strides: Exp) -> BigInt {
         match self {
             Self::LXC(n) => {
-                let out = (12 * *n + 6258 + 108*n_strides) * n_strides;
+                let s = 12 * *n + 6258 + 108*n_strides;
+                let out: BigInt = BigInt::from(s) * BigInt::from(n_strides);
                 *n += 18 * n_strides;
                 out
             }
             Self::LX(n) => {
-                let out = (12 * *n + 20 + 6*n_strides) * n_strides;
+                let s = 12 * *n + 20 + 6*n_strides;
+                let out: BigInt = BigInt::from(s) * BigInt::from(n_strides);
                 *n += n_strides;
                 out
             }
             Self::CX(n) => {
-                let out = (12 * *n + 36 - 6*n_strides) * n_strides;
+                let s = 12 * *n + 36 - 6*n_strides;
+                let out: BigInt = BigInt::from(s) * BigInt::from(n_strides);
                 *n -= n_strides;
                 out
             }
+            Self::Bicycle { i, c } => {
+                let mut n_left = n_strides;
+                let mut i_curr = *i;
+                let mut c_curr = *c;
+
+                let mut steps = BigInt::ZERO;
+                
+                if i_curr > 0 {
+                    // preliminary partial stride phase
+                    let n_pre_max = 43 - i_curr as u128;
+                    let n_pre = n_left.min(n_pre_max);
+
+                    steps += StrideComponent::CX(c_curr).do_strides(n_pre);
+                    c_curr -= n_pre;
+                    steps += StrideComponent::CX(bicycle_b(i_curr)).do_strides(n_pre * 3);
+                    steps += StrideComponent::LXC(bicycle_a(i_curr)).do_strides(n_pre * 9);
+                    i_curr += n_pre as u8;
+
+                    n_left -= n_pre;
+
+                    if n_left >= 1 {
+                        assert!(i_curr == 43);
+
+                        // reset phase
+                        let new_steps = BigInt::from(12*c_curr + 1143280);
+                        steps += new_steps;
+                        c_curr += 7347;
+                        i_curr = 0;
+                        n_left -= 1;
+                    }
+                }
+
+                let n_cycles = n_left / 44;
+                n_left = n_left % 44;
+
+                if n_cycles > 0 {
+                    // full cycles
+                    let s = 528 * c_curr + 19280974 + 1928256 * n_cycles;
+                    let new_steps: BigInt = BigInt::from(s) * BigInt::from(n_cycles);
+                    steps += new_steps;
+                    c_curr += 7304 * n_cycles;
+                }
+
+                if n_left > 0 {
+                    // final partial stride phase
+                    steps += StrideComponent::CX(c_curr).do_strides(n_left);
+                    c_curr -= n_left;
+                    steps += StrideComponent::CX(bicycle_b(i_curr)).do_strides(n_left * 3);
+                    steps += StrideComponent::LXC(bicycle_a(i_curr)).do_strides(n_left * 9);
+                    i_curr += n_left as u8;
+                }
+
+                *i = i_curr;
+                *c = c_curr;
+                steps
+            },
         }
     }
 
@@ -510,34 +622,60 @@ impl StrideComponent {
                     tape.push(Run(X, *n));
                 }
             },
+            Self::Bicycle { i, c } => {
+                assert!(*c > 0);
+                assert!(*i <= 43);
+                match i {
+                    0..=42 => tape.extend_from_slice(&[L, Run(X, 15), C0, Run(X, 1), 
+                                    C0, Run(X, bicycle_a(*i)), C0, Run(X, bicycle_b(*i)), C0, Run(X, *c)]),
+                    43 => tape.extend_from_slice(&[L, Run(X, 15), C0, Run(X, 1), C0, Run(X, 7262), C0, C0, Run(X, *c)]),
+                    _ => unreachable!()
+                }
+            },
         }
     }
 }
 
+fn bicycle_a(i: u8) -> Exp { 296 + 162 * (i as u128) }
+fn bicycle_b(i: u8) -> Exp { 129 - 3 * (i as u128) }
+
 impl BlockSimulator {
-    pub fn new(do_strides: bool) -> Self {
+    pub fn new(do_strides: bool, do_bicycle: bool) -> Self {
         use BlockSymbol::*;
         Self {
             left_tape: vec![L],
             right_tape: vec![R0],
             state: HigherState::LeftEven,
-            base_steps: 38,
+            base_steps: 38u32.into(),
             self_steps: 0,
-            do_strides
+            do_strides, do_bicycle
         }
     }
 
-    pub fn new_with_tape(left_tape: Vec<BlockSymbol>, state: HigherState, right_tape: Vec<BlockSymbol>, do_strides: bool) -> Self {
+    pub fn new_alt(do_strides: bool, do_bicycle: bool) -> Self {
+        use BlockSymbol::*;
+        Self {
+            left_tape: vec![L, Run(RunSymbolType::X, 1)],
+            right_tape: vec![R],
+            state: HigherState::LeftOdd,
+            base_steps: 38u32.into(),
+            self_steps: 0,
+            do_strides, do_bicycle
+        }
+    }
+
+    pub fn new_with_tape(left_tape: Vec<BlockSymbol>, state: HigherState, right_tape: Vec<BlockSymbol>,
+        do_strides: bool, do_bicycle: bool) -> Self {
         Self {
             left_tape, right_tape, state,
-            base_steps: 0,
+            base_steps: BigInt::ZERO,
             self_steps: 0,
-            do_strides
+            do_strides, do_bicycle
         }
     }
 
     /// Does a stride and returns number of base steps if possible. Returns None if stride not possible.
-    fn try_stride(&mut self) -> Option<Exp> {
+    fn try_stride(&mut self) -> Option<BigInt> {
         if self.state != HigherState::LeftEven {
             return None;
         }
@@ -553,7 +691,15 @@ impl BlockSimulator {
             use RunSymbolType::*;
 
             let comp = match self.left_tape[..idx] {
-                [L, Run(X, 15), C0, Run(X, 1), C0, Run(X, n)] => {
+                [L, Run(X, 15), C0, Run(X, 1), C0, Run(X, 7262), C0, C0, Run(X, c)] if self.do_bicycle && c >= 3 => {
+                    done = true;
+                    StrideComponent::Bicycle { i: 43, c }
+                },
+                [L, Run(X, 15), C0, Run(X, 1), C0, Run(X, a), C0, Run(X, b), C0, Run(X, c)] if self.do_bicycle && valid_bicycle(a, b, c) => {
+                    done = true;
+                    StrideComponent::Bicycle { i: (43 - b/3).try_into().unwrap(), c }
+                },
+                [L, Run(X, 15), C0, Run(X, 1), C0, Run(X, n)] if n >= 3 => {
                     done = true;
                     StrideComponent::LXC(n)
                 },
@@ -579,7 +725,7 @@ impl BlockSimulator {
             components.push(comp);
         }
 
-        let mut n_steps = 0;
+        let mut n_steps = BigInt::ZERO;
         for (t, comp) in stride_vec.iter().zip(components.iter_mut()) {
             n_steps += comp.do_strides(*t);
         }
@@ -607,11 +753,17 @@ impl BlockSimulator {
         self.self_steps += 1;
         Ok(())
     }
+
+    fn has_pattern_2(&self) -> bool {
+        use BlockSymbol::*;
+        use RunSymbolType::*;
+        self.state == HigherState::LeftEven && matches!(self.left_tape.as_slice(), [L, Run(X, 15), C0, Run(X, 1), C0, Run(X, 7262), C0, C0, Run(X, _n)])
+    }
 }
 
 fn compare_stride_sim(n_steps: usize) {
-    let mut sim = BlockSimulator::new(false);
-    let mut sim_stride = BlockSimulator::new(true);
+    let mut sim = BlockSimulator::new(false, false);
+    let mut sim_stride = BlockSimulator::new(true, false);
 
     for _ in 0..=n_steps {
         while sim.base_steps < sim_stride.base_steps {
@@ -623,35 +775,162 @@ fn compare_stride_sim(n_steps: usize) {
     }
 }
 
-fn main() {
-    let mut sim = BlockSimulator::new(true);
-    let mut sim = {
+fn compare_bicycle_sim(n_steps: usize) {
+    let mut sim = BlockSimulator::new(true, false);
+    let mut sim_bicycle = BlockSimulator::new(true, true);
+
+    for _ in 0..=n_steps {
+        while sim.base_steps < sim_bicycle.base_steps {
+            sim.step().unwrap();
+        }
+        println!("{sim_bicycle:>width$}", width=(sim.self_steps.checked_ilog10().unwrap_or(0) + 1) as usize);
+        println!("{sim}");
+        sim_bicycle.step().unwrap();
+    }
+}
+
+fn compare_bicycle_sim2(i0: u8, c0: Exp, n_CX: u32, kadd: Exp, nsteps: u32, print_tape: bool) {
+    let mut sim = BlockSimulator::new(true, false);
+    let mut sim_bicycle = BlockSimulator::new(true, true);
+
+    sim.left_tape.clear();
+    sim_bicycle.left_tape.clear();
+
+    let mut k = 1;
+    let mut comps = Vec::new();
+    for _ in 0..n_CX {
+        comps.push(StrideComponent::CX(k));
+        k = k * 3 + kadd;
+    }
+    comps.push(StrideComponent::Bicycle { i: i0, c: c0 });
+
+    for comp in comps.iter().rev() {
+        comp.write_to_tape(&mut sim.left_tape);
+        comp.write_to_tape(&mut sim_bicycle.left_tape);
+    }
+
+    for _ in 0..=nsteps {
+        while sim.base_steps < sim_bicycle.base_steps {
+            sim.step().unwrap();
+        }
+        if print_tape {
+            println!("{sim_bicycle:>width$}", width=(sim.self_steps.checked_ilog10().unwrap_or(0) + 1) as usize);
+            println!("{sim}");
+        }
+
+        assert_eq!(sim.base_steps, sim_bicycle.base_steps);
+        assert_eq!(sim.state, sim_bicycle.state);
+        assert_eq!(sim.left_tape, sim_bicycle.left_tape);
+        assert_eq!(sim.right_tape, sim_bicycle.right_tape);
+
+        sim_bicycle.step().unwrap();
+    }
+}
+
+fn left_stride_sim() {
+    let (mut sim, init_left) = {
         use BlockSymbol::*;
         use RunSymbolType::*;
         use HigherState::*;
-    //     // BlockSimulator::new_with_tape(vec![L, Run(X, 10)], Right, vec![R, Run(X, 100), C1, C])
-        // BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0, Run(X, 1), C0], LeftEven, vec![R, Run(X, 3)], false)
-        BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0, Run(X, 1), C0, Run(X, 7262), C0, C0, Run(X, 100000000)], LeftEven, vec![R, Run(X, 100), C0, Run(X, 100), C0, Run(X, 100), C0, Run(X, 100), C0, Run(X, 100), C0, Run(X, 100), C0], true)
-    //     BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0], LeftEven, vec![R, Run(X, 5)])
+        let init_vec = vec![L, Run(X, 15), C0, Run(X, 1), 
+            C0, Run(X, 1592), 
+            C0, Run(X, 105),
+            C0, Run(X, 116968),
+            C0, Run(X, 516),
+            C0, Run(X, 10000000000)];
+        let sim = BlockSimulator::new_with_tape(init_vec.clone(), LeftEven, vec![R], true, true);
+        (sim, init_vec)
     };
 
-    // let max_steps = 100000000000u64;
-    // let max_steps = 100000000000u64;
-    let max_steps = 1000;
+    let max_steps = 10000;
+    let mut n_extra_strides = 0;
+
     println!("{}", sim);
     for i in 1..=max_steps {
-        let res = sim.step();
-    //     // if i % 1000 == 0 || (sim.state == HigherState::LeftEven && sim.right_tape.last() == Some(&BlockSymbol::F1)) {
-        // if i % 100000000 == 0 || sim.right_tape.len() < 5 {
-    //     // if [1, 4, 5, 8, 9, 12, 13, 14, 15, 16, 17, 30, 31, 46, 47, 50, 51, 84, 86, 138, 166, 252, 301, 333, 418, 470].contains(&i) {
-            println!("{}", sim);
-        // }
-        if res.is_err() {
-            println!("{}", sim);
-            println!("{:?}", res);
-            break;
+        if sim.right_tape.len() == 1 && sim.state == HigherState::Right {
+            sim.state = HigherState::LeftEven;
+            n_extra_strides += 1;
+        } else {
+            let res = sim.step();
+            if res.is_err() {
+                println!("{}", sim);
+                println!("{:?}", res);
+                break;
+            }
+        }
+
+        if sim.right_tape.len() < 4 {
+            println!("{n_extra_strides}; {}", sim);
+        }
+
+        {
+            use BlockSymbol::*;
+            use RunSymbolType::*;
+            if sim.state == HigherState::LeftEven && matches!(sim.left_tape.as_slice(), [L, Run(X, 15), C0, Run(X, 1), 
+                C0, Run(X, 1592), 
+                C0, Run(X, 105),
+                C0, Run(X, 116968),
+                C0, Run(X, 516),
+                C0, Run(X, _)]) {
+                println!("same left tape after {i} generalized steps");
+                return;
+            }
         }
     }
+}
+
+fn main() {
+    // let mut sim = BlockSimulator::new(true, true);
+    // // let mut sim = {
+    // //     use BlockSymbol::*;
+    // //     use RunSymbolType::*;
+    // //     use HigherState::*;
+    // // //     // BlockSimulator::new_with_tape(vec![L, Run(X, 10)], Right, vec![R, Run(X, 100), C1, C])
+    // //     // BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0, Run(X, 1), C0], LeftEven, vec![R, Run(X, 3)], false)
+    // //     // BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0, Run(X, 1), C0, Run(X, 7262), C0, C0, Run(X, 100000000)], LeftEven, vec![R, Run(X, 100), C0, Run(X, 100), C0, Run(X, 100), C0, Run(X, 100), C0, Run(X, 100), C0, Run(X, 100), C0], true, false)
+    // //     BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0, Run(X, 1), C0, Run(X, 7262), C0, C0], LeftEven, vec![R, Run(X, 100), C0, Run(X, 3)], true, false)
+    // // //     BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0], LeftEven, vec![R, Run(X, 5)])
+    // // };
+
+    // // let max_steps = 100000000000u64;
+    // let max_steps = 10000000000u64;
+    // // let max_steps = 300000;
+    // println!("{}", sim);
+    // for i in 1..=max_steps {
+    //     let res = sim.step();
+    // //     // if i % 1000 == 0 || (sim.state == HigherState::LeftEven && sim.right_tape.last() == Some(&BlockSymbol::F1)) {
+    //     // if i % 100000000 == 0 || sim.right_tape.len() < 5 {
+    //     // if (i < 10129 && sim.right_tape.len() < 8) || (i >= 10129 && sim.has_pattern_2()) {
+    //     // if i % 2000 == 22 || (i > 96000 && i < 96050) {
+    //     if i % 10000000 == 0 {
+    // //     // if [1, 4, 5, 8, 9, 12, 13, 14, 15, 16, 17, 30, 31, 46, 47, 50, 51, 84, 86, 138, 166, 252, 301, 333, 418, 470].contains(&i) {
+    //         println!("{}", sim);
+    //     }
+    //     if res.is_err() {
+    //         println!("{}", sim);
+    //         println!("{:?}", res);
+    //         break;
+    //     }
+    // }
+
+    // check_bicycle_stride_steps();
 
     // compare_stride_sim(2000);
+    // compare_bicycle_sim(10097);
+    // compare_bicycle_sim2(43, 3, 1, 2, 10, true);
+
+    left_stride_sim();
+}
+
+#[test]
+fn test_bicycle_acceleration() {
+    for i0 in 0..=43 {
+        for c0 in 1..60 {
+            for n_CX in 0..=5 {
+                for kadd in 1..=3 {
+                    compare_bicycle_sim2(i0, c0, n_CX, kadd, 10, false);
+                }
+            }
+        }
+    }
 }
