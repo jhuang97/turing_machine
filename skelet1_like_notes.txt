@@ -404,6 +404,117 @@ update: removed some rules:
 > P F2 -> P > F2
 (had to add others in exchange)
 
+I can probably come up with a stride acceleration with the <o head.
+Most of the time, the only counter digit to the left of the head is C.
+C <o -> <o C0    (5)
+> C0 -> <o P C1  (6)
+> C1 P -> C >    (5)
+
+For stride accelerations involving <o, we can run-length-encode P instead of X (P is half as wide as X).
+> P^n --(3n)--> P^n >
+P^n <o --(3n)--> <o P^n
+L <o --(6)--> L P >
+
+(b >= 1)
+P^a C P^b <o
+P^a C <o P^b (3b)
+P^a <o C0 P^b (5)
+<o P^a C0 P^b (3a)
+> P^a C0 P^b (left stride)
+P^a > C0 P^b (3a)
+P^a <o P C1 P^b (6)
+<o P^a+1 C1 P^b (3a)
+> P^a+1 C1 P^b (left stride)
+P^a+1 > C1 P^b (3a+3)
+P^a+1 C > P^b-1 (5)
+P^a+1 C P^b-1 > (3b-3)
+
+P^a C P^b <o --(12a + 6b + 16 steps)--> P^a+1 C P^b-1 > (2 left strides)
+
+P^a C P^b --(T strides)--> P^a+T C P^b-T
+steps:
+sum i=0, .., T-1 (12(a+i) + 6(b-i) + 16)
+= T(12a + 6b + 16) + 6 * sum i=0, .., T-1 (i)
+= T(12a + 6b + 16) + 3T(T-1)
+= T(12a + 6b + 3T + 13)
+
+---
+
+(n >= 0)
+L P^n <o
+L <o P^n (3n)
+L P > P^n (6)
+L P^n+1 > (3n)
+
+L P^n <o --(6n + 6)--> L P^n+1 >
+
+L P^n --(T strides)--> L P^n+T
+steps:
+6T + sum i=0, .., T-1 (6(n+i))
+= T(6n + 6) + 3T(T-1)
+= T(6n + 3T + 3)
+
+can this TM halt at all?
+> C1 R -> *HALT*
+
+However, the rules 
+C > R -> D X > R
+X > R -> <e P R3
+> R3 -> <o P R
+make it unlikely for > C1 R to happen at all?
+
+The next thing to do is probably study the effect of the <e head.
+<e heads seem to be generally followed by many <o heads.
+(1) P^a C P^b <e
+
+if b even, (1) -->
+(2) P^a C <e P^b
+P^a D P > C1 P^b
+P^a D P C > P^b-1
+P^a D P C P^b-1 >
+...
+P^a D P C P^b-1 <o (receive <o from right side)
+P^a D P C <o P^b-1
+P^a D P <o C0 P^b-1
+P^a <e P C0 P^b-1  (send P^a <e to left side)
+> P C0 P^b-1
+P > C0 P^b-1
+P <o P C1 P^b-1
+<o P^2 C1 P^b-1  (send <o to left side)
+> P^2 C1 P^b-1
+P^2 > C1 P^b-1
+P^2 C > P^b-2
+P^2 C P^b-2 >
+
+if b odd, (1) -->
+(3) P^a C P <e P^b-1
+P^a C1 <e F P^b-1
+P^a-2 <e P C0 F P^b-1 (send P^a-2 <e to l.s.)
+> P C0 F P^b-1
+P > C0 F P^b-1
+P <o P C1 F P^b-1
+<o P^2 C1 F P^b-1 (send <o to l.s.)
+> P^2 C1 F P^b-1
+P^2 > C1 F P^b-1
+P^2 <o C0 P^b
+<o P^2 C0 P^b (send <o to l.s.)
+> P^2 C0 P^b
+P^2 > C0 P^b
+P^2 <o P C1 P^b
+<o P^3 C1 P^b (send <o to l.s.)
+> P^3 C1 P^b
+P^3 > C1 P^b
+P^3 C > P^b-1
+P^3 C P^b-1 >
+
+Looks like the behaviors of P^a C P^b <e are predictable 
+and will not halt for sufficiently large a, b.
+
+At the very left side of the tape, <e follows these rules:
+L   <e -> L X > C1
+L P <e -> L X > P
+This also seems predictable.
+
 skelet 1-like #3
 1RB0LC_0RC1RF_1RD0RE_1LE0RA_0LA0LE_1RE---
 =========================================

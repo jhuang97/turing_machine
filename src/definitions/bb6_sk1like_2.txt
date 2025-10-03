@@ -93,6 +93,7 @@ X P > D F -> P <e P F2
 > F2 -> <o P F
 
   X > D P ->   <e P F
+  X > D X ->   <e P F P
 X P > D P -> P <e P F
 X P > D X -> P <e P F P
 P D P C1 <e -> <e P F

@@ -1,0 +1,18 @@
+tm = 1RB0LC_1LC0RE_1LD1LB_1LA1LD_1RF0RA_---1RE
+
+[metastates]
+Right    >  A>0
+LeftOdd  <o 1<A
+
+[rle]
+left = 1 0^n
+right = 1^n 0
+
+[symbols over rle]
+P(exp) = 2
+L = ^
+
+[rules]
+> P -> P >
+P <o -> <o P
+L <o -> L P >
