@@ -23,7 +23,6 @@ C3 = 201
 Cs = 1
 C4 = 200
 F = 2
-G = 02
 H = 0
 
 [rules]
@@ -48,7 +47,6 @@ X C <o -> <o Ch Y
 
 > F R -> X <o R
 > F Y -> <o C1
-> G -> <e F
 > H -> <e
 
 > C0 C0 -> X X > Cs
@@ -63,6 +61,6 @@ X C <o -> <o Ch Y
 
 > C1 C0 -> <e C3 Cs
 > C1 C1 -> <e C3 H
-> C1 C2 -> <e C3 G
+> C1 C2 -> <e C3 H F
 > C1 C3 -> <e C3 H Cs
 > C1 C4 -> <e C3 H H

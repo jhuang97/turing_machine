@@ -1,3 +1,9 @@
+Skelet-1-like TMs from mxdys list:
+#0 1RB0LC_1LA0RD_1RA0LA_1RE1RD_1RA1RF_1LC--- "tm 4" stride acceleration factor 3, cycles at L end with pairs of C0 symbols yet to be accelerated
+#1 1RB0LB_1RC0LA_1LB0RD_1RE1RD_1RB1RF_1LA--- perm of #0
+#2 1RB0LC_1LC0RE_1LD1LB_1LA1LD_1RF0RA_---1RE stride acceleration factor 2. exponents overflowed u128.
+#3 1RB0LC_0RC1RF_1RD0RE_1LE0RA_0LA0LE_1RE--- stride acceleration factor 5. exponents overflowed u128.
+
 Notes on tm 4, 1RB0LC_1LA0RD_1RA0LA_1RE1RD_1RA1RF_1LC---
 ======
 first basic state: step 6: 110 D> 0
@@ -454,6 +460,11 @@ steps:
 = T(6n + 6) + 3T(T-1)
 = T(6n + 3T + 3)
 
+Implemented strides. Step count overflowed u128. Switch to represent step count with big int.
+Then, the exponents of the X symbols overflowed u128.
+Simulation state at the time of overflow, > 4.63e76 base steps
+721068 | 47367762782684049939660417921684682957813402186624584337394216013262336041562: L X^27110606461543516040884151091214439813 C X^11030710814191879156317094287491996805 C X^19184380998973414855596131706540078662 C X^20384066831786129372520503614838224780 C X^10965590901389492038664618682657077251  ...274 terms... X^237101 P C X^168475 P C X^3510 C X^3789 P <o P R
+
 can this TM halt at all?
 > C1 R -> *HALT*
 
@@ -553,3 +564,63 @@ not closed:
 10A> 01010
 10000, 100100, 001100, 11100, 10010, 100110, 001110, 11110, 00001, 01001, 11001, 00101, 01101, 
 11101, 00011, 10011, 01011, 11011, 00111, 10111, 01111, 11111 1<E01
+
+---------
+stride acceleration:
+X^a C X^b <e
+X^a C <e Y^b (6b)
+X^a <e C0 Y^b (15)
+<e Y^a C0 Y^b (6a)
+> Y^a C0 Y^b (l.s.)
+X^a > C0 Y^b (4a)
+X^a+1 <e C1 Y^b-1 (18)
+<e Y^a+1 C1 Y^b-1 (6a + 6)
+> Y^a+1 C1 Y^b-1 (l.s.)
+X^a+1 > C1 Y^b-1 (4a + 4)
+X^a+1 <e C2 Y^b-2 (24)
+<e Y^a+1 C2 Y^b-2 (6a + 6)
+> Y^a+1 C2 Y^b-2 (l.s.)
+X^a+1 > C2 Y^b-2 (4a + 4)
+X^a+1 <e C3 Y^b-2 (24)
+<e Y^a+1 C3 Y^b-2 (6a + 6)
+> Y^a+1 C3 Y^b-2 (l.s.)
+X^a+1 > C3 Y^b-2 (4a + 4)
+X^a+1 <e C4 Y^b-2 (24)
+<e Y^a+1 C4 Y^b-2 (6a + 6)
+> Y^a+1 C4 Y^b-2 (l.s.)
+X^a+1 > C4 Y^b-2 (4a + 4)
+X^a+1 C > Y^b-2 (9)
+X^a+1 C X^b-2 > (4b - 8)
+
+sum up step count:
+6b + 15 + 10a + 18 + 4 * (10a + 10) + 24 * 3 + 9 + 4b - 8
+= 10a + 40a + 6b + 4b + 15 + 18 + 40 + 72 + 1
+= 50a + 10b + 146
+
+X^a C X^b <e --(50a + 10b + 146)--> X^a+1 C X^b-2 >  (5 left strides)
+
+X^a C X^b --(T strides)--> X^a+T C X^b-2T
+steps:
+146T + sum i=0, .., T-1 (50(a+i) + 10(b-2i))
+= 146T + 50aT + 10bT + sum i=0, .., T-1 (30i)
+= T(50a + 10b + 146) + 15T(T-1)
+= T(50a + 10b + 15T + 131)
+
+---
+
+L X^n <e
+L <e Y^n (6n)
+L > Y^n+1 (11)
+L X^n+1 (4n + 4)
+
+L X^n <e --(10n + 15)--> L X^n+1
+
+L X^n --(T strides)--> L X^n+T
+steps:
+15T + sum i=0,..,T-1 (10(n+i))
+= 15T + 10nT + 5T(T-1)
+= T(10n + 5T + 10)
+
+Implemented strides. Simulated until integer overflow due to exponents being represented with u128.
+Simulation state right before overflow, >1.16e76 base steps
+118479 | 11595282817181318164710378990626524784640339545469825225314959013415685135864: L X^39968028886505635455250740051269531247 C X^1332267629550187848508358001708984372 C X^9098982900468399748206138537597656247 C X^7395539114440907724201679251708984372 C X^6956208077705620477596918746256510321  ...86 terms... C X^4821956342 C X^271804058 C X^7377802 C X^46012770 C X^396411 <e C0 Y^150139 C3 Y^158 R

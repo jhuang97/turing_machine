@@ -2,20 +2,7 @@
 use strum_macros::EnumString;
 use std::fmt;
 const TM_DEF: &str = "1RB0LC_0RC1RF_1RD0RE_1LE0RA_0LA0LE_1RE---";
-#[derive(Debug, Clone)]
-pub enum SimError {
-    Halted,
-    UndefinedTransition,
-}
-impl fmt::Display for SimError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Halted => write!(f, "Halted"),
-            Self::UndefinedTransition => write!(f, "Undefined transition"),
-        }
-    }
-}
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 enum HigherState {
     Right,
     LeftEven,
@@ -41,7 +28,6 @@ enum BlockSymbol {
     Cs,
     C4,
     F,
-    G,
     H,
 }
 fn add_or_merge_run(tape: &mut Vec<BlockSymbol>, run_type: RunSymbolType, nadd: Exp) {
@@ -71,52 +57,52 @@ impl BlockSimulator {
             self.left_tape.as_slice(),
             self.right_tape.as_slice(),
         ) {
-            /// > Y -> X >
+            // > Y -> X >
             (Right, _, [.., Run(Y, exp)]) => {
                 let n = *exp;
                 self.right_tape.pop();
                 add_or_merge_run(&mut self.left_tape, X, n);
                 4u128 * n
             }
-            /// X <e -> <e Y
+            // X <e -> <e Y
             (LeftEven, [.., Run(X, exp)], _) => {
                 let n = *exp;
                 self.left_tape.pop();
                 add_or_merge_run(&mut self.right_tape, Y, n);
                 6u128 * n
             }
-            /// X <o -> <o Y
+            // X <o -> <o Y
             (LeftOdd, [.., Run(X, exp)], _) => {
                 let n = *exp;
                 self.left_tape.pop();
                 add_or_merge_run(&mut self.right_tape, Y, n);
                 6u128 * n
             }
-            /// L <e -> L > Y
+            // L <e -> L > Y
             (LeftEven, [.., L], _) => {
                 self.state = Right;
                 add_or_merge_run(&mut self.right_tape, Y, 1u128);
                 11u128
             }
-            /// L <o -> L > C1 Y
+            // L <o -> L > C1 Y
             (LeftOdd, [.., L], _) => {
                 self.state = Right;
                 add_or_merge_run(&mut self.right_tape, Y, 1u128);
                 self.right_tape.push(C1);
                 23u128
             }
-            /// > R -> <o R
+            // > R -> <o R
             (Right, _, [.., R]) => {
                 self.state = LeftOdd;
                 14u128
             }
-            /// C <e -> <e C0
+            // C <e -> <e C0
             (LeftEven, [.., C], _) => {
                 self.left_tape.pop();
                 self.right_tape.push(C0);
                 15u128
             }
-            /// > C0 Y -> X <e C1
+            // > C0 Y -> X <e C1
             (Right, _, [.., Run(Y, _), C0]) => {
                 self.state = LeftEven;
                 add_or_merge_run(&mut self.left_tape, X, 1u128);
@@ -125,7 +111,7 @@ impl BlockSimulator {
                 self.right_tape.push(C1);
                 18u128
             }
-            /// > C1 Y -> <e C2
+            // > C1 Y -> <e C2
             (Right, _, [.., Run(Y, _), C1]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
@@ -133,27 +119,27 @@ impl BlockSimulator {
                 self.right_tape.push(C2);
                 24u128
             }
-            /// > C2 -> <e C3
+            // > C2 -> <e C3
             (Right, _, [.., C2]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
                 self.right_tape.push(C3);
                 24u128
             }
-            /// > C3 -> <e C4
+            // > C3 -> <e C4
             (Right, _, [.., C3]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
                 self.right_tape.push(C4);
                 24u128
             }
-            /// > C4 -> C >
+            // > C4 -> C >
             (Right, _, [.., C4]) => {
                 self.left_tape.push(C);
                 self.right_tape.pop();
                 9u128
             }
-            /// X C <o -> <o Ch Y
+            // X C <o -> <o Ch Y
             (LeftOdd, [.., Run(X, _), C], _) => {
                 self.left_tape.pop();
                 decrement_run(&mut self.left_tape, X);
@@ -161,14 +147,14 @@ impl BlockSimulator {
                 self.right_tape.push(Ch);
                 13u128
             }
-            /// > Ch -> <e C1
+            // > Ch -> <e C1
             (Right, _, [.., Ch]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
                 self.right_tape.push(C1);
                 10u128
             }
-            /// > Cs Y -> <e C4
+            // > Cs Y -> <e C4
             (Right, _, [.., Run(Y, _), Cs]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
@@ -176,14 +162,14 @@ impl BlockSimulator {
                 self.right_tape.push(C4);
                 26u128
             }
-            /// > F R -> X <o R
+            // > F R -> X <o R
             (Right, _, [.., R, F]) => {
                 self.state = LeftOdd;
                 add_or_merge_run(&mut self.left_tape, X, 1u128);
                 self.right_tape.pop();
                 18u128
             }
-            /// > F Y -> <o C1
+            // > F Y -> <o C1
             (Right, _, [.., Run(Y, _), F]) => {
                 self.state = LeftOdd;
                 self.right_tape.pop();
@@ -191,20 +177,13 @@ impl BlockSimulator {
                 self.right_tape.push(C1);
                 14u128
             }
-            /// > G -> <e F
-            (Right, _, [.., G]) => {
-                self.state = LeftEven;
-                self.right_tape.pop();
-                self.right_tape.push(F);
-                4u128
-            }
-            /// > H -> <e
+            // > H -> <e
             (Right, _, [.., H]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
                 4u128
             }
-            /// > C0 C0 -> X X > Cs
+            // > C0 C0 -> X X > Cs
             (Right, _, [.., C0, C0]) => {
                 add_or_merge_run(&mut self.left_tape, X, 2u128);
                 self.right_tape.pop();
@@ -212,7 +191,7 @@ impl BlockSimulator {
                 self.right_tape.push(Cs);
                 12u128
             }
-            /// > C0 C1 -> X X <e
+            // > C0 C1 -> X X <e
             (Right, _, [.., C1, C0]) => {
                 self.state = LeftEven;
                 add_or_merge_run(&mut self.left_tape, X, 2u128);
@@ -220,7 +199,7 @@ impl BlockSimulator {
                 self.right_tape.pop();
                 16u128
             }
-            /// > C0 C2 -> X X <e F
+            // > C0 C2 -> X X <e F
             (Right, _, [.., C2, C0]) => {
                 self.state = LeftEven;
                 add_or_merge_run(&mut self.left_tape, X, 2u128);
@@ -229,7 +208,7 @@ impl BlockSimulator {
                 self.right_tape.push(F);
                 16u128
             }
-            /// > C0 C3 -> X X <e Cs
+            // > C0 C3 -> X X <e Cs
             (Right, _, [.., C3, C0]) => {
                 self.state = LeftEven;
                 add_or_merge_run(&mut self.left_tape, X, 2u128);
@@ -238,7 +217,7 @@ impl BlockSimulator {
                 self.right_tape.push(Cs);
                 16u128
             }
-            /// > C0 C4 -> X X <e H
+            // > C0 C4 -> X X <e H
             (Right, _, [.., C4, C0]) => {
                 self.state = LeftEven;
                 add_or_merge_run(&mut self.left_tape, X, 2u128);
@@ -247,14 +226,14 @@ impl BlockSimulator {
                 self.right_tape.push(H);
                 16u128
             }
-            /// > C0 F -> X X >
+            // > C0 F -> X X >
             (Right, _, [.., F, C0]) => {
                 add_or_merge_run(&mut self.left_tape, X, 2u128);
                 self.right_tape.pop();
                 self.right_tape.pop();
                 12u128
             }
-            /// > C0 Cs Y -> X <o C1
+            // > C0 Cs Y -> X <o C1
             (Right, _, [.., Run(Y, _), Cs, C0]) => {
                 self.state = LeftOdd;
                 add_or_merge_run(&mut self.left_tape, X, 1u128);
@@ -264,7 +243,7 @@ impl BlockSimulator {
                 self.right_tape.push(C1);
                 22u128
             }
-            /// > C0 H Y -> <o C2
+            // > C0 H Y -> <o C2
             (Right, _, [.., Run(Y, _), H, C0]) => {
                 self.state = LeftOdd;
                 self.right_tape.pop();
@@ -273,7 +252,7 @@ impl BlockSimulator {
                 self.right_tape.push(C2);
                 28u128
             }
-            /// > C1 C0 -> <e C3 Cs
+            // > C1 C0 -> <e C3 Cs
             (Right, _, [.., C0, C1]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
@@ -282,7 +261,7 @@ impl BlockSimulator {
                 self.right_tape.push(C3);
                 24u128
             }
-            /// > C1 C1 -> <e C3 H
+            // > C1 C1 -> <e C3 H
             (Right, _, [.., C1, C1]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
@@ -291,16 +270,17 @@ impl BlockSimulator {
                 self.right_tape.push(C3);
                 24u128
             }
-            /// > C1 C2 -> <e C3 G
+            // > C1 C2 -> <e C3 H F
             (Right, _, [.., C2, C1]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
                 self.right_tape.pop();
-                self.right_tape.push(G);
+                self.right_tape.push(F);
+                self.right_tape.push(H);
                 self.right_tape.push(C3);
                 24u128
             }
-            /// > C1 C3 -> <e C3 H Cs
+            // > C1 C3 -> <e C3 H Cs
             (Right, _, [.., C3, C1]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
@@ -310,7 +290,7 @@ impl BlockSimulator {
                 self.right_tape.push(C3);
                 24u128
             }
-            /// > C1 C4 -> <e C3 H H
+            // > C1 C4 -> <e C3 H H
             (Right, _, [.., C4, C1]) => {
                 self.state = LeftEven;
                 self.right_tape.pop();
@@ -328,7 +308,7 @@ impl BlockSimulator {
 impl fmt::Display for BlockSimulator {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use colored::*;
-        const LEFT_PRINT_THRESHOLD: usize = 100;
+        const LEFT_PRINT_THRESHOLD: usize = 20;
         let l_th = LEFT_PRINT_THRESHOLD / 2;
         self.self_steps.fmt(f)?;
         write!(f, " | {}: ", self.base_steps)?;
@@ -372,15 +352,32 @@ impl fmt::Display for BlockSimulator {
 }
 
 // End of autogenerated code
-
+#[derive(Debug, Clone)]
+pub enum SimError {
+    Halted,
+    UndefinedTransition,
+    Overflow
+}
+impl fmt::Display for SimError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Halted => write!(f, "Halted"),
+            Self::UndefinedTransition => write!(f, "Undefined transition"),
+            Self::Overflow => write!(f, "Overflow"),
+        }
+    }
+}
 // Start of customizable code
 type Exp = u128;
+type BigInt = bnum::BUint<4>;
+
 struct BlockSimulator {
     pub left_tape: Vec<BlockSymbol>,
     pub right_tape: Vec<BlockSymbol>,
     pub state: HigherState,
-    pub base_steps: u128,
+    pub base_steps: BigInt,
     pub self_steps: u64,
+    do_strides: bool,
 }
 impl fmt::Display for BlockSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -392,7 +389,7 @@ impl fmt::Display for BlockSymbol {
         };
         let s1 = match *self {
             C0 | Ch | C1 | C2 | C3 | Cs | C4 => s0.cyan().bold(),
-            F | G | H => s0.blue(),
+            F | H => s0.blue(),
             C => s0.green().bold(),
             // D => s0.purple(),
             // L => s0.dimmed(),
@@ -408,28 +405,170 @@ impl fmt::Display for BlockSymbol {
 
 // End of customizable code
 
+#[derive(Debug)]
+enum StrideComponent {
+    /// L X^n
+    LX(Exp),
+    /// X^a C X^b
+    XCX { a: Exp, b: Exp },
+}
+
+impl StrideComponent {
+    /// if can receive this number of strides, return the number of strides sent
+    /// otherwise return None
+    fn check(&self, n_strides: Exp) -> Option<Exp> {
+        match self {
+            Self::LX(_) => Some(0),
+            Self::XCX { a: _, b} => if *b >= 2 * n_strides { Some(n_strides * 5) } else { None },
+        }
+    }
+
+    /// do strides (updating n) and return step count. this does not check if it can actually 
+    /// receive this number of strides.
+    fn do_strides(&mut self, n_strides: Exp) -> Result<BigInt, SimError> {
+        match self {
+            Self::LX(n) => {
+                let s0 = (*n).checked_mul(10).ok_or_else(|| SimError::Overflow)?;
+                let s1 = n_strides.checked_mul(5).ok_or_else(|| SimError::Overflow)?;
+                let out: BigInt = BigInt::from(s0 + s1 + 10) * BigInt::from(n_strides);
+                *n += n_strides;
+                Ok(out)
+            }
+            Self::XCX { a, b } => {
+                let s = 50 * *a + 10 * *b + 15 * n_strides + 131;
+                let out: BigInt = BigInt::from(s) * BigInt::from(n_strides);
+                *a += n_strides;
+                *b -= 2*n_strides;
+                Ok(out)
+            }
+        }
+    }
+
+    fn write_to_tape(&self, tape: &mut Vec<BlockSymbol>) {
+        use BlockSymbol::*;
+        use RunSymbolType::*;
+        match self {
+            Self::LX(n) => {
+                tape.push(L);
+                if *n > 0 {
+                    tape.push(Run(X, *n));
+                }
+            }
+            Self::XCX { a, b} => {
+                if *a > 0 {
+                    tape.push(Run(X, *a));
+                }
+                tape.push(C);
+                if *b > 0 {
+                    tape.push(Run(X, *b));
+                }
+            }
+        }
+    }
+}
+
 impl BlockSimulator {
-    pub fn new() -> Self {
+    pub fn new(do_strides: bool) -> Self {
         use BlockSymbol::*;
         use RunSymbolType::*;
         Self {
             left_tape: vec![L],
             right_tape: vec![R],
             state: HigherState::Right,
-            base_steps: 15,
-            self_steps: 0
+            base_steps: 15u32.into(),
+            self_steps: 0,
+            do_strides
         }
     }
 
-    pub fn new_with_tape(left_tape: Vec<BlockSymbol>, state: HigherState, right_tape: Vec<BlockSymbol>) -> Self {
+    pub fn new_with_tape(left_tape: Vec<BlockSymbol>, state: HigherState, right_tape: Vec<BlockSymbol>, do_strides: bool) -> Self {
         Self {
             left_tape, right_tape, state,
-            base_steps: 0,
-            self_steps: 0
+            base_steps: BigInt::ZERO,
+            self_steps: 0,
+            do_strides
         }
+    }
+
+    /// Does a stride and returns number of base steps if possible. Returns None if stride not possible.
+    fn try_stride(&mut self) -> Result<Option<BigInt>, SimError> {
+        if self.state != HigherState::LeftEven {
+            return Ok(None);
+        }
+
+        let mut components: Vec<StrideComponent> = Vec::new();
+        let mut idx = self.left_tape.len();
+        let mut n_strides = 1;
+        let mut stride_vec = Vec::new();
+        
+        let mut done = false;
+        while !done {
+            use BlockSymbol::*;
+            use RunSymbolType::*;
+
+            let comp = match self.left_tape[..idx] {
+                [L] => {
+                    done = true;
+                    StrideComponent::LX(0)
+                }
+                [L, Run(X, n)] => {
+                    done = true;
+                    StrideComponent::LX(n)
+                }
+                [.., C, Run(X, b)] if b >= 2 => {
+                    idx -= 2;
+                    StrideComponent::XCX { a: 0, b }
+                }
+                _ => return Ok(None),
+            };
+            stride_vec.push(n_strides);
+            match comp.check(n_strides) {
+                Some(n) => n_strides = n,
+                None => return Ok(None),
+            }
+            components.push(comp);
+        }
+
+        let mut n_steps = BigInt::ZERO;
+        for (t, comp) in stride_vec.iter().zip(components.iter_mut()) {
+            n_steps += comp.do_strides(*t)?;
+        }
+
+        components.reverse();
+        for i in 0..components.len()-1 {
+            use StrideComponent as S;
+            
+            match &mut components[i..i+2] {
+                [S::LX(n), S::XCX { a, b }] => {
+                    *n += *a;
+                    *a = 0;
+                }
+                [S::XCX { a: _, b}, S::XCX { a, b: _ }] => {
+                    *b += *a;
+                    *a = 0;
+                }
+                _ => unreachable!()
+            }
+        }
+        
+        self.left_tape.clear();
+        for comp in components {
+            comp.write_to_tape(&mut self.left_tape);
+        }
+        self.state = HigherState::Right;
+
+        Ok(Some(n_steps))
     }
 
     pub fn step(&mut self) -> Result<(), SimError> {
+        if self.do_strides {
+            if let Some(new_base_steps) = self.try_stride()? {
+                self.base_steps += new_base_steps;
+                self.self_steps += 1;
+                return Ok(());
+            }
+        }
+
         let new_base_steps = self.basic_step()?;
         self.base_steps = self.base_steps.checked_add(new_base_steps.into()).unwrap();
         self.self_steps += 1;
@@ -437,8 +576,22 @@ impl BlockSimulator {
     }
 }
 
+fn compare_stride_sim(n_steps: usize) {
+    let mut sim = BlockSimulator::new(false);
+    let mut sim_stride = BlockSimulator::new(true);
+
+    for _ in 0..=n_steps {
+        while sim.base_steps < sim_stride.base_steps {
+            sim.step().unwrap();
+        }
+        println!("{sim_stride:>width$}", width=(sim.self_steps.checked_ilog10().unwrap_or(0) + 1) as usize);
+        println!("{sim}");
+        sim_stride.step().unwrap();
+    }
+}
+
 fn main() {
-    let mut sim = BlockSimulator::new();
+    let mut sim = BlockSimulator::new(true);
     // let mut sim = {
     //     use BlockSymbol::*;
     //     use RunSymbolType::*;
@@ -448,19 +601,22 @@ fn main() {
     //     BlockSimulator::new_with_tape(vec![L, Run(X, 15), C0], LeftEven, vec![R, Run(X, 5)])
     // };
 
-    let max_steps = 1000u64;
-    // let max_steps = 10000000000u64;
+    // let max_steps = 1000u64;
+    let max_steps = 120000u64;
     println!("{}", sim);
     for i in 1..=max_steps {
         let res = sim.step();
-        // if i % 1 == 0 {
+        if i % 1000 == 0 {
+        // if sim.right_tape.len() < 4 {
         // if i % 1000000000 == 0 || sim.right_tape.len() < 2 {
             println!("{}", sim);
-        // }
+        }
         if res.is_err() {
             println!("{}", sim);
             println!("{:?}", res);
             break;
         }
     }
+
+    // compare_stride_sim(4000);
 }
