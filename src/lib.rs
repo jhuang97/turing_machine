@@ -1,5 +1,6 @@
 pub mod skelet1;
 pub mod skelet1_basic;
+pub mod wily_coyote;
 
 use core::str;
 use std::fmt;

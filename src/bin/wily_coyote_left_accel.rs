@@ -1,5 +1,6 @@
 use strum_macros::EnumString;
 use syn::TraitBoundModifier;
+use turing_machine::wily_coyote;
 use core::panic;
 use std::{collections::HashMap, fmt};
 use auto_ops::impl_op_ex;
@@ -1092,13 +1093,14 @@ fn get_or_calculate(position: &EncodedLTape, memo: &mut Memo) -> BlockInfo {
 }
 
 fn main() {
-    try_outer_sim();
-    // compare_accel();
+    // try_outer_sim();
+    compare_accel();
 }
 
 fn compare_accel() {
     let mut fast_sim = OuterSimulator::new(true);
-    let mut slow_sim = OuterSimulator::new(false);
+    // let mut slow_sim = OuterSimulator::new(false);
+    let mut slow_sim = wily_coyote::BlockSimulator::new();
 
     let max_steps = 300;
     for i in 1..=max_steps {
@@ -1106,8 +1108,8 @@ fn compare_accel() {
         while slow_sim.base_steps < fast_sim.base_steps {
             slow_sim.step().unwrap();
         }
+        println!("{fast_sim:>width$}", width=(slow_sim.self_steps.checked_ilog10().unwrap_or(0) + 1) as usize);
         println!("{slow_sim}");
-        println!("{fast_sim}");
     }
 }
 
