@@ -624,3 +624,226 @@ steps:
 Implemented strides. Simulated until integer overflow due to exponents being represented with u128.
 Simulation state right before overflow, >1.16e76 base steps
 118479 | 11595282817181318164710378990626524784640339545469825225314959013415685135864: L X^39968028886505635455250740051269531247 C X^1332267629550187848508358001708984372 C X^9098982900468399748206138537597656247 C X^7395539114440907724201679251708984372 C X^6956208077705620477596918746256510321  ...86 terms... C X^4821956342 C X^271804058 C X^7377802 C X^46012770 C X^396411 <e C0 Y^150139 C3 Y^158 R
+
+
+1RB0RB_1LC0RA_1LE0LD_1LC1LF_1RA0LD_1LC---
+=========================================
+"nice" Skelet 1-like TM mentioned by mxdys (not in his earlier Skelet 1-like list)
+
+which rle to use?
+perhaps
+left: 1 0^n
+right: 0 1^n
+
+blocks:
+X 1
+
+heads:
+A>
+<D
+B>11
+
+This appears to produce a lot of counter digits...
+Due to the rightward head alternating between > and b> as it passes through C symbols,
+try analyzing on a pair of C symbols at a time...
+
+> X^a C X^b C
+X^a > C X^b C
+X^a C0 b> X^b C
+X^a C0 X^b b> C
+X^a C0 X^b Cs >
+X^a C0 X^b Cs < (sent >)
+X^a C0 X^b+1 C >
+X^a C0 X^b+1 C < (sent >)
+X^a C0 X^b+1 < C
+X^a C0 < X^b+1 C
+X^a-1 < C X^b+1 C
+< X^a-1 C X^b+1 C
+
+b> X^a C X^b C
+X^a b> C X^b C
+X^a Cs > X^b C
+X^a Cs X^b > C
+X^a Cs X^b C0 b>
+X^a Cs X^b C0 < (sent b>)
+X^a Cs X^b-1 < C
+X^a Cs < X^b-1 C
+X^a+1 C > X^b-1 C
+X^a+1 C X^b-1 > C
+X^a+1 C X^b-1 C0 b>
+X^a+1 C X^b-1 C0 < (sent b>)
+X^a+1 C X^b-2 < C
+X^a+1 C < X^b-2 C
+X^a+1 < C X^b-2 C
+< X^a+1 C X^b-2 C
+Unfortunately, sometimes X^n terms in the middle of the right tape have odd exponents... (though even is a lot more common)
+
+digit collision:
+b> X^a C C
+X^a b> C C
+X^a Cs > C
+X^a Cs C0 b>
+X^a Cs C0 < (sent b>)
+X^a+2 b>
+X^a+2 < (sent b>)
+< X^a+2
+
+behavior at right end of tape:
+> X^n R
+X^n > R (2n)
+X^n < X R (3)
+< X^n+1 R (2n)
+
+> X^a C X^b R
+X^a > C X^b R
+X^a C0 b> X^b R
+X^a C0 X^b b> R
+X^a C0 X^b C < X R
+X^a C0 X^b < C X R
+X^a C0 < X^b C X R
+X^a-1 < C X^b C X R
+< X^a-1 C X^b C X R
+
+b> X^a C X^b R
+X^a b> C X^b R
+X^a Cs > X^b R
+X^a Cs X^b > R
+X^a Cs X^b < X R
+X^a Cs < X^b+1 R
+X^a+1 C > X^b+1 R
+X^a+1 C X^b+1 > R
+X^a+1 C X^b+1 < X R
+X^a+1 C < X^b+2 R
+X^a+1 < C X^b+2 R
+< X^a+1 C X^b+2 R
+
+(assume receive b> head 2 times)
+b> X^n R
+X^n b> R (6n)
+X^n C < X R (10)
+X^n < C X R (3)
+< X^n C X R (2n)
+(8n+13 steps up to this point)
+...
+b> X^n C X R
+< X^n+1 C X^3 R
+
+---
+try analyzing single symbols at a time:
+> X^n C
+X^n > C (2n)
+X^n C0 b> (1)
+X^n C0 < (sent b>)
+X^n-1 < C (3)
+< X^n-1 C (2n-2)
+
+b> X^n C
+X^n b> C (6n)
+X^n Cs > (9)
+X^n Cs < (sent >)
+X^n+1 C > (5)
+X^n+1 C < (sent >)
+X^n+1 < C (3)
+< X^n+1 C (2n+2)
+
+---
+figuring out stride acceleration...
+ > X^n C --(4n+2)-->  < X^n-1 C (sent 1 b>)
+b> X^n C --(8n+19)--> < X^n+1 C (sent 2 >)
+ > X^n R --(4n+3)-->  < X^n+1 R
+b> X^n R --(8n+13)--> < X^n C X R
+
+T strides...
+>, X^n C: (n >= T)
+sum i=0,..,T-1 (4(n-i) + 2)
+= 4nT + 2T - 4T(T-1)/2
+= T(4n + 2 - 2T + 2)
+= T(4n - 2T + 4)
+
+b>, X^n C:
+sum i=0,..,T-1 (8(n+i) + 19)
+= 8nT + 19T + 4T(T-1)
+= T(8n + 4T + 19 - 4)
+= T(8n + 4T + 15)
+
+>, X^n R:
+sum i=0,..,T-1 (4(n+i) + 3)
+= 4nT + 3T + 2T(T-1)
+= T(4n + 2T + 1)
+
+---
+situation at left side of tape:
+L0 <
+L3 >
+...
+L3 <
+L0 C >
+...
+L0 C <
+L0 < C
+L3 > C
+L3 C0 b>
+...
+L3 C0 <
+L0 X b>
+...
+L0 <
+(cycle repeats)
+so there are four possible configurations at the left side of the tape.
+
+The effects on the stride components' exponents to the right:
+L3 >     : -1, +1, -2, +2, -4, +4, ...
+L0 C >   : -1, +1, -2, +2, -4, +4, ...
+L3 C0 b> : +1, -2, +2, -4, +4, -8, ...
+L0 X b>  : +2, -2, +2, -4, +4, -8, ...
+            * first +1, then +1 when the head returns left due to the extra X
+total    : +1, -2,  0, -4,  0, -8, ...
+
+As a result, I'd expect digit collisions to almost always result from the 2nd half of 
+(2nd, 4th, 6th, ...) exponents going to zero. Also, these collisions should only happen
+after L0 X b>, since L3 > and L0 C > actually increase the 2nd half of exponents and
+L3 C0 b> only serves to undo the increase of the preceeding L3 > and L0 C > and thus will
+not push the 2nd half of the exponents to a new low.
+
+Approximate effect on nearby exponents due to digit collision:
+N0 n0 N1 n1 N2 n2 ...
+then let's say n0 goes to zero.
+N0 0 N1 n1 N2 n2 ...
+digit collision ->
+N0+N1 n1 N2 n2 ...
+
+digit collision with more detail:
+b> X^a C C X^b C
+X^a b> C C X^b C
+X^a Cs > C X^b C
+X^a Cs C0 b> X^b C
+X^a Cs C0 X^b b> C
+X^a Cs C0 X^b Cs >
+...
+X^a Cs C0 X^b Cs <
+X^a Cs C0 X^b+1 C >
+...
+X^a Cs C0 X^b+1 C <
+X^a Cs C0 X^b+1 < C
+X^a Cs C0 < X^b+1 C
+X^a+2 b> X^b+1 C
+X^a+b+3 b> C
+X^a+b+3 Cs >
+...
+X^a+b+3 Cs <
+X^a+b+4 C >
+...
+X^a+b+4 C <
+X^a+b+4 < C
+< X^a+b+4 C
+
+X^a+2 < (sent b>)
+< X^a+2
+
+...
+C0 C0 < -> ***HALT***
+however this might be impossible to reach given how when the head is going right through C symbols,
+it alternates between > and b>.
+
+C C0 < -> [raw] <D 0111
+would produce a new symbol...! but is this even possible?

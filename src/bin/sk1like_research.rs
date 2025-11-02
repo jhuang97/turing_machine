@@ -33,13 +33,15 @@ fn run_basic_sim<F>(tm: &TuringMachine, n_steps: u64, filter: F)
 }
 
 fn main() {
-    let candidates_s: Vec<_> = include_str!("../../bb6_Sk1-like.txt").trim().lines().collect();
-    let candidates: Vec<_> = candidates_s.iter().map(|s| TuringMachine::from_standard_notation(s)).collect();
+    // let candidates_s: Vec<_> = include_str!("../../bb6_Sk1-like.txt").trim().lines().collect();
+    // let candidates: Vec<_> = candidates_s.iter().map(|s| TuringMachine::from_standard_notation(s)).collect();
 
-    let tm_idx = 3;
-    println!("{}", candidates_s[tm_idx]);
+    // let tm_idx = 3;
+    // println!("{}", candidates_s[tm_idx]);
 
-    let tm = candidates[tm_idx].clone();
+    // let tm = candidates[tm_idx].clone();
+
+    let tm = TuringMachine::from_standard_notation("1RB0RB_1LC0RA_1LE0LD_1LC1LF_1RA0LD_1LC---");
 
     // 10A>, 1<E01
 
@@ -86,27 +88,14 @@ fn main() {
         (sim.state == State::C && sim.prev_dir == Some(TMDirection::Left)) ||
         (sim.state == State::B && sim.prev_dir == Some(TMDirection::Left))
     };
-    let highlight3a = |sim: &BasicSimulator| {
-        (sim.state == State::A && sim.prev_dir == Some(TMDirection::Right) && sim.tape.get(sim.position) == Some(&Symbol(0))) ||
-        (sim.state == State::C && sim.prev_dir == Some(TMDirection::Left) && sim.tape.get(sim.position+1) == Some(&Symbol(0))) ||
-        (sim.state == State::B && sim.prev_dir == Some(TMDirection::Left) && sim.tape.get(sim.position+1) == Some(&Symbol(1)) && sim.tape.get(sim.position+2) == Some(&Symbol(0)))
-    };
-    let highlight3b = |sim: &BasicSimulator| {
-        (sim.state == State::A && sim.prev_dir == Some(TMDirection::Right) && sim.tape.get(sim.position) == Some(&Symbol(0))) ||
-        (sim.state == State::A && sim.prev_dir == Some(TMDirection::Left) && sim.tape.get(sim.position) == Some(&Symbol(1)))
-    };
+
     let highlight4 = |sim: &BasicSimulator| {
-        (sim.state == State::A && sim.prev_dir == Some(TMDirection::Right) && sim.tape.get(sim.position-1) == Some(&Symbol(0))
-        && sim.tape.get(sim.position-2) == Some(&Symbol(1))) ||
-        (sim.state == State::E && sim.prev_dir == Some(TMDirection::Left) && sim.tape.get(sim.position) == Some(&Symbol(1))
-        && sim.tape.get(sim.position+1) == Some(&Symbol(0)) && sim.tape.get(sim.position+2) == Some(&Symbol(1)))
+        (sim.state == State::A && sim.prev_dir == Some(TMDirection::Right)) ||
+        (sim.state == State::D && sim.prev_dir == Some(TMDirection::Left)) ||
+        (sim.state == State::B && sim.prev_dir == Some(TMDirection::Right) && sim.tape.get(sim.position) == Some(&Symbol(1)) && sim.tape.get(sim.position+1) == Some(&Symbol(1)))
     };
-    let highlight_right_end = |sim: &BasicSimulator| {
-        ((sim.state == State::D && sim.prev_dir == Some(TMDirection::Right)) ||
-        (sim.state == State::A && sim.prev_dir == Some(TMDirection::Left) && sim.tape.get(sim.position+1) == Some(&Symbol(1))))
-        && sim.position > sim.tape.len() - 10
-    };
-    run_basic_sim(&tm, 5000, highlight4);
+    
+    run_basic_sim(&tm, 500, highlight4);
 
     // let mut sim = BasicSimulator::new(tm);
     // println!("{}", sim.display_directed_head());

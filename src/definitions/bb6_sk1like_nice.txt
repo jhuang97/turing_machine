@@ -1,0 +1,40 @@
+tm = 1RB0RB_1LC0RA_1LE0LD_1LC1LF_1RA0LD_1LC---
+
+[metastates]
+Right  >  A>
+RightB b> B>11
+Left   <  <D
+
+[rle]
+left = 1 0^n
+right = 0 1^n
+
+[symbols over rle]
+X(exp) = 1
+R = $
+L0 = ^20
+L3 = ^23
+C = 2
+C0 = 0
+Cs = 4
+
+[rules]
+> X -> X >
+b> X -> X b>
+X < -> < X
+
+L0 < -> L3 >
+L3 < -> L0 C >
+L3 C0 < -> L0 X b>
+
+> R -> < X R
+b> R -> C < X R
+
+C < -> < C
+X C0 < -> < C
+Cs < -> X C >
+
+b> C -> Cs >
+> C -> C0 b>
+
+Cs C0 < -> X X b>
