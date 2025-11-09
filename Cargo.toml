@@ -19,6 +19,8 @@ strum = "0.26.3"
 strum_macros = "0.26.4"
 syn = "2.0.99"
 pretty-duration = "0.1.1"
+num-bigint = "0.4.6"
+num-traits = "0.2.19"
 
 [profile.release]
 overflow-checks = true

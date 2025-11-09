@@ -764,7 +764,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
         .map(|st| st.ident.clone());
 
     let state_def = quote! {
-        #[derive(PartialEq, Eq)]
+        #[derive(PartialEq, Eq, Clone)]
         enum HigherState {
             #(#state_names),*
         }
@@ -955,7 +955,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
 }
 
 fn main() {
-    let fname = "src/definitions/lefty_coyote.txt";
+    let fname = "src/definitions/bb25_double_counter_more.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 
         process_tm_block_file(fname, CheckerVerbosity::All);
