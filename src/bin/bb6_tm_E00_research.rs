@@ -128,23 +128,50 @@ impl ListSim {
 }
 
 fn main() {
+    use std::time::Instant;
+    let start = Instant::now();
+
     let mut sim = ListSim::new();
+    // sim.mid = 1;
     println!("{sim}");
-    let max_steps = 100_000_000_000_000u64;
+    let max_steps = 1_000_000_000u64;
     for i in 0..max_steps {
         let halted = sim.step();
-        // if sim.left.len() == 7 && sim.mid == 89 && sim.left.first() == Some(&75878333) {
-        if sim.left.len() <= 1 && (sim.left.first().is_some_and(|x| *x < 500) || (sim.left.len() == 0 && sim.mid < 500)) {
-            println!("{sim}");
-        } else if i % 10000000000 == 0 {
-            println!("{sim}; {:.3}%", (i as f64) / (max_steps as f64) * 100.0);
-        }
+        // println!("{sim}");
         if halted {
-            println!("{sim} halted");
             break;
         }
     }
+
+    let time = start.elapsed();
+    println!("time: {time:?}");
+
     println!("{sim}");
+
+
+    // check_halting_distribution_mid(1000000000, 400);
+    // check_halting_distribution_mid(1000, 20);
+
+}
+
+fn check_halting_distribution_mid(max_steps: u64, max_mid: u32) {
+    let print_width = ((max_steps).ilog10() + 2) as usize;
+    for curr_mid in 1..=max_mid {
+        let mut sim = ListSim::new();
+        sim.mid = curr_mid.into();
+        for _ in 0..max_steps {
+            let halted = sim.step();
+            if halted {
+                break;
+            }
+        }
+        if sim.halted {
+            println!("({curr_mid}): {:>width$}  |  {}", sim.self_steps, sim, 
+                width=print_width);
+        } else {
+            println!("({curr_mid}): >{max_steps}");
+        }
+    }
 }
 
 /// The numbers in parameters `left` and `right` are from left to right

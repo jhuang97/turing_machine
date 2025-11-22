@@ -2,7 +2,6 @@ tm = 1RB2LA0RB1LA3LB_1LA3LB1RA4RA---
 
 [metastates]
 Left  <  <A
-LeftB <B <B
 Right >  A>
 RightWide w> 0B>
 
@@ -32,25 +31,26 @@ D < -> < C
 > C1 -> D >
 
 L < -> L w>
+w> V R2 -> < C G G R
 w> V -> U w>
 
 w> C1 -> < P V
 w> C -> < C S
+
 > P -> w>
+> Q -> < P
+> S -> < Q
+> G -> < C
 
 > R -> < R2
 > R2 -> < C R
-
 > S R -> < R1
 > R1 -> < P R
-w> R1 -> < C R
-w> R -> <B G R
-W <B -> <B G
-U <B -> < C
-w> S R -> < C R2
-w> R2 -> <B G G R
 
-> G -> < C
-> S -> < Q
+w> P -> U >
 w> Q -> < C
-> Q -> < P
+w> S -> D >
+w> G -> < C Q
+
+w> R1 -> < C R
+w> S R -> < C R2

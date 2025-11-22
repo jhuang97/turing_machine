@@ -189,3 +189,19 @@ W < X^n+2 R
 > V X^n+2 R
 U < C1 P X^n+1 R
 +1
+
+Notes on 
+1RB2LA0RB1LA3LB_1LA3LB1RA4RA---
+===============================
+see if I can remove the following from the block definition file...
+LeftB <B <B
+
+w> R -> <B G R
+W <B -> <B G
+U <B -> < C
+w> R2 -> <B G G R
+
+These rules have not been encountered in the forward simulation, but it might help with trying to solve the TM:
+w> G -> < C Q
+w> P -> U >
+w> S -> D >

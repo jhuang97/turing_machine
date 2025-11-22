@@ -18,7 +18,6 @@ impl fmt::Display for SimError {
 #[derive(PartialEq, Eq, Clone)]
 enum HigherState {
     Left,
-    LeftB,
     Right,
     RightWide,
 }
@@ -36,7 +35,6 @@ enum BlockSymbol {
     D,
     U,
     W,
-    F,
     V,
     P,
     S,
@@ -125,6 +123,16 @@ impl BlockSimulator {
                 self.state = RightWide;
                 5u128
             }
+            // w> V R2 -> < C G G R
+            (RightWide, _, [.., R2, V]) => {
+                self.state = Left;
+                self.right_tape.pop();
+                self.right_tape.pop();
+                self.right_tape.push(R);
+                self.right_tape.push(Run(G, 2u128));
+                self.right_tape.push(C);
+                16u128
+            }
             // w> V -> U w>
             (RightWide, _, [.., V]) => {
                 self.right_tape.pop();
@@ -192,25 +200,6 @@ impl BlockSimulator {
                 self.right_tape.push(C);
                 2u128
             }
-            // w> R -> <B G R
-            (RightWide, _, [.., R]) => {
-                self.state = LeftB;
-                self.right_tape.push(Run(G, 1u128));
-                4u128
-            }
-            // W <B -> <B G
-            (LeftB, [.., W], _) => {
-                self.left_tape.pop();
-                add_or_merge_run(&mut self.right_tape, G, 1u128);
-                2u128
-            }
-            // U <B -> < C
-            (LeftB, [.., U], _) => {
-                self.state = Left;
-                self.left_tape.pop();
-                self.right_tape.push(C);
-                2u128
-            }
             // w> S R -> < C R2
             (RightWide, _, [.., R, S]) => {
                 self.state = Left;
@@ -219,14 +208,6 @@ impl BlockSimulator {
                 self.right_tape.push(R2);
                 self.right_tape.push(C);
                 6u128
-            }
-            // w> R2 -> <B G G R
-            (RightWide, _, [.., R2]) => {
-                self.state = LeftB;
-                self.right_tape.pop();
-                self.right_tape.push(R);
-                self.right_tape.push(Run(G, 2u128));
-                12u128
             }
             // > G -> < C
             (Right, _, [.., Run(G, _)]) => {
@@ -283,7 +264,6 @@ impl fmt::Display for BlockSimulator {
         }
         match self.state {
             HigherState::Left => write!(f, "{}", "<".red().bold())?,
-            HigherState::LeftB => write!(f, "{}", "<B".red().bold())?,
             HigherState::Right => write!(f, "{}", ">".red().bold())?,
             HigherState::RightWide => write!(f, "{}", "w>".red().bold())?,
         }
@@ -389,8 +369,8 @@ impl BlockSimulator {
 fn main () {
     let mut sim = BlockSimulator::new();
 
-    // let max_steps = 10000000000u64;
-    let max_steps = 560;
+    // let max_steps = 100000000000u64;
+    let max_steps = 1000;
     println!("{sim}");
     for i in 1..=max_steps {
         let res = sim.step();
@@ -398,7 +378,7 @@ fn main () {
             println!("{sim}, {res:?}");
             break;
         } else {
-            // if i % 10000000 == 0 {
+            // if i % 100000000 == 0 {
             // if sim.state == HigherState::LeftB {
                 println!("{sim}");
             // }
