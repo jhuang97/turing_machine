@@ -71,6 +71,9 @@ fn process_tm_block_file(fname: &str, verbosity: CheckerVerbosity) -> (String, T
         print!("{rule} ... ");
         let res = check_transition_rule(base_rule, &tm, verbosity);
         println!("{:?}", &res);
+        if verbosity as isize >= 2 {
+            println!();
+        }
         match res {
             Ok(n_steps) => {
                 n_verified += 1;
@@ -957,7 +960,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
 }
 
 fn main() {
-    let fname = "src/definitions/bb25_mdcounter_1.txt";
+    let fname = "src/definitions/bb6_bl54.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) = 
         process_tm_block_file(fname, CheckerVerbosity::All);

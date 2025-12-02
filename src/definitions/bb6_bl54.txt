@@ -1,0 +1,38 @@
+tm = 1RB---_0RC1RA_0LD0RE_1RE1LC_0RF0LF_1LC1RB
+
+[metastates]
+Left       <  <C
+Right      >  F>
+RightOdd   o> F>10
+RightFill  f> 1B>
+
+[blocks]
+U = 1000
+W = 1010
+P = 10
+X(exp) = 100
+Y(exp) = 110
+L = ^
+R = $
+G(exp) = 111010
+T(exp) = 11
+GR(exp) = 100010
+
+[rules]
+W < -> < W
+U < -> W >
+> W -> U >
+
+Y < -> < X
+> X -> Y >
+> R -> < X R
+
+L < -> L P >
+L P < -> L P o>
+o> W -> U o>
+o> X -> W f>
+f> W -> T T f>
+f> X X -> G f>
+
+f> R -> < X X R
+G < -> < GR

@@ -493,8 +493,14 @@ pub enum CheckerVerbosity {
 
 pub fn check_transition_rule(rule: ConfigTransitionRule, tm: &TuringMachine, verbose: CheckerVerbosity) -> Result<usize, DirectedHeadStepResult> {
     let mut sim = DirectedHeadSimulator::new(&rule.before, tm);
+    if verbose as isize >= 2 {
+        println!();
+    }
     if verbose as isize >= 1 {
-        println!("{}: {} ", &sim.time, &sim.config);
+        print!("{}: {} ", &sim.time, &sim.config);
+    }
+    if verbose as isize >= 2 {
+        println!();
     }
 
     if sim.config == rule.after {
@@ -517,19 +523,19 @@ pub fn check_transition_rule(rule: ConfigTransitionRule, tm: &TuringMachine, ver
         
         if res == DirectedHeadStepResult::Success {
             if sim.config == rule.after {
-                if verbose as isize >= 1 {
-                    println!("{}: {} ", &sim.time, &sim.config);
+                if verbose as isize == 1 {
+                    println!("--> {}: {} ", &sim.time, &sim.config);
                 }
                 return Ok(sim.time);
             } else if reduce_config(&sim.config) == reduce_config(&rule.after) {
-                if verbose as isize >= 1 {
-                    println!("{}: {} ", &sim.time, &sim.config);
+                if verbose as isize == 1 {
+                    println!("--> {}: {} ", &sim.time, &sim.config);
                 }
                 return Ok(sim.time);
             }
         } else {
-            if verbose as isize >= 1 {
-                println!("{}: {} ", &sim.time, &sim.config);
+            if verbose as isize == 1 {
+                println!("--> {}: {} ", &sim.time, &sim.config);
             }
             if verbose as isize >= 2 {
                 println!("{:?}", res);
