@@ -58,7 +58,9 @@ fn process_tm_block_file(fname: &str, verbosity: CheckerVerbosity) -> (String, T
     let symbol_table = parse_symbol_definitions(lines_by_section[1]);
 
     assert!(section_titles[2] == "rules");
-    let rules: Vec<PrototypeRule> = lines_by_section[2].iter().map(|s| parse_rule(s.as_str(), &state_table, &symbol_table))
+    let rules: Vec<PrototypeRule> = lines_by_section[2].iter()
+        .map(|s| parse_rule(s.as_str(), &state_table, &symbol_table)
+            .inspect_err(|e| eprintln!("parsing of rule '{s}' failed with error {e:?}")))
         .collect::<Result<Vec<_>,_>>().unwrap();
     let base_rules: Vec<ConfigTransitionRule> = rules.iter().map(|r| r.to_base_rule()).collect();
 
