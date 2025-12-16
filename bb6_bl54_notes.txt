@@ -1,0 +1,182 @@
+TM with counter and bouncer behavior and complicated reset phase
+1RB---_0RC1RA_0LD0RE_1RE1LC_0RF0LF_1LC1RB
+
+starting configurations that would halt:
+L1 > X^n R for n = 1, 3, 4, 5, 6, 7, 9, 10, 11, 12
+L1 > X^n W R for n = 1, 3, 4, 5, 7, 10, 13
+
+halting rules:
+o> G2 R2 -> ***HALT*** (G2 = 1001, R2 = 11$)
+o> P Q R2 -> ***HALT*** (equivalent to above)
+o> G2 P -> ***HALT***
+f> R2 -> ***HALT***
+f> S -> ***HALT*** (S = 1110)
+> G -> ***HALT***
+f> YR -> ***HALT*** (YR = 110)
+
+idea for cleaning up the set of rules:
+maybe remove G2 and G4 as blocks and add a 01 block and also keep the 110 block?
+
+Try removing the following content from the block simulation.
+G2 = 1001
+G4 = 100001
+S = 1100
+
+> HR -> < W X X G2 W
+
+o> N -> < G2
+> G2 -> Y f>
+o> G4 -> W Y f>
+f> X G2 N N -> < GR G4
+
+Y > M -> < G2 P
+
+f> G4 N -> < G4 X
+T < G2 -> < G4
+f> G4 P W -> < X N G P
+T < G4 X -> < X N N S
+o> G2 N -> W > S
+> S -> f> X
+f> X N W -> < G4 W
+
+T < G4 W -> < X N N YR P
+> G4 P -> < X P YR
+f> G2 P -> < P N X
+f> X N X -> < G4 X
+
+Simulations with starting tape containing X^n for various values of n = 18 * m + r.
+Using 18 because both J and X^18 are 18 tape symbols wide so increasing n by 18 should result in similar behavior.
+In each table below, each row is a different value of r and each column is a different value of m, starting from m = 0 and counting upwards.
+r = reset complete
+H = halts
+t = simulation ran out of time.
+o = simulation overflowed (probably due to large exponents for X^n)
+
+L1 U^10 o> X^n R
+0: r r r r r 
+1: r H H H H 
+2: r r r r r 
+3: r r r r r 
+4: H H H H H 
+5: r r r r r 
+6: r r r r r 
+7: r r r r r 
+8: r r r r r 
+9: H H H H H 
+10: H H H H H 
+11: r r r r r 
+12: H H H H H 
+13: r r r r r 
+14: r r r r r 
+15: r r r r r 
+16: r r r r r 
+17: r r r r r 
+
+L1 U^3 W T^2 G^2 T^2 f> X^n R
+0: r r r r r 
+1: r r r r r 
+2: r r r r r 
+3: r r r r r 
+4: H H H H H 
+5: r r r r r 
+6: r r r r r 
+7: H H H H H 
+8: r r r r r 
+9: r r r r r 
+10: r r r r r 
+11: r r r r r 
+12: H H H H H 
+13: H H H H H 
+14: r r r r r 
+15: H H H H H 
+16: r r r r r 
+17: r r r r r
+
+L1 U^3 W T^2 G^2 T^2 G^2 T^3 U^3 W T^2 G^2 T^2 f> X^n R
+ 0: H o o o o o H H o o o o o o o H H o o 
+ 1: o H o H o o H o o o H o H o o H o o o 
+ 2: H H H H H H H H H H H H H H H H H H H 
+ 3: H o o H o H o o o H o o H o H o o o H 
+ 4: H H H H H H H H H H H H H H H H H H H 
+ 5: H H H H H H H H H H H H H H H H H H H 
+ 6: o H o o o o H H o o H o o o o H H o o 
+ 7: H H H H H H H H H H H H H H H H H H H 
+ 8: H o o o o o o o H H o o o o o o o H H 
+ 9: H H o o H o o o o H H o o H o o o o H 
+10: H o o o H o o o o H o o o H o o o o H 
+11: o H o H o o o o o o H o H o o o o o o 
+12: H H H H H H H H H H H H H H H H H H H 
+13: H H H H H H H H H H H H H H H H H H H 
+14: H H H H H H H H H H H H H H H H H H H 
+15: H H H H H H H H H H H H H H H H H H H 
+16: H H o o o o o o o H H o o o o o o o H 
+17: H H o o o o o H o H H o o o o o H o H
+
+There seems to be some periodicity here. Try looking at the exponent n mod 18*9 = 108.
+
+try to accelerate the simulation.
+use just the > and < heads
+
+left side: counter acceleration, symbols U, W, Y
+U: U < -> W > (3)
+
+W: (8 steps, 1 <)
+W <
+< W (4)
+> W
+U > (4)
+
+for U/W, for even # of < heads, the symbol stays the same; 
+for odd # of heads, U becomes W and vice versa.
+
+Y: (10 steps, 1 <)
+this is just filler
+Y <
+< X (5)
+> X
+Y > (5)
+
+By analogy to bb25_md_counter_notes.txt,
+1. With t < heads, U sends t//2 heads and W sends (t+1)//2 heads
+2. Supposing that a symbol can send at most m heads to the left,
+then the maximum number of heads it can receive is
+U: 2m+1
+W: 2m
+
+Y: m (since it is just filler)
+
+--
+right side: stride acceleration with components W, X^n, X^n R
+
+effect of T of the > heads...
+W:
+> W
+U > (4)
+U < (stride)
+W > (3)
+W < (stride)
+< W (4)
+11T steps, 2T strides
+
+X^n:
+10T steps, T strides
+
+X^n R:
+> X^n R
+Y^n > R (5n)
+Y^n < X R (1)
+< X^n+1 R (5n)
+
+steps:
+sum i=0..T-1 (10(n+i) + 1)
+= 10nT + T + 10T(T-1)/2
+= T(10n + 1 + 5T - 5)
+= T(10n + 5T - 4)
+
+...
+implement some dividing split rules
+
+(naive implementation too slow)
+f> X X -> G f>           (10)
+U > GR GR GR -> H U >    (40)
+U o> HR HR HR -> J U o>  (698)

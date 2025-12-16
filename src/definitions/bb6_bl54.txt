@@ -13,10 +13,20 @@ P = 10
 X(exp) = 100
 Y(exp) = 110
 L = ^
+L1 = ^10
 R = $
+R4 = 100001$
+R2 = 11$
 G(exp) = 111010
-T(exp) = 11
 GR(exp) = 100010
+M = 010
+T(exp) = 11
+N(exp) = 00
+H(exp) = 101011011111101010
+HR(exp) = 101010010000001010
+J(exp) = 101010101010110100011011011011010001101101101101000110
+YR = 110
+Q = 01
 
 [rules]
 W < -> < W
@@ -27,12 +37,80 @@ Y < -> < X
 > X -> Y >
 > R -> < X R
 
-L < -> L P >
-L P < -> L P o>
+L < -> L1 >
+L1 < -> L1 o>
 o> W -> U o>
 o> X -> W f>
 f> W -> T T f>
 f> X X -> G f>
+f> X W -> T U o>
 
 f> R -> < X X R
 G < -> < GR
+o> GR -> W U >
+U > GR GR GR -> H U >
+U > GR -> W Y T f>
+T f> GR -> T T Y o>
+
+f> X R -> < R4
+> R4 -> < X W R
+f> R4 -> < X N R2
+f> P R4 -> < X N N R2
+> R2 -> < R4
+o> R4 -> < W X X X R
+
+T < X -> < X N
+T < W -> < X M
+T < GR -> < X N M
+
+> P -> o>
+> N -> < P
+
+H < -> < HR
+U o> HR HR HR -> J U o>
+> HR -> < W X X P Q W
+f> HR -> < X N N M X W P
+f> P HR -> < X N N N M X W P
+o> HR -> W W Y W T T f>
+
+J < -> W W W Y U Y Y Y Y U Y Y Y Y U Y <
+
+o> N M -> < X W
+
+f> N -> Y >
+o> M -> Y o>
+
+f> M -> U >
+f> X N N -> < X N X
+f> X M -> T Y o>
+f> X P -> T U >
+
+f> P -> T f>
+o> P -> U >
+
+U > M -> W T f>
+
+o> YR -> < P X
+> YR -> T f>
+o> R2 -> < W R
+
+T < P -> < P N
+Y > GR -> < X X YR
+
+o> Q -> Y f>
+o> N -> < P Q
+> Q N N M -> < YR N N P
+Y > M -> < X YR
+> Q N M -> < YR N P
+f> X N W -> < P N Q W
+> Q N N Q W -> < YR N N YR P
+> Q N N N M -> < YR N N N P
+f> X N P -> < X N YR
+f> X N YR -> < P N Q YR
+f> X YR -> < P N X
+f> X N M -> < X N W
+o> R -> < X X R
+T < R4 -> < P N N Q R
+> Q R -> < YR R
+> Q Q W -> < YR YR P
+f> Q N -> W f>
