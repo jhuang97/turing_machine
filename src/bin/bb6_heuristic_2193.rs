@@ -374,10 +374,11 @@ impl BlockSimulator {
     }
 }
 
-fn main() {
+fn run_block_sim() {
     let mut sim = BlockSimulator::new();
     // let max_steps = 100000000000u64;
-    let max_steps = 20256 + (4539 - 2-753-2278)*11/4 + 10;
+    // let max_steps = 20256 + (4539 - 2-753-2278)*11/4 + 10;
+    let max_steps = 100;
     println!("{}", sim);
     for i in 1..=max_steps {
         let res = sim.step();
@@ -386,12 +387,233 @@ fn main() {
             break;
         } else {
             // if i % 100000000 == 0
-            if i > max_steps - 500
+            // if i > max_steps - 500
             {
                 println!("{sim}");
             }
         }
     }
     println!("{}", sim);
+}
 
+type ListNum = u128;
+struct ListSim {
+    left: Vec<ListNum>,
+    mid: ListNum,
+    right: Vec<ListNum>,
+    halted: bool,
+    self_steps: u64
+}
+
+impl fmt::Display for ListSim {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, " {}: ", self.self_steps)?;
+
+        for n in &self.left {
+            write!(f, "{} ", n)?;
+        }
+        write!(f, "[{}]", self.mid)?;
+        for n in self.right.iter().rev() {
+            write!(f, " {}", n)?;
+        }
+        if self.halted {
+            write!(f, " HALTED")?;
+        }
+
+        Ok(())
+    }
+}
+
+fn add_or_merge(v: &mut Vec<ListNum>, nadd: ListNum) {
+    if let Some(last) = v.last_mut() {
+        *last += nadd;
+    } else {
+        v.push(nadd);
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum ListRule {
+    R1a, R1b, R2, R7, R8, R10, R5, R11, R4, R12,
+    R3, R13, R14, R15
+}
+
+impl ListSim {
+    fn new() -> Self {
+        Self {
+            left: vec![],
+
+            // The original TM reaches a ListSim configuration of [2] at 8 steps,
+            // [5] at 32 steps, [8] at 71 steps
+            mid: 2,
+            right: vec![],
+            halted: false,
+            self_steps: 0,
+        }
+    }
+
+    fn step(&mut self) -> (bool, ListRule) {
+        use ListRule::*;
+
+        let rule = match (self.mid, self.left.as_slice(), self.right.as_slice()) {
+            // 1a. ... a [4k]> b ... -> ... a+k [0]> b+3k ... (k >= 1)
+            (n @ 4.., _, _) if n % 4 == 0 => {
+                let k = n/4;
+                add_or_merge(&mut self.left, k);
+                self.mid = 0;
+                add_or_merge(&mut self.right, k*3);
+                R1a
+            }
+
+            // 1b. ... a [4k+2]> b ... -> ... a+k+2 [b+3k+1]> ...
+            (n @ 2.., _, _) if n % 4 == 2 => {
+                let k = n/4;
+                add_or_merge(&mut self.left, k+2);
+                self.mid = k*3 + 1 + self.right.pop().unwrap_or_default();
+                R1b
+            }
+
+            // 2. L 2 [2k+3]> b ... -> L [b+6k+11]> ...
+            (n @ 3.., [2], _) if n % 2 == 1 => {
+                self.left.clear();
+                self.mid = n * 3 + 2 + self.right.pop().unwrap_or_default();
+                R2
+            }
+
+            // 7. L 2 [0]> c ... -> L 2 [c+2]> ...
+            (0, [2], _) => {
+                self.mid = 2 + self.right.pop().unwrap_or_default();
+                R7
+            }
+
+            // 8. L 4 [0]> c ... -> L [c+8]> ...
+            (0, [4], _) => {
+                self.left.clear();
+                self.mid = 8 + self.right.pop().unwrap_or_default();
+                R8
+            }
+
+            // reduced 10. L 2k_0+3 [2k_n+3]> c ... -> L 2 [2k_0+1]> 2k_n+1 c+3 ...
+            (n @ 3.., [nl0], _) if *nl0 >= 3 && nl0 % 2 == 1 && n % 2 == 1 => {
+                let nl = *nl0;
+                self.left.clear();
+                self.left.push(2);
+                self.mid = nl - 2;
+                add_or_merge(&mut self.right, 3);
+                self.right.push(n - 2);
+                R10
+            }
+
+            // reduced 12. L 2k_0+4 [2k_n+3]> c ... -> L 1 [2k_0+2]> 2k_n+1 c+3 ...
+            (n @ 3.., [nl0], _) if *nl0 >= 4 && nl0 % 2 == 0 && n % 2 == 1 => {
+                let nl = *nl0;
+                self.left.clear();
+                self.left.push(1);
+                self.mid = nl - 2;
+                add_or_merge(&mut self.right, 3);
+                self.right.push(n - 2);
+                R12
+            }
+
+            // 5. L 2k+5 [0]> c ... --> L 2 [2k+1]> c+4 (c >= 0)
+            (0, [nl0], _) if *nl0 >= 5 && nl0 % 2 == 1 => {
+                let nl = *nl0;
+                self.left.clear();
+                self.left.push(2);
+                self.mid = nl - 4;
+                add_or_merge(&mut self.right, 4);
+                R5
+            }
+
+            // 11. L [2k+5]> c ... -> L 2 [2k+1]> c+3 ...
+            (n @ 5.., [], _) if n % 2 == 1 => {
+                self.left.push(2);
+                self.mid -= 4;
+                add_or_merge(&mut self.right, 3);
+                R11
+            }
+
+            // 4. ... a 2k+6 [0]> c ... -> ... a+1 [2k+2]> c+4 ... (a,c >= 0)
+            (0, [.., nl0], _)if *nl0 >= 6 && nl0 % 2 == 0 => {
+                let nl = self.left.pop().unwrap();
+                add_or_merge(&mut self.left, 1);
+                self.mid = nl - 4;
+                add_or_merge(&mut self.right, 4);
+                R4
+            }
+
+            // the following have not been encountered in the original TM's forward simulation
+            // 3. ... a [1]> c ... -> ... [a+c+3]> ... (a,c >= 0)
+            (1, _, _) => {
+                self.mid = 3 + self.left.pop().unwrap_or_default() + self.right.pop().unwrap_or_default();
+                R3
+            }
+
+            // 13. L 3 [0]> c ... -> ***HALT***
+            (0, [3], _) => {
+                self.halted = true;
+                self.self_steps += 1;
+                return (true, R13);
+            }
+
+            // 14. L [3]> c ... -> ***HALT***
+            (3, [], _) => {
+                self.halted = true;
+                self.self_steps += 1;
+                return (true, R14);
+            }
+
+            // 15. L 1 [0]> c ... -> L [c+4]> ...
+            (0, [1], _) => {
+                self.left.clear();
+                self.mid = 4 + self.right.pop().unwrap_or_default();
+                R15
+            }
+            
+            _ => unimplemented!()
+        };
+
+        self.self_steps += 1;
+        (false, rule)
+    }
+}
+
+fn main() {
+    // run_block_sim();
+
+    let mut sim = ListSim::new();
+    let max_steps = 100;
+    println!("{sim}");
+    for i in 0..max_steps {
+        let (halted, rule) = sim.step();
+        println!("{rule:?} {sim}");
+        if halted {
+            break;
+        }
+    }
+
+    // let mut max_halt_steps = 0;
+    // let mut max_halt_mid0 = 0;
+    // // mid0 = 736 107886 79594234
+    // for mid0 in [79594234] { //1..100000000 {
+    //     let mut sim: ListSim = ListSim::new();
+    //     sim.mid = mid0;
+    //     // println!("{sim}");
+    //     let max_steps = 400;
+    //     for i in 0..max_steps {
+    //         let (halted, rule) = sim.step();
+    //         println!("{rule:?} {sim}");
+    //         if halted {
+    //             if sim.self_steps > max_halt_steps {
+    //                 max_halt_steps = sim.self_steps;
+    //                 max_halt_mid0 = mid0;
+    //             }
+    //             break;
+    //         }
+    //     }
+    //     // if mid0 % 100000 == 0 {
+    //         println!("[{mid0}] -> {sim}");
+    //     // }
+    // }
+    // // println!("{max_halt_mid0} {max_halt_steps}");
 }
