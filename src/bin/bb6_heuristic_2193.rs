@@ -438,6 +438,35 @@ enum ListRule {
     R3, R13, R14, R15
 }
 
+impl ListRule {
+    fn to_v2(self) -> ListRuleV2 {
+        use ListRule::*;
+        use ListRuleV2::*;
+
+        match self {
+            R1a => M,
+            R1b => H,
+            R2 => J,
+            R3 => G,
+            R4 => F,
+            R5 => E,
+            R7 => B,
+            R8 => D,
+            R10 => K,
+            R11 => N,
+            R12 => L,
+            R13 => C,
+            R14 => I,
+            R15 => A,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum ListRuleV2 {
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N
+}
+
 impl ListSim {
     fn new() -> Self {
         Self {
@@ -576,21 +605,318 @@ impl ListSim {
         self.self_steps += 1;
         (false, rule)
     }
+
+    fn sum(&self) -> ListNum {
+        self.mid + self.left.iter().sum::<ListNum>() + self.right.iter().sum::<ListNum>()
+    }
+
+    /// Gets the leftmost number greater than or equal to 3
+    /// if possible, otherwise try to find 2, or 1
+    fn get_leftmost_large(&self) -> ListNum {
+        for thresh in [3, 2, 1] {
+            for &n in &self.left {
+                if n >= thresh {
+                    return n;
+                }
+            }
+            if self.mid >= thresh {
+                return self.mid;
+            }
+            for &n in self.right.iter().rev() {
+                if n >= thresh {
+                    return n;
+                }
+            }
+        }
+        panic!("All numbers in ListSim are 0");
+    }
+    
+    fn parse_config(&self) -> Config {
+        use Config::*;
+
+        let (right3s, rightB3s) = match self.right.as_slice() {
+            [] => (Some(0), None),
+            &[n] => (
+                if n % 3 == 0 && n < 100 { Some(n) } else { None },
+                if n >= 3 { Some((n, 0)) } else { None }
+            ),
+            &[s, n] => (None,
+                if s % 3 == 0 && n >= 3 {
+                    Some((n, s))
+                } else {
+                    None
+                }),
+            _ => (None, None)
+        };
+
+        match (self.left.as_slice(), self.mid, right3s, rightB3s) {
+            ([], b @ 3.., Some(s), _) if b % 2 == 0 => LB0(b, s),
+            ([], b @ 3.., Some(s), _) if b % 2 == 1 => LB1(b, s),
+            ([2], b @ 3.., Some(s), _) if b % 2 == 1 => L2B1(b, s),
+            (&[bl], bm @ 3.., Some(s), _) if bl >= 3 => LBB(bl, bm, s),
+            ([1], bm @ 3.., _, Some((br, s))) if bm % 2 == 0 => L1B0B(bm, br, s),
+            (&[bl], 0, _, Some((br, s))) if bl >= 3 => LB0B(bl, br, s),
+            ([2], bm @ 3.., _, Some((br, s))) if bm % 2 == 1 => L2B1B(bm, br, s),
+            _ => Misc { left: self.left.clone(), mid: self.mid, right: self.right.clone() }
+        }
+    }
+}
+
+#[derive(Clone)]
+enum Config {
+    LB0(ListNum, ListNum),
+    L2B1(ListNum, ListNum),
+    LB1(ListNum, ListNum),
+    LBB(ListNum, ListNum, ListNum),
+    L1B0B(ListNum, ListNum, ListNum),
+    LB0B(ListNum, ListNum, ListNum),
+    L2B1B(ListNum, ListNum, ListNum),
+    Misc{left: Vec<ListNum>, mid: ListNum, right: Vec<ListNum>},
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ConfigKind {
+    LB0, L2B1, LB1, LBB, L1B0B, LB0B, L2B1B, Misc
+}
+
+impl Config {
+    fn kind(&self) -> ConfigKind {
+        use Config::*;
+        use ConfigKind as K;
+        match self {
+            LB0(_, _) => K::LB0,
+            L2B1(_, _) => K::L2B1,
+            LB1(_, _) => K::LB1,
+            LBB(_, _, _) => K::LBB,
+            L1B0B(_, _, _) => K::L1B0B,
+            LB0B(_, _, _) => K::LB0B,
+            L2B1B(_, _, _) => K::L2B1B,
+            Misc { left: _, mid: _, right: _ } => K::Misc,
+        }
+    }
+}
+
+impl fmt::Display for ConfigKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use ConfigKind::*;
+        match self {
+            LB0 => write!(f, "[B0]"),
+            L2B1 => write!(f, "2 [B1]"),
+            LB1 => write!(f, "[B1]"),
+            LBB => write!(f, "B [B]"),
+            L1B0B => write!(f, "1 [B0] B"),
+            LB0B => write!(f, "B [0] B"),
+            L2B1B => write!(f, "2 [B1] B"),
+            Misc => write!(f, "Misc"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct KindTransition(ConfigKind, ListRuleV2, ConfigKind);
+
+const COMMON_TRANSITIONS: [KindTransition; 15] = {
+    use KindTransition as T;
+    use ConfigKind::*;
+    use ListRuleV2::*;
+    [
+        T(LB0, H, LBB),
+        T(LB0, M, LB0B),
+        T(LBB, H, LBB),
+        T(LBB, L, L1B0B),
+        T(LBB, M, LB0B),
+        T(LBB, K, L2B1B),
+        T(L1B0B, H, LBB),
+        T(L1B0B, M, LB0B),
+        T(LB0B, F, L1B0B),
+        T(LB0B, E, L2B1B),
+        T(L2B1B, J, LB0),
+        T(L2B1B, J, LB1),
+        T(LB1, N, L2B1),
+        T(L2B1, J, LB0),
+        T(L2B1, J, LB1),
+    ]
+};
+
+use std::{fs::File, io::{self, BufWriter}};
+use npyz::{TypeStr, WriterBuilder, npz::NpzWriter, zip::write::FileOptions};
+
+struct Trajectory {
+    sum: Vec<f32>,
+    left: Vec<f32>,
+}
+
+fn write_trajectories(out_fname: &str, trajectories: Vec<Trajectory>) -> io::Result<()> {
+    let mut npz_writer = NpzWriter::create(out_fname)?;
+
+    for (i, Trajectory { sum, left}) in trajectories.into_iter().enumerate() {
+        write_array_1d_f32_to_npz(&mut npz_writer, format!("sum{i}"), sum)?;
+        write_array_1d_f32_to_npz(&mut npz_writer, format!("left{i}"), left)?;
+    }
+
+    Ok(())
+}
+
+fn write_array_1d_f32_to_npz(npz_writer: &mut NpzWriter<BufWriter<File>>, name: String, data: Vec<f32>) -> io::Result<()> {
+    let mut writer = npz_writer.array::<f32>(&name, FileOptions::default())?
+        .dtype(npyz::DType::Plain(">f4".parse::<TypeStr>().unwrap()))
+        .shape(&[data.len() as u64])
+        .begin_nd()?;
+
+    writer.extend(data)?;
+    writer.finish()?;
+
+    Ok(())
+}
+
+fn check_transitions_sim() {
+    for mid0 in 30..40 {
+        let mut sim = ListSim::new();
+        sim.mid = mid0;
+        println!("{sim}");
+
+        let mut prev_kind: Option<ConfigKind> = None;
+
+        let mut counts = [0; COMMON_TRANSITIONS.len()];
+
+        loop {
+            let (halted, rule) = sim.step();
+            let kind = sim.parse_config().kind();
+            if let Some(prev) = prev_kind {
+                let t = KindTransition(prev, rule.to_v2(), kind);
+                if let Some(idx) = COMMON_TRANSITIONS.iter().position(|&t2| t2 == t) {
+                    counts[idx] += 1;
+                } else {
+                    println!("uncommon transition");
+                    println!("{prev} -> {:?} -> {}          {sim}", rule.to_v2(), kind);
+                }
+            }
+            // println!("{rule:?} {sim}");
+
+            prev_kind = Some(kind);
+            if halted {
+                println!("{sim}\n");
+                break;
+            } else if sim.sum() > Exp::MAX/5 {
+                println!("overflowed {sim}");
+                print!("counts: ");
+                for c in counts {
+                    print!("{c} ");
+                }
+                println!("\n");
+                break;
+            }
+        }
+    }
+}
+
+fn get_trajectory(mid0: ListNum) -> (Trajectory, bool) {
+    let mut sim: ListSim = ListSim::new();
+    sim.mid = mid0;
+
+    let mut sum_t = vec![sim.sum() as f32];
+    let mut left_t = vec![sim.get_leftmost_large() as f32];
+    let mut sim_halted = false;
+    while sim.sum() < ListNum::MAX / 5 {
+        let (halted, _) = sim.step();
+        if halted {
+            sim_halted = true;
+            break;
+        }
+        sum_t.push(sim.sum() as f32);
+        left_t.push(sim.get_leftmost_large() as f32);
+    }
+    (Trajectory { sum: sum_t, left: left_t }, sim_halted)
+}
+
+fn get_halting_numbers(mid0_max: ListNum) -> Vec<ListNum> {
+    use std::io::Write;
+    let mut out = Vec::new();
+    for m in 2..=mid0_max {
+        if get_trajectory(m).1 {
+            out.push(m);
+            print!{"{m}, "};
+            io::stdout().flush().unwrap();
+        }
+    }
+    out
+}
+
+fn get_some_trajectories() {
+    let mut halting_trajectories = Vec::new();
+    let mut overflowing_trajectories = Vec::new();
+
+    let mut test_range: Vec<ListNum> = (2..=10000).collect();
+    test_range.extend_from_slice(&[107886, 79594234]);
+
+    for mid0 in test_range {
+        let (t, halted) = get_trajectory(mid0);
+        if halted {
+            halting_trajectories.push(t);
+        } else {
+            overflowing_trajectories.push(t);
+        }
+    }
+
+    dbg!(halting_trajectories.len());
+    dbg!(overflowing_trajectories.len());
+
+    write_trajectories("halting_trajectories.npz", halting_trajectories).unwrap();
+    write_trajectories("overflowing_trajectories.npz", overflowing_trajectories).unwrap();
+}
+
+fn write_array_1d_u64(out_fname: &str, data: Vec<u64>) -> io::Result<()> {
+    let mut file = File::create(out_fname)?;
+
+    let mut writer = npyz::WriteOptions::new()
+        .dtype(npyz::DType::Plain("<u8".parse::<TypeStr>().unwrap()))
+        .writer(&mut file)
+        .begin_1d()?;
+
+    writer.extend(data)?;
+    writer.finish()?;
+
+    Ok(())
 }
 
 fn main() {
     // run_block_sim();
 
     let mut sim = ListSim::new();
-    let max_steps = 100;
+    // sim.mid = 79594234;
+    let max_steps = 500;
     println!("{sim}");
+
+    let mut prev_kind: Option<ConfigKind> = None;
+
     for i in 0..max_steps {
         let (halted, rule) = sim.step();
+        let kind = sim.parse_config().kind();
+        if let Some(prev) = prev_kind {
+            let t = KindTransition(prev, rule.to_v2(), kind);
+            if !COMMON_TRANSITIONS.contains(&t) {
+                println!("uncommon transition");
+            }
+            // println!("{prev} -> {:?} -> {}          {sim}", rule.to_v2(), kind);
+        }
         println!("{rule:?} {sim}");
+
+        prev_kind = Some(kind);
         if halted {
             break;
         }
     }
+
+    // let nums = get_halting_numbers(1_000_000_000);
+    // let nums2: Vec<u64> = nums.iter().map(|&n| n as u64).collect();
+    // write_array_1d_u64("bb6_heuristic_2193_quick_halters_below_1e12.npy", nums2).unwrap();
+
+
+    // println!("{:?}", get_halting_numbers(1000000));
+
+    // check_transitions_sim();
+
+    // get_some_trajectories();
 
     // let mut max_halt_steps = 0;
     // let mut max_halt_mid0 = 0;
@@ -615,5 +941,5 @@ fn main() {
     //         println!("[{mid0}] -> {sim}");
     //     // }
     // }
-    // // println!("{max_halt_mid0} {max_halt_steps}");
+    // println!("{max_halt_mid0} {max_halt_steps}");
 }

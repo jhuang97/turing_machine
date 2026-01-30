@@ -8,7 +8,7 @@ auto_ops = "0.3.0"
 bnum = {version = "0.12.1", features = ["numtraits"]}
 colored = "2.1.0"
 itertools = "0.13.0"
-npyz = "0.8.3"
+npyz = {version = "0.8.4", features = ["npz"]}
 num-rational = "0.4.2"
 prettyplease = "0.2.30"
 proc-macro2 = "1.0.94"
@@ -21,6 +21,7 @@ syn = "2.0.99"
 pretty-duration = "0.1.1"
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
+num-integer = "0.1.46"
 
 [profile.release]
 overflow-checks = true
