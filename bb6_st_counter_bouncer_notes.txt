@@ -1,0 +1,255 @@
+1RB1LC_0RC1LF_1LD0RE_0LA0LE_0LA0LB_0LC---
+
+Try to understand dyuan's longitudinal analysis.
+
+Let T = 001
+
+Heads:
+A = <a >^-1
+B = <b >^-1
+C = <c >^-1
+E = <e >^-1
+F = <f >^-1
+
+Because of rule `> 01 -> 10 >`, we can just write `10` everywhere?
+Not quite. For this TM you can't have a 10 to the right of a regular head,
+but you can have a 01 to the right of an inverse head.
+
+===========
+
+verify rules with inverse head
+
+1 E -> B
+10 E -> C E 1 10 1
+^ E -> ^ 1 10 1
+
+1 B -> F E 1 10 1
+10 B -> C 10 10
+^ B -> ^ 10
+
+1 C -> A
+10 C -> E 1
+^ C -> ^ 1
+
+1 F -> Halt
+10 F -> ""
+^ F -> ^ 10
+
+1 A -> C 10
+10 A -> 1
+^ A -> ^
+
+1 10 1 A E -> B A E 1 10 1
+1 10 1 B -> B 1 10 1
+^ B^2 -> ^ 1 10 10
+1 10 10 B -> B 1 10 10
+1 10 10 (A E B^(i+n+1))^inf -> (A E B^(i+n))^inf
+(A E x)^inf -> (x^i A E x x^-(i+1))^inf
+
+-------
+
+1 <e >^-1 -> <b >^-1
+1 E -> B
+
+10 <e >^-1
+<c T >^-1
+<c >^-1 > T >^-1
+C <e I S I >^-1
+C E > I S I >^-1
+C E 1 10 1
+10 E -> C E 1 10 1
+
+more generally,
+> T >^-1 -> E 1 10 1
+
+^ <e >^-1
+^ 1 10 1
+^ E -> ^ 1 10 1
+
+1 <b >^-1
+<f T >^-1
+<f >^-1 > T >^-1
+F > T >^-1
+F E 1 10 1
+1 B -> F E 1 10 1
+
+10 <b >^-1
+<c S S >^-1
+<c >^-1 > S S >^-1
+C 10 10
+10 B -> C 10 10
+
+^ <b >^-1
+^ 10
+^ B -> ^ 10
+
+1 <c >^-1
+<a >^-1
+1 C -> A
+
+10 <c >^-1
+<e 1 >^-1
+<e >^-1 > 1 >^-1
+E 1
+10 C -> E 1
+
+^ <c >^-1
+^ 1
+^ C -> ^ 1
+
+1 <f >^-1
+Halt
+
+10 <f >^-1
+> >^-1
+(empty string)
+10 F -> ""
+
+^ <f >^-1
+^ 10
+^ F -> ^ 10
+
+1 <a >^-1
+<c S >^-1
+<c >^-1 > S >^-1
+C 10
+1 A -> C 10
+
+10 <a >^-1
+1 > >^-1
+1
+10 A -> 1
+
+^ <a >^-1
+^ > >^-1
+^
+^ A -> ^
+
+----
+1 10 1 A E
+1 10 C 10 E
+1 10 C C E 1 10 1
+1 E 1 C E 1 10 1
+B A E 1 10 1
+1 10 1 A E -> B A E 1 10 1
+
+1 10 1 B
+1 10 F E 1 10 1
+1 E 1 10 1
+B 1 10 1
+1 10 1 B -> B 1 10 1
+
+^ B B
+^ 10 B
+^ C 10 10
+^ 1 10 10
+^ B^2 -> ^ 1 10 10
+
+1 10 10 B
+1 10 C 10 10
+1 E 1 10 10
+B 1 10 10
+1 10 10 B -> B 1 10 10
+
+1 10 10 (A E B^(i+n+1))^inf
+*Notation: (expression including i)^inf = (expr with i=0) (expr with i=1) (expr with i=2) ...
+(1 10 10 A E B^(i+n+1) (1 10 10)^-1)^inf
+(1 10 1 E B^(i+n+1) (1 10 10)^-1)^inf
+(1 10 B B^(i+n+1) (1 10 10)^-1)^inf
+(1 C 10 10 B^(i+n+1) (1 10 10)^-1)^inf
+(A 10 10 B^(i+n+1) (1 10 10)^-1)^inf
+(A (10 10 B 10^-1 10^-1)^(i+n+1) 10 10 (1 10 10)^-1)^inf
+(A (10 C 10 10 10^-1 10^-1)^(i+n+1) 10 10 (1 10 10)^-1)^inf
+(A (10 C)^(i+n+1) 10 10 (1 10 10)^-1)^inf
+(A (E 1)^(i+n+1) 10 10 (1 10 10)^-1)^inf
+(A E (1 E)^(i+n) 1 10 10 (1 10 10)^-1)^inf
+(A E (1 E)^(i+n))^inf
+(A E B^(i+n))^inf
+
+(A E 1 10 1)^inf
+*Let x = 1 10 1
+(A E x) (A E x) (A E x) ...
+(x^0 A E x x^-1) (x^1 A E x x^-2) (x^2 A E x x^-3) (x^3 A E x x^-4) ...
+(x^i A E x x^-(i+1))^inf
+(A E x)^inf -> (x^i A E x x^-(i+1))^inf
+
+
+======
+What is the starting condition?
+
+After 10 steps, tape is 
+L > 1 01 $
+L 1 > 01 $
+L 1 10 > $
+L 1 10 <e 1 01 $
+
+more generally
+> 1 01 $
+--> 1 10 <e 1 01 $
+= 1 10 <e >^-1 > 1 01 $
+= 1 10 E > 1 01 $
+--> (1 10 E)^inf > 1 01 $
+--> (1 10 E)^inf 1 10 > $
+= 1 10 (E 1 10)^inf > $
+----
+^ > 1 01 $
+^ 1 10 (E 1 10)^inf > $
+^ 1 (10 E 1)^inf
+^ (1 10 E)^inf
+
+=====
+Simulation:
+^ (1 10 E)^inf
+^ (1 C E 1 10 1)^inf
+^ (A E 1 10 1)^inf
+^ ((1 10 1)^i A E 1 10 1 (1 10 1)^-(i+1))^inf
+^ (B^i A E (1 10 1)^i 1 10 1 (1 10 1)^-(i+1))^inf
+^ (B^i A E)^inf
+^ A E (B^(i+1) A E)^inf
+^ E (B^(i+1) A E)^inf
+^ 1 10 1 (B^(i+1) A E)^inf
+^ (x B^(i+1) A E x^-1)^inf
+^ (B^(i+1) x A E x^-1)^inf
+^ (B^(i+1) B A E x x^-1)^inf
+^ (B^(i+1) B A E)^inf
+^ (B^(i+2) A E)^inf
+^ B^2 (A E B^(i+3))^inf
+^ 1 10 10 (A E B^(i+3))^inf
+^ (A E B^(i+2))^inf
+
+Loop:
+^ (A E B^(i+2))^inf
+^ A E B^2 (A E B^(i+3))^inf
+^ E B^2 (A E B^(i+3))^inf
+^ 1 10 1 B^2 (A E B^(i+3))^inf
+^ B^2 1 10 1 (A E B^(i+3))^inf
+^ B^2 (x A E B^(i+3) x^-1)^inf
+^ B^2 (B A E x B^(i+3) x^-1)^inf
+^ B^2 (B A E B^(i+3) x x^-1)^inf
+^ B^2 (B A E B^(i+3))^inf
+^ B^3 (A E B^(i+4))^inf
+^ 1 10 10 B (A E B^(i+4))^inf
+^ B 1 10 10 (A E B^(i+4))^inf
+^ 10 (1 10 10) (A E B^(i+4))^inf
+^ 10 (A E B^(i+3))^inf
+^ 10 A E B^3 (A E B^(i+4))^inf
+^ 1 E B^3 (A E B^(i+4))^inf
+^ B B^3 (A E B^(i+4))^inf
+^ 1 10 10 B^2 (A E B^(i+4))^inf
+^ B^2 1 10 10 (A E B^(i+4))^inf
+^ (1 10 10)^2 (A E B^(i+4))^inf
+^ (1 10 10) (A E B^(i+3))^inf
+^ (A E B^(i+2))^inf
+
+Heads encountered by ^:
+A E [B^2] B [B^2] [B^2]
+[B^2] = B C
+A E (B C) B (B C) (B C)
+
+Update block level simulation to use some higher level blocks:
+X = I IO I
+Xr = I S I
+Y = I IO IO
+Yr = I S S
+Z = X Y^3
+Zr = Xr Yr^3

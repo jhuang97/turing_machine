@@ -1,0 +1,68 @@
+tm = 1RB1LC_0RC1LF_1LD0RE_0LA0LE_0LA0LB_0LC---
+
+[metastates]
+Right >  100E>
+LeftA <a <A01
+LeftB <b <B001
+LeftC <c <C1
+LeftE <e <E01
+LeftF <f <F1
+
+[blocks]
+I = 1
+IO = 10
+T = 001
+S = 01
+L = ^
+R = $
+X(exp) = 1101
+Xr(exp) = 1011
+Y(exp) = 11010
+Yr(exp) = 10101
+Z(exp) = 1101110101101011010
+Zr(exp) = 1011101011010110101
+
+[rules]
+I IO IO > -> Y >
+X Y Y Y > -> Z >
+
+X <b -> <b Xr
+> Xr -> X >
+Y <b -> <b Yr
+> Yr -> Y >
+Z <b -> <b Zr
+> Zr -> Z >
+
+> R -> <e I S R
+
+> T -> <e Xr
+
+> S -> IO >
+> I -> I >
+
+
+I <e -> <b
+IO <e -> <c T
+L <e -> L X >
+
+I <b -> <f T
+IO <b -> <c S S
+L <b -> L IO >
+
+I <c -> <a
+IO <c -> <e I
+L <c -> L I >
+
+
+IO <f -> >
+L <f -> L IO >
+
+I <a -> <c S
+IO <a -> I >
+L <a -> L >
+
+X <a -> I IO I <a
+X <e -> I IO I <e
+Y <a -> X >
+Y <c -> I IO IO <c
+Z <a -> X Y Y Y <a
