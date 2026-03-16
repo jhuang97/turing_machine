@@ -769,7 +769,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
         .map(|st| st.ident.clone());
 
     let state_def = quote! {
-        #[derive(PartialEq, Eq, Clone)]
+        #[derive(PartialEq, Eq, Clone, Copy)]
         enum HigherState {
             #(#state_names),*
         }

@@ -2,9 +2,17 @@
 
 I have a working block analysis of this.
 Symbols on the left side:
-L, W, U, D, C0, C1, P, Q
+L, W, U, D, C0, C1, P, Q (previously)
+L, L1, W, U, D, C (after reorganization)
 Right side:
 W*V*R
+
+rules not encountered:
+L C <c -> L D W W >
+L1 C <c -> ***HALT***
+W C <c -> ***HALT***
+D C <c -> P <c P V
+C C <c -> **HALT***
 
 Let r(m, n) = W^m V^n R
 
@@ -13,23 +21,22 @@ Let the following symbols denote type of head returning to the left:
 < = <
 c = <c
 U = U <c
-QP = Q P <c
+C = C <c
 
 Effect of > head:
 
 #W  #V ->
 |
 v   
-|   |   0    |   1   |   2   |   3   |   4   | ... |    n    |
-|---|--------|-------|-------|-------|-------|-----|---------|
-| 0 | < 0,0  |   *   |       |       |       |     | < 0,n   |
-| 1 | c 0,1  |   *   |       |       |       |     | < 2,n-1 |
-| 2 | U 0,1  | < 3,0 | c 0,4 | < 1,4 | *< 2,4
-| 3 | U 2,0  | c 0,4 | U 0,4 | *U 1,4 |
-| 4 | QP 0,3 | U 0,4 | *U 1,4
-| 5 | < 1,4  | *U 1,4
-| 6 | *< 2,4  |
-| 7 | *< 4,3
+|   |   0   |   1   |   2   |   3   |   4   | ... |    n    |
+|---|-------|-------|-------|-------|-------|-----|---------|
+| 0 | < 0,0 |   *   |       |       |       |     | < 0,n   |
+| 1 | c 0,1 |   *   |       |       |       |     | < 2,n-1 |
+| 2 | U 0,1 | < 3,0 | c 0,4 | < 1,4 | < 3,3
+| 3 | U 2,0 | c 0,4 | U 0,4 | < 4,2 |
+| 4 | C 0,3 | U 0,4 | U 2,3
+| 5 | < 1,4 | U 2,3
+| 6 |
 
 > 0,n -> < 0,n
 > 1,n+1 -> < 2,n
@@ -157,51 +164,39 @@ D > 2,2
 D <c 0,4
 < 1,4
 
-> 6,0
-U > 5,0
-U < 1,4
-D > 1,4
-D U <c 0,4
-W U > 0,4
-W U Q P <c 0,3
-W < 1,4
-< 2,4
-
 > 5,1
 U > 4,1
 U U <c 0,4
 Q P U > 0,4
-Q P U Q P <c 0,3
-Q P < 1,4
-U <c 1,4
+Q P U < 0,4
+Q P D > 0,4
+Q P D < 0,4
+Q P W a> 0,4
+Q P W < 1,3
+Q P < 2,3
+U <c 2,3
 
 > 4,2
 U > 3,2
 U U <c 0,4
-U <c 1,4
 
 > 3,3
 U > 2,3
-U U <c 0,4
-U <c 1,4
+U < 1,4
+D > 1,4
+D < 2,3
+W a> 2,3
+W < 3,2
+< 4,2
 
 > 2,4
 U > 1,4
 U < 2,3
 D > 2,3
-D U <c 0,4
-W U > 0,4
-W U Q P <c 0,3
-< 2,4
-
-> 7,0
-U > 6,0
-U < 2,4
-D > 2,4
-D < 2,4
-W a> 2,4
-W < 3,3
-< 4,3
+D < 1,4
+W a> 1,4
+W < 2,3
+< 3,3
 
 ----------------------
 a> ...
@@ -255,9 +250,183 @@ I probably need to run-length-encode the D block. Stuff like this happens:
 compare accelerated sim with regular sim:
 505:                    L D D D D D D D P U U <c 2, 22
 735662314 | 3227597656: L D D D D D D D P U U <c W^2 V^22 R
+after run-length-encoding D:
+505:                    L D^7 P U U <c 2, 22
+735662314 | 3227597656: L D^7 P U U <c W^2 V^22 R
+552:                    L1 C^7 U U <c 2, 22
 
+-----------
+new acceleration:
+D^k P < m, n --> D^k-s P < m+2s, n-s where s = min(k, n).
+
+loop:
+D^k P < m, n
+D^k-1 P W a> m, n
+D^k-1 P W < m+1,n-1
+D^k-1 P < m+2,n-1
+
+compare simulating with this acceleration:
+700: L W < 16, 38
+without:
+1000: L W < 16, 38
+
+re-write this acceleration with symbol C:
+C^k U <c m, n --> C^k-s U <c m+2s, n-s where s = min(k, n).
+
+loop:
+C^k U <c m, n
+C^k W a> m, n
+C^k W < m+1, n-1
+C^k < m+2, n-1
+C^k-1 U <c m+2, n-1
+
+compare simulating with this acceleration:
+757: L W < 16, 38
+758: L < 17, 38
+without:
+1109: L W < 16, 38
+1110: L < 17, 38
+
+--------------
+In general, consider
+> m,n
+U > m-1,n
+
+Let M(m,n) denote the result of `> r(m,n)`, including the returning head, and new m and n values.
+If M(m1 - 1, n1) = M(m2 - 1, n2), then M(m1, n1) = M(m2, n2),
+since both `> m1, n1` and `> m2, n2` will follow the same simulation after the first step.
+(m1, m2 >= 0)
+
+---
+....I realized that I could rewrite Q D^k P as C^k+1 where C = 01.
+In this way, it seems that the Q symbol can be eliminated (though not P) and things can be made a lot cleaner.
+Will now need to redo the CachedSimulator....
+
+------
+I notice a repeating pattern:
+347: L1 < 16, 14
+348: L1 U > 16, 14
+349: L1 U U <c 14, 15
+350: L1 C U > 14, 15
+351: L1 C U U <c 12, 16
+352: L1 C^2 U > 12, 16
+353: L1 C^2 U U <c 10, 17
+354: L1 C^3 U > 10, 17
+355: L1 C^3 U U <c 8, 18
+356: L1 C^4 U > 8, 18
+357: L1 C^4 U U <c 6, 19
+358: L1 C^5 U > 6, 19
+359: L1 C^5 U U <c 2, 22
+360: L1 C^6 U > 2, 22
+361: L1 C^6 U < 3, 21
+362: L1 C^6 D > 3, 21
+363: L1 C^6 D < 4, 20
+364: L1 C^6 W a> 4, 20
+365: L1 C^6 W < 5, 19
+366: L1 C^6 < 6, 19
+367: L1 C^5 U <c 6, 19
+368: L1 U <c 16, 14
+
+This has configurations of the type
+C^i U > m0-2i, n0+i 
+C^i U U <c m0-2i-2, n0+i+1
+C^i+1 U > m0-2i-2, n0+i+1
+for i = 0, 1, 2, ...
+
+> 16, 14 is part of a n1 trend: (9 <= n <= 20 follows n1)
+26-37 -> U 6+2i,19-i
+total of 26+i -> U <c 6+2i,19-i  (i from 0 to 11)
+
+(so new total is 6+2i+19-i = 25+i)
+> 6+2i,19-i (total = 25+i, so i_new = i-1)
+-> U <c 6+2(i-1),19-(i-1)
+= U <c 4+2i,18-i
+As simulation continues, we are basically reaching configurations corresponding to successively smaller values of i.
+Finally we reach > 6, 19. total is 25 so we have left the trend.
+
+Three potential cases for leaving a U trend with n_step = -1:
+1. Reach the minimum total = m+n for the trend.
+2. (similar to 1.) total and m get small enough that a miscellaneous outcome 
+(that is, an outcome starting from a small m value and not following a trend) is reached.
+3. n becomes large enough that it switches to the other trend parity.
+
+Look for more examples...
+116: L W U > 8, 6 ---> 122: L W C^3 U > 2, 9
+137: L W U > 10, 5 ---> 145: L W C^4 U > 2, 9
+160: L W U > 12, 4 ---> 170: L W C^5 U > 2, 9
+185: L W U > 14, 3 ---> 197: L W C^6 U > 2, 9
+n0 trends (3 <= n < 9), 11-19 -> U 0+2i,10-i. case 2 and 3 simultaneously.
+
+306: L1 U > 12, 16 ---> 312: L1 C^3 U > 6, 19
+326: L1 U > 14, 15 ---> 334: L1 C^4 U > 6, 19
+348: L1 U > 16, 14 ---> 358: L1 C^5 U > 6, 19
 ...
-rules backup before deleting:
+456: L1 U > 24, 10 ---> 474: L1 C^9 U > 6, 19
+488: L1 U > 26, 9 ---> 508: L1 C^10 U > 6, 19
+526: L1 W U > 26, 9 ---> 546: L1 W C^10 U > 6, 19
+n1 trends (9 <= n < 21), 26-37 -> U 6+2i,19-i. case 1.
+
+713: L W U > 12, 40 ---> 719: L W C^3 U > 6, 43
+736: L W U > 14, 39 ---> 744: L W C^4 U > 6, 43
+761: L W U > 16, 38 ---> 771: L W C^5 U > 6, 43
+...
+1492: L W U > 50, 21 ---> 1536: L W C^22 U > 6, 43
+n0 trends (21 <= n < 45), 50-73 -> U 6+2i,43-i. case 1.
+
+1657: L W U > 81, 6 ---> 1663: L W C^3 U > 75, 9
+1678: L W U > 83, 5 ---> 1686: L W C^4 U > 75, 9
+...
+1726: L W U > 87, 3 ---> 1738: L W C^6 U > 75, 9
+n0 trends (3 <= n < 9), 74-92 -> U 53+2i,20-i. case 3.
+
+1887: L1 U > 16, 86 ---> 1893: L1 C^3 U > 10, 89
+1911: L1 U > 18, 85 ---> 1919: L1 C^4 U > 10, 89
+...
+4511: L1 U > 98, 45 ---> 4599: L1 C^44 U > 10, 89
+4621: L1 W U > 98, 45 ---> 4709: L1 W C^44 U > 10, 89
+n1 trends (45 <= n < 93), 100-145 -> U 10+2i,89-i. case 1.
+
+Implemented this acceleration. This seems to work?
+
+Another idea:
+The outcome of `U > m, n` should be the same as that of `> m+1, n`.
+So could try to do those whenever possible.
+Actually, can rewrite some of the existing block rules to have
+"> W" instead of "U >"
+"a> W" instead of "W a>".
+This might work much better with the caches that I have written.
+
+Combined with either the NaiveMemo or the TrendMemo, these new block rules massively simplify the simulations.
+Also the 
+C^k U <c m, n
+and
+C^k U > m, n
+accelerations are no longer needed.
+
+---
+maybe the list of configurations is short enough to list now?
+U > t
+U < t
+U U <c t-1
+U C <c t-1 (need m == 0)
+! < t+1 (m == 1)
+! U <c t
+D > t
+D < t
+D <c t
+< t+1 (m >= 1)
+D U <c t-1
+
+? C > t (with m >= 1)
+
+? D C <c t-1 (if this happens the rules are not closed)
+? W a> t (outcome depends on whether n = 0)
+? W > t (m >= 1)
+
+need to track whether m = 0 or n = 0 on the right side?
+
+================
+rules backup #1:
 C0 = 100
 C1 = 110
 C = 01
@@ -300,3 +469,73 @@ C1 U <c -> P W U >
 L <c -> L C0 >
 L P <c -> L D W W >
 U Q P <c -> < W V
+
+=========
+rules backup #2:
+W(exp) = 11
+U = 00
+V(exp) = 01
+D(exp) = 10
+P = 1
+Q = 0
+L = ^
+R = $
+
+-----
+> W -> U >
+> V -> < V
+> R -> < R
+
+a> W -> W a>
+a> V -> W >
+a> R -> <c R
+
+U < -> D >
+D < -> W a>
+W < -> < W
+
+L < -> L D >
+L P < -> L P U >
+
+W P < -> P < W
+D P < -> P W a>
+Q P < -> U <c
+
+W <c -> <c V
+D <c -> < W
+
+P U <c -> P W a>
+W U <c -> W W a>
+D U <c -> W U >
+P U U <c -> D P U >
+U U <c -> Q P U >
+
+L <c -> L P U >
+L P <c -> L D W W >
+U Q P <c -> < W V
+
+rules backup #3:
+W P < -> P < W
+D P < -> P W a>
+
+=========
+rules backup #4:
+L1 < -> L1 U >
+
+L1 U <c -> L1 W a>
+W U <c -> W W a>
+D U <c -> W U >
+U U <c -> C U >
+C U <c -> C W a>
+
+L <c -> L1 U >
+replace the above with:
+L1 < -> L1 > W
+
+L1 U <c -> L1 a> W
+W U <c -> W a> W
+D U <c -> W > W
+U U <c -> C > W
+C U <c -> C a> W
+
+L <c -> L1 > W

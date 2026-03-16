@@ -27,15 +27,17 @@ enum RunSymbolType {
     #[default]
     W,
     V,
+    D,
+    C,
 }
 #[derive(Debug, PartialEq, EnumString, Copy, Clone, Eq, Hash)]
 enum BlockSymbol {
     Run(RunSymbolType, Exp),
     U,
-    D,
     P,
     Q,
     L,
+    L1,
     R,
 }
 fn add_or_merge_run(tape: &mut Vec<BlockSymbol>, run_type: RunSymbolType, nadd: Exp) {
@@ -114,13 +116,13 @@ impl BlockSimulator {
             (Left, [.., U], _) => {
                 self.state = Right;
                 self.left_tape.pop();
-                self.left_tape.push(D);
+                add_or_merge_run(&mut self.left_tape, D, 1u128);
                 4u128
             }
             // D < -> W a>
-            (Left, [.., D], _) => {
+            (Left, [.., Run(D, _)], _) => {
                 self.state = RightA;
-                self.left_tape.pop();
+                decrement_run(&mut self.left_tape, D);
                 add_or_merge_run(&mut self.left_tape, W, 1u128);
                 4u128
             }
@@ -134,38 +136,19 @@ impl BlockSimulator {
             // L < -> L D >
             (Left, [.., L], _) => {
                 self.state = Right;
-                self.left_tape.push(D);
+                self.left_tape.push(Run(D, 1u128));
                 4u128
             }
-            // L P < -> L P U >
-            (Left, [.., L, P], _) => {
+            // L1 < -> L1 > W
+            (Left, [.., L1], _) => {
                 self.state = Right;
-                self.left_tape.push(U);
-                8u128
+                add_or_merge_run(&mut self.right_tape, W, 1u128);
+                6u128
             }
-            // W P < -> P < W
-            (Left, [.., Run(W, exp), P], _) => {
-                let n = *exp;
-                self.left_tape.pop();
-                self.left_tape.pop();
-                self.left_tape.push(P);
-                add_or_merge_run(&mut self.right_tape, W, n);
-                6u128 * n
-            }
-            // D P < -> P W a>
-            (Left, [.., D, P], _) => {
-                self.state = RightA;
-                self.left_tape.pop();
-                self.left_tape.pop();
-                self.left_tape.push(P);
-                self.left_tape.push(Run(W, 1u128));
-                8u128
-            }
-            // Q P < -> U <c
-            (Left, [.., Q, P], _) => {
+            // C < -> U <c
+            (Left, [.., Run(C, _)], _) => {
                 self.state = LeftC;
-                self.left_tape.pop();
-                self.left_tape.pop();
+                decrement_run(&mut self.left_tape, C);
                 self.left_tape.push(U);
                 2u128
             }
@@ -177,75 +160,71 @@ impl BlockSimulator {
                 2u128 * n
             }
             // D <c -> < W
-            (LeftC, [.., D], _) => {
+            (LeftC, [.., Run(D, _)], _) => {
                 self.state = Left;
+                decrement_run(&mut self.left_tape, D);
+                add_or_merge_run(&mut self.right_tape, W, 1u128);
+                4u128
+            }
+            // L1 U <c -> L1 a> W
+            (LeftC, [.., L1, U], _) => {
+                self.state = RightA;
                 self.left_tape.pop();
                 add_or_merge_run(&mut self.right_tape, W, 1u128);
                 4u128
             }
-            // P U <c -> P W a>
-            (LeftC, [.., P, U], _) => {
-                self.state = RightA;
-                self.left_tape.pop();
-                self.left_tape.push(Run(W, 1u128));
-                6u128
-            }
-            // W U <c -> W W a>
+            // W U <c -> W a> W
             (LeftC, [.., Run(W, _), U], _) => {
                 self.state = RightA;
                 self.left_tape.pop();
-                self.left_tape.push(Run(W, 1u128));
-                6u128
+                add_or_merge_run(&mut self.right_tape, W, 1u128);
+                4u128
             }
-            // D U <c -> W U >
-            (LeftC, [.., D, U], _) => {
+            // D U <c -> W > W
+            (LeftC, [.., Run(D, _), U], _) => {
                 self.state = Right;
                 self.left_tape.pop();
-                self.left_tape.pop();
+                decrement_run(&mut self.left_tape, D);
                 add_or_merge_run(&mut self.left_tape, W, 1u128);
-                self.left_tape.push(U);
-                6u128
+                add_or_merge_run(&mut self.right_tape, W, 1u128);
+                4u128
             }
-            // P U U <c -> D P U >
-            (LeftC, [.., P, U, U], _) => {
-                self.state = Right;
-                self.left_tape.pop();
-                self.left_tape.pop();
-                self.left_tape.pop();
-                self.left_tape.push(D);
-                self.left_tape.push(P);
-                self.left_tape.push(U);
-                6u128
-            }
-            // U U <c -> Q P U >
+            // U U <c -> C > W
             (LeftC, [.., U, U], _) => {
                 self.state = Right;
                 self.left_tape.pop();
                 self.left_tape.pop();
-                self.left_tape.push(Q);
-                self.left_tape.push(P);
-                self.left_tape.push(U);
-                6u128
+                add_or_merge_run(&mut self.left_tape, C, 1u128);
+                add_or_merge_run(&mut self.right_tape, W, 1u128);
+                4u128
             }
-            // L <c -> L P U >
+            // C U <c -> C a> W
+            (LeftC, [.., Run(C, _), U], _) => {
+                self.state = RightA;
+                self.left_tape.pop();
+                add_or_merge_run(&mut self.right_tape, W, 1u128);
+                4u128
+            }
+            // L <c -> L1 > W
             (LeftC, [.., L], _) => {
                 self.state = Right;
-                self.left_tape.push(P);
-                self.left_tape.push(U);
-                6u128
+                self.left_tape.pop();
+                self.left_tape.push(L1);
+                add_or_merge_run(&mut self.right_tape, W, 1u128);
+                4u128
             }
-            // L P <c -> L D W W >
-            (LeftC, [.., L, P], _) => {
+            // L1 <c -> L D W W >
+            (LeftC, [.., L1], _) => {
                 self.state = Right;
                 self.left_tape.pop();
-                self.left_tape.push(D);
+                self.left_tape.push(L);
+                self.left_tape.push(Run(D, 1u128));
                 self.left_tape.push(Run(W, 2u128));
                 24u128
             }
-            // U Q P <c -> < W V
-            (LeftC, [.., U, Q, P], _) => {
+            // U C <c -> < W V
+            (LeftC, [.., U, Run(C, 1)], _) => {
                 self.state = Left;
-                self.left_tape.pop();
                 self.left_tape.pop();
                 self.left_tape.pop();
                 add_or_merge_run(&mut self.right_tape, V, 1u128);
@@ -337,7 +316,7 @@ impl BlockSimulator {
         use BlockSymbol::*;
         use RunSymbolType::*;
         Self {
-            left_tape: vec![L, D],
+            left_tape: vec![L, Run(D, 1)],
             right_tape: vec![R, Run(W, 1)],
             state: HigherState::Right,
             base_steps: 10,
@@ -365,8 +344,8 @@ impl BlockSimulator {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
-enum LeftReturningHead { Left, C, U, QP}
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+enum LeftReturningHead { Left, C, Uc, Cc}
 
 impl fmt::Display for LeftReturningHead {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -374,15 +353,26 @@ impl fmt::Display for LeftReturningHead {
         write!(f, "{}", match &self {
             Left => "<",
             C => "c",
-            U => "U",
-            QP => "QP",
+            Uc => "U",
+            Cc => "C",
         })
     }
 }
 
-type RightExp = u32;
+impl LeftReturningHead {
+    fn d_total(&self) -> IRExp {
+        use LeftReturningHead::*;
+        match self {
+            Left | C => 0,
+            Uc | Cc => -1,
+        }
+    }
+}
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+type RightExp = u32;
+type IRExp = i32;
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 struct RightTapeOutcome {
     head: LeftReturningHead,
     m: RightExp,
@@ -419,8 +409,8 @@ fn calculate_right_tape_outcome(m0: Exp, n0: Exp, initial_state: HigherState) ->
         let head = match (&sim.state, sim.left_tape.as_slice()) {
             (Left, []) => Some(LeftReturningHead::Left),
             (LeftC, []) => Some(LeftReturningHead::C),
-            (LeftC, [U]) => Some(LeftReturningHead::U),
-            (LeftC, [Q, P]) => Some(LeftReturningHead::QP),
+            (LeftC, [U]) => Some(LeftReturningHead::Uc),
+            (LeftC, [Run(C, 1)]) => Some(LeftReturningHead::Cc),
             _ => None,
         };
         if let Some(head) = head {
@@ -433,7 +423,7 @@ fn calculate_right_tape_outcome(m0: Exp, n0: Exp, initial_state: HigherState) ->
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 struct RightRuns {
     /// exponent of W on the right
     m: RightExp,
@@ -441,10 +431,16 @@ struct RightRuns {
     n: RightExp
 }
 
-use std::collections::HashMap;
-struct Memo(HashMap<RightRuns, RightTapeOutcome>);
+impl fmt::Display for RightRuns {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{},{}", self.m, self.n)
+    }
+}
 
-impl Memo {
+use std::collections::HashMap;
+struct NaiveMemo(HashMap<RightRuns, RightTapeOutcome>);
+
+impl NaiveMemo {
     fn new() -> Self {
         Self(HashMap::new())
     }
@@ -469,13 +465,531 @@ impl Memo {
             if let Some(outcome) = sim.try_parse_outcome() {
                 break outcome;
             } else {
-                sim.step(self);
+                sim.step_with_naive_memo(self);
             }
         };
         self.0.insert(RightRuns { m, n }, outcome);
         outcome
     }
+
+    fn show_sim(&mut self, m: RightExp, n: RightExp) {
+        let mut sim = CachedSimulator::new_inner(m, n);
+        println!("{sim}");
+        sim.basic_step();
+        println!("{sim}");
+        let outcome = loop {
+            if let Some(outcome) = sim.try_parse_outcome() {
+                break outcome;
+            } else {
+                sim.step_with_naive_memo(self);
+                println!("{sim}");
+            }
+        };
+        println!("> {m},{n} -> {} {},{}", outcome.head, outcome.m, outcome.n);
+    }
 }
+
+use std::ops::RangeInclusive;
+use std::collections::BTreeMap;
+
+#[derive(Debug)]
+enum OutcomeTrend {
+    Single {
+        total: RightExp,
+        outcome: RightTapeOutcome
+    },
+    Linear(LinearTrend)
+}
+
+fn fmt_coeff_var(coeff: IRExp, var: &str) -> String {
+    match coeff {
+        0 => "".to_owned(),
+        -1 => format!("-{var}"),
+        1 => format!("+{var}"),
+        ..-1 => format!("{coeff}{var}"),
+        2.. => format!("+{coeff}{var}"),
+    }
+}
+
+impl fmt::Display for OutcomeTrend {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Single { total, outcome } => write!(f, "{} -> {}", total, outcome),
+            Self::Linear(trend @ LinearTrend { total_range, head, n_start, n_step, total_exit }) => {
+                let exit_str = match total_exit {
+                    Some(t) => format!("{t}"),
+                    None => "".to_string(),
+                };
+                if *n_step == -1 {
+                    write!(f, "{}-{}[{exit_str}] -> {head} {}{},{}{}", total_range.start(), total_range.end(), 
+                trend.m_start(), fmt_coeff_var(1 - n_step, "i"), n_start, fmt_coeff_var(*n_step, "i"))
+                } else {
+                    write!(f, "{}-{} -> {head} {}{},{}{}", total_range.start(), total_range.end(), 
+                trend.m_start(), fmt_coeff_var(1 - n_step, "i"), n_start, fmt_coeff_var(*n_step, "i"))
+                }
+                
+            },
+        }
+    }
+}
+
+/// It would be redundant to also store m_start and m_step.
+/// total_range refers to the total (= m+n) of the input right configuration.
+/// The total of the output is either equal to the input total or one less (see LeftReturningHead::d_total())
+/// The value of (input) total goes up in increments of 1.
+/// m and n here refer to that of the outcome configuration.
+/// n starts at `n_start` and changes by steps of `n_step`.
+/// This implies that m starts at `total_range.start() - n_start + d_total` and changes by
+/// steps of `1 - n_step`.
+#[derive(Debug)]
+struct LinearTrend {
+    total_range: RangeInclusive<RightExp>,
+    head: LeftReturningHead,
+    n_start: RightExp,
+    n_step: IRExp,
+    total_exit: Option<RightExp>,
+}
+
+impl OutcomeTrend {
+    fn head(&self) -> LeftReturningHead {
+        match self {
+            OutcomeTrend::Single { outcome, .. } => outcome.head,
+            OutcomeTrend::Linear(t) => t.head,
+        }
+    }
+
+    fn try_get_outcome(&self, total_query: RightExp) -> Option<RightTapeOutcome> {
+        match self {
+            OutcomeTrend::Single { total, outcome } => if total_query == *total {
+                Some(*outcome)
+            } else { None },
+            OutcomeTrend::Linear(trend) => if trend.total_range.contains(&total_query) {
+                trend.extrapolate_outcome(total_query)
+            } else { None },
+        }
+    }
+}
+
+impl LinearTrend {
+    fn increment_end(&mut self) {
+        let start = *self.total_range.start();
+        let end = *self.total_range.end();
+        self.total_range = start..=(end+1);
+    }
+
+    fn m_start(&self) -> RightExp {
+        ((*self.total_range.start() - self.n_start) as IRExp + self.head.d_total()) as RightExp
+    }
+
+    fn end_outcome(&self) -> RightTapeOutcome {
+        let dt = self.total_range.end() - self.total_range.start();
+        let n_final = RightExp::try_from(self.n_start as IRExp + (dt as IRExp * self.n_step)).unwrap();
+        let m_final = *self.total_range.end() as IRExp - (n_final as IRExp) + self.head.d_total();
+        RightTapeOutcome { head: self.head, m: m_final as RightExp, n: n_final }
+    }
+
+    /// t is the total value to extrapolate to
+    fn extrapolate_outcome(&self, t: RightExp) -> Option<RightTapeOutcome> {
+        let dt = t as IRExp - (*self.total_range.start() as IRExp);
+        let Ok(t_output) = RightExp::try_from((t as IRExp) + self.head.d_total()) else { return None; };
+        if let Ok(n) = RightExp::try_from(self.n_start as IRExp + dt * self.n_step) 
+            && n <= t_output
+        {
+            Some(RightTapeOutcome { head: self.head, m: t_output - n, n })
+        } else {
+            None
+        }
+    }
+
+    fn from_two_outcomes(t1: RightExp, outcome1: RightTapeOutcome, outcome2: RightTapeOutcome) -> Option<Self> {
+        if outcome1.head != outcome2.head {
+            return None;
+        }
+        Some(Self {
+            total_range: t1..=(t1+1),
+            head: outcome1.head,
+            n_start: outcome1.n,
+            n_step: outcome2.n as IRExp - (outcome1.n as IRExp),
+            total_exit: None,
+        })
+    }
+}
+
+fn get_outcome_from_trends(trends: &Vec<OutcomeTrend>, total: RightExp) -> RightTapeOutcome {
+    for trend in trends {
+        if let Some(outcome) = trend.try_get_outcome(total) {
+            return outcome;
+        }
+    }
+    unreachable!()
+}
+
+fn update_trends(trends: &mut Vec<OutcomeTrend>, curr_total: RightExp, new_outcome: RightTapeOutcome) {
+    match trends.last() {
+        None => trends.push(OutcomeTrend::Single { total: curr_total, outcome: new_outcome }),
+        Some(trend) => {
+            if trend.head() == new_outcome.head {
+                match trend {
+                    OutcomeTrend::Single { total, outcome } => {
+                        assert!(curr_total == *total + 1);
+                        let new_last = OutcomeTrend::Linear(LinearTrend::from_two_outcomes(*total, *outcome, new_outcome).unwrap());
+                        trends.pop();
+                        trends.push(new_last);
+                    }
+                    OutcomeTrend::Linear(l_trend) => {
+                        assert!(curr_total == l_trend.total_range.end() + 1);
+                        if let Some(o_extrap) = l_trend.extrapolate_outcome(curr_total) 
+                            && o_extrap == new_outcome
+                        {
+                            let Some(OutcomeTrend::Linear(l_trend)) = trends.last_mut() else { unreachable!() };
+                            l_trend.increment_end();
+                        } else {
+                            let new_trend = LinearTrend::from_two_outcomes(*l_trend.total_range.end(), l_trend.end_outcome(), new_outcome).unwrap();
+                            trends.push(OutcomeTrend::Linear(new_trend))
+                        }
+                    }
+                }
+            } else {
+                trends.push(OutcomeTrend::Single { total: curr_total, outcome: new_outcome });
+            }
+        }
+    }
+    let len = trends.len();
+    if let [OutcomeTrend::Linear(l_trend), OutcomeTrend::Linear(l_trend_last)] = &mut trends[len-2..]
+        && l_trend.total_range.start() + 1 == *l_trend.total_range.end()
+        && l_trend.total_range.end() == l_trend_last.total_range.start()
+    {
+        trends[len-2] = OutcomeTrend::Single {
+            total: *l_trend.total_range.start(),
+            outcome: RightTapeOutcome { head: l_trend.head, m: l_trend.m_start(), n: l_trend.n_start } };
+    }
+}
+
+#[derive(Debug)]
+struct TrendMemo {
+    max_total: RightExp,
+    misc_outcomes: HashMap<RightRuns, RightTapeOutcome>,
+    n0_trends: Vec<OutcomeTrend>,
+    n1_trends: Vec<OutcomeTrend>,
+    n_boundaries: Vec<RightExp>,
+    n_parity_unknown: BTreeMap<RightExp, Option<TrendParity>>,
+
+    /// key: value of n, value: total value at which the outcome finally starts following the n=0 or n=1 trend
+    join_trend_late: BTreeMap<RightExp, RightExp>,
+    join_trend_latest_m: RightExp,
+}
+
+impl fmt::Display for TrendMemo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use colored::Colorize;
+        writeln!(f, "Trends up to total = {}", self.max_total)?;
+        writeln!(f, "n0 trends:")?;
+        for t in &self.n0_trends {
+            if t.head() == LeftReturningHead::Cc {
+                writeln!(f, "  {}", format!("{t}").red().bold())?;
+            } else {
+                writeln!(f, "  {t}")?;
+            }
+        }
+        writeln!(f, "n1 trends:")?;
+        for t in &self.n1_trends {
+            if t.head() == LeftReturningHead::Cc {
+                writeln!(f, "  {}", format!("{t}").red().bold())?;
+            } else {
+                writeln!(f, "  {t}")?;
+            }
+        }
+        write!(f, "boundaries:")?;
+        for b in &self.n_boundaries {
+            write!(f, " {b}")?;
+        }
+        write!(f, "\nJoin trend late (n t):")?;
+        for (k, v) in &self.join_trend_late {
+            write!(f, " {k} {v},")?;
+        }
+        write!(f, "\nJoin trend latest m: {}", self.join_trend_latest_m)?;
+        write!(f, "\nMisc. outcomes:")?;
+        for (k, v) in &self.misc_outcomes {
+            write!(f, " {k} -> {v};")?;
+        }
+        write!(f, "\nn parity unknown:")?;
+        for (n, t) in &self.n_parity_unknown {
+            write!(f, " {n} ")?;
+            match t {
+                Some(TrendParity::N0) => write!(f, "N0")?,
+                Some(TrendParity::N1) => write!(f, "N1")?,
+                None => write!(f, "?")?,
+            }
+            write!(f, ",")?;
+        }
+        Ok(())
+    }
+}
+
+impl TrendMemo {
+    fn new() -> Self {
+        let mut n0_trends: Vec<OutcomeTrend> = Vec::new();
+        let mut n1_trends: Vec<OutcomeTrend> = Vec::new();
+
+        n0_trends.push(OutcomeTrend::Single { total: 2, 
+            outcome: calculate_right_tape_outcome(2, 0, HigherState::Right) });
+        n0_trends.push(OutcomeTrend::Single { total: 3, 
+            outcome: calculate_right_tape_outcome(3, 0, HigherState::Right) });
+        n1_trends.push(OutcomeTrend::Single { total: 3, 
+            outcome: calculate_right_tape_outcome(2, 1, HigherState::Right) });
+
+        Self {
+            max_total: 3,
+            misc_outcomes: HashMap::new(),
+            n0_trends, n1_trends,
+            n_boundaries: vec![0, 1],
+            n_parity_unknown: BTreeMap::new(),
+            join_trend_late: BTreeMap::new(),
+            join_trend_latest_m: 2,
+        }
+    }
+
+    fn increment(&mut self) {
+        let next_total = self.max_total + 1;
+        let n0_new = self.calculate_outcome(HigherState::Right, next_total, 0);
+        let n1_new = self.calculate_outcome(HigherState::Right, next_total - 1, 1);
+
+        update_trends(&mut self.n0_trends, next_total, n0_new);
+        update_trends(&mut self.n1_trends, next_total, n1_new);
+
+        let n_parity_to_check: Vec<RightExp> = self.n_parity_unknown.iter()
+            .filter_map(|(n_curr, maybe_parity)|
+                if maybe_parity.is_none() { Some(*n_curr) } else { None } )
+            .collect();
+        for n_curr in n_parity_to_check {
+            let m_curr = next_total - n_curr;
+            let outcome_new = self.calculate_outcome(HigherState::Right, m_curr, n_curr);
+            let updated_parity = if outcome_new == n0_new || outcome_new == n1_new {
+                self.join_trend_late.insert(n_curr, next_total);
+                // let m_curr = next_total - n_curr;
+                self.join_trend_latest_m = self.join_trend_latest_m.max(m_curr);
+                if outcome_new == n0_new {
+                    Some(TrendParity::N0)
+                } else {
+                    Some(TrendParity::N1)
+                }
+            } else {
+                self.misc_outcomes.insert(RightRuns { m: m_curr, n: n_curr }, outcome_new);
+                None
+            };
+            self.n_parity_unknown.insert(n_curr, updated_parity);
+        }
+
+        let n_curr = next_total - 2;
+        let m2_new = self.calculate_outcome(HigherState::Right, 2, n_curr);
+        let new_parity = if m2_new == n0_new {
+            Some(TrendParity::N0)
+        } else if m2_new == n1_new {
+            Some(TrendParity::N1)
+        } else {
+            self.misc_outcomes.insert(RightRuns { m: 2, n: n_curr }, m2_new);
+            None
+        };
+        self.n_parity_unknown.insert(n_curr, new_parity);
+
+        while let Some(entry) = self.n_parity_unknown.first_entry()
+            && let Some(parity_check) = entry.get()
+        {
+            let n_check = entry.key();
+            let curr_parity = if self.n_boundaries.len() % 2 == 0 { TrendParity::N1 } else { TrendParity::N0 };
+            if curr_parity != *parity_check {
+                self.n_boundaries.push(*n_check);
+            }
+            entry.remove_entry();
+        }
+
+        self.max_total += 1;
+    }
+
+    fn advance_to(&mut self, max_total: RightExp) {
+        while self.max_total < max_total {
+            self.increment();
+        }
+    }
+
+    fn find_parity_and_boundary_index(&self, n: RightExp) -> (Option<TrendParity>, Option<usize>) {
+        if let Some((n_p1, _)) = self.n_parity_unknown.first_key_value() && n >= *n_p1 {
+            for (n_p, maybe_p) in &self.n_parity_unknown {
+                if n == *n_p {
+                    return (*maybe_p, None);
+                }
+            }
+            unreachable!();
+        } else {
+            let index = 'find_index: {
+                for i in 0..self.n_boundaries.len()-1 {
+                    if self.n_boundaries[i] <= n && n < self.n_boundaries[i+1] {
+                        break 'find_index i;
+                    }
+                }
+                assert!(n >= self.n_boundaries[self.n_boundaries.len()-1]);
+                self.n_boundaries.len()-1
+            };
+            let parity = if index % 2 == 0 { TrendParity::N0 } else { TrendParity::N1 };
+            (Some(parity), Some(index))
+        }
+    }
+
+    fn fetch_existing_outcome(&mut self, state: HigherState, m: RightExp, n: RightExp) -> Option<RightTapeOutcome> {
+        use LeftReturningHead as LH;
+        if state == HigherState::RightA {
+            if n == 0 {
+                return Some(RightTapeOutcome { head: LH::C, m: 0, n: m });
+            } else {
+                return Some(RightTapeOutcome { head: LH::Left, m: m+1, n: n-1 });
+            }
+        }
+
+        assert!(state == HigherState::Right);
+        if m == 0 {
+            return Some(RightTapeOutcome { head: LH::Left, m: 0, n });
+        } else if m == 1 {
+            if n == 0 {
+                return Some(RightTapeOutcome { head: LH::C, m: 0, n: 1 });
+            } else {
+                return Some(RightTapeOutcome { head: LH::Left, m: 2, n: n-1 });
+            }
+        }
+        if m+n > self.max_total {
+            return None;
+        }
+        if let Some(outcome) = self.misc_outcomes.get(&RightRuns { m, n }) {
+            return Some(*outcome);
+        }
+
+        let (parity, _) = self.find_parity_and_boundary_index(n);
+        match parity {
+            Some(TrendParity::N0) => Some(get_outcome_from_trends(&self.n0_trends, m+n)),
+            Some(TrendParity::N1) => Some(get_outcome_from_trends(&self.n1_trends, m+n)),
+            None => None,
+        }
+    }
+
+    fn calculate_outcome(&mut self, state: HigherState, m: RightExp, n: RightExp) -> RightTapeOutcome {
+        if let Some(outcome) = self.fetch_existing_outcome(state, m, n) {
+            return outcome;
+        }
+
+        let mut sim = CachedSimulator::new_inner(m, n);
+        // println!("  New inner: {m}, {n}");
+        sim.basic_step();
+        // println!("  {sim}");
+        loop {
+            if let Some(outcome) = sim.try_parse_outcome() {
+                // println!("  end inner {m} {n}");
+                return outcome;
+            } else {
+                sim.step_with_trend_memo(self);
+                // println!("  {sim}");
+            }
+        }
+    }
+
+    fn try_get_C_U_Right_Uc_info(&mut self, m_in: RightExp, n_in: RightExp, parity: TrendParity, b_idx: usize) -> Option<RightRuns> {
+        let trends = match parity {
+            TrendParity::N0 => &mut self.n0_trends,
+            TrendParity::N1 => &mut self.n1_trends,
+        };
+        let t_in = m_in + n_in;
+        let curr_trend = 'search: {
+            for t in trends.iter_mut().rev() {
+                match t {
+                    OutcomeTrend::Single { .. } => (),
+                    OutcomeTrend::Linear(t_linear) => {
+                        if t_linear.total_range.contains(&t_in) {
+                            break 'search t_linear;
+                        }
+                    }
+                }
+            }
+            return None;
+        };
+
+        // various conditions to enter this acceleration
+        if curr_trend.n_step != -1 || curr_trend.head != LeftReturningHead::Uc {
+            return None;
+        }
+        let t1 = t_in + 1;
+        if !curr_trend.total_range.contains(&t1) {
+            return None;
+        }
+        if curr_trend.extrapolate_outcome(t1) != Some(RightTapeOutcome { head: LeftReturningHead::Uc, m: m_in, n: n_in }) {
+            return None;
+        }
+        if b_idx >= self.n_boundaries.len()-1 {
+            return None;
+        }
+
+        let total_exit = if let Some(t) = curr_trend.total_exit && t < t_in {
+            t
+        } else {
+            // case 1
+            let total_exit1 = *curr_trend.total_range.start();
+            let Some(RightTapeOutcome { head: LeftReturningHead::Uc, 
+                m: m_exit1, n: n_exit1 }) = curr_trend.extrapolate_outcome(total_exit1 + 1)
+                else { return None };
+            assert!(m_exit1 + n_exit1 == total_exit1);
+            assert!(n_exit1 == curr_trend.n_start-1);
+
+            // consider case 2
+            let total_exit12 = if curr_trend.n_start >= self.n_boundaries[b_idx+1] {
+                // n_start - i = n_boundaries[b_idx+1]
+                let i = curr_trend.n_start - self.n_boundaries[b_idx+1];
+                let total_exit2 = curr_trend.total_range.start() + i;
+                assert!(total_exit2 >= total_exit1);
+                total_exit2
+            } else {
+                total_exit1
+            };
+
+            // consider case 3
+            let mut total_exit123 = total_exit12;
+            if m_exit1 < self.join_trend_latest_m {
+                // inputs, not outputs
+                let mut m_test = m_exit1;
+                let mut n_test = n_exit1;
+                while m_test < self.join_trend_latest_m && n_test >= self.n_boundaries[b_idx] && m_test + n_test <= self.max_total {
+                    if self.misc_outcomes.contains_key(&RightRuns { m: m_test, n: n_test }) {
+                        total_exit123 = total_exit123.max(m_test + n_test);
+                    }
+                    m_test += 2;
+                    n_test -= 1;
+                }
+            }
+            curr_trend.total_exit = Some(total_exit123);
+            total_exit123
+        };
+
+        let Some(RightTapeOutcome { head: LeftReturningHead::Uc, m: m_out, n: n_out }) = curr_trend.extrapolate_outcome(total_exit)
+            else { unreachable!() };
+        
+        Some(RightRuns { m: m_out, n: n_out })
+    }
+
+    fn print_Cc_trends(&self) {
+        println!("Trends up to total = {}", self.max_total);
+        println!("n0 trends:");
+        for t in &self.n0_trends {
+            if t.head() == LeftReturningHead::Cc {
+                println!("  {}", format!("{t}"));
+            }
+        }
+        println!("n1 trends:");
+        for t in &self.n1_trends {
+            if t.head() == LeftReturningHead::Cc {
+                println!("  {}", format!("{t}"));
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum TrendParity { N0, N1 }
 
 #[allow(non_snake_case)]
 struct CachedSimulator {
@@ -489,9 +1003,10 @@ struct CachedSimulator {
 impl CachedSimulator {
     pub fn new_outer() -> Self {
         use BlockSymbol::*;
+        use RunSymbolType::*;
 
         Self {
-            left_tape: vec![L, D],
+            left_tape: vec![L, Run(D, 1)],
             right_W: 1,
             right_V: 0,
             state: HigherState::Right,
@@ -509,30 +1024,129 @@ impl CachedSimulator {
         }
     }
 
-    pub fn step(&mut self, memo: &mut Memo) {
-        if self.state == HigherState::Right || self.state == HigherState::RightA {
+    /// C^k U <c m, n --> C^k-s U <c m+2s, n-s where s = min(k, n)
+    fn accelerate_C_U_LeftC(&mut self) -> bool {
+        use BlockSymbol as B;
+        use RunSymbolType::*;
+
+        if self.state == HigherState::LeftC &&
+            let [.., B::Run(C, k), B::U] = self.left_tape.as_slice() && self.right_V >= 1 {
+            // C^k U <c m, n --> C^k-s U <c m+2s, n-s where s = min(k, n)
+            assert!(*k > 0);
+            let s = (*k as RightExp).min(self.right_V);
+            let k_new = k - (s as Exp);
+
+            self.left_tape.pop();
+            self.left_tape.pop();
+            if k_new > 0 {
+                add_or_merge_run(&mut self.left_tape, C, k_new);
+            }
+            self.left_tape.push(B::U);
+
+            self.right_W += 2*s;
+            self.right_V -= s;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// C^k U > m, n --> C^k+s U > m-2s, n+s. Only applicable under some circumstances and value
+    /// of s depends on several things.
+    fn accelerate_C_U_Right_Uc(&mut self, memo: &mut TrendMemo, outcome_head: LeftReturningHead) -> bool {
+        if !(outcome_head == LeftReturningHead::Uc && self.state == HigherState::Right
+            && self.left_tape.last() == Some(&BlockSymbol::U))
+        {
+            return false;
+        }
+        let (Some(parity), Some(b_idx)) = memo.find_parity_and_boundary_index(self.right_V)
+            else { return false; };
+        
+        if let Some(RightRuns { m: m_out, n: n_out }) = memo.try_get_C_U_Right_Uc_info(self.right_W, self.right_V, parity, b_idx) {
+            let s = n_out - self.right_V;
+            self.right_W = m_out;
+            self.right_V = n_out;
+            self.left_tape.pop();
+            add_or_merge_run(&mut self.left_tape, RunSymbolType::C, s as Exp);
+            self.left_tape.push(BlockSymbol::U);
+            return true;
+        }
+        false
+    }
+
+    pub fn step_with_naive_memo(&mut self, memo: &mut NaiveMemo) {
+        use BlockSymbol as B;
+        use RunSymbolType::*;
+
+        if self.accelerate_C_U_LeftC() {
+            self.self_steps += 1;
+        } else if self.state == HigherState::Right || self.state == HigherState::RightA {
             let RightTapeOutcome { head, m: m_out, n: n_out } = memo.get_or_calculate(self.state, self.right_W, self.right_V);
             self.right_W = m_out;
             self.right_V = n_out;
 
             use LeftReturningHead::*;
-            use BlockSymbol as B;
             match head {
                 Left => self.state = HigherState::Left,
                 C => self.state = HigherState::LeftC,
-                U => {
+                Uc => {
                     self.state = HigherState::LeftC;
                     self.left_tape.push(B::U);
                 },
-                QP => {
+                Cc => {
                     self.state = HigherState::LeftC;
-                    self.left_tape.extend_from_slice(&[B::Q, B::P]);
+                    add_or_merge_run(&mut self.left_tape, RunSymbolType::C, 1);
                 }
             }
             self.self_steps += 1;
         } else {
             self.basic_step();
         }
+    }
+
+    pub fn step_with_trend_memo(&mut self, memo: &mut TrendMemo) {
+        use BlockSymbol as B;
+        use RunSymbolType::*;
+
+        if self.accelerate_C_U_LeftC() {
+            self.self_steps += 1;
+        } else if (self.state == HigherState::Right || self.state == HigherState::RightA)
+            && let Some(RightTapeOutcome { head, m: m_out, n: n_out }) = 
+            memo.fetch_existing_outcome(self.state, self.right_W, self.right_V)
+        {
+            if self.accelerate_C_U_Right_Uc(memo, head) {
+                self.self_steps += 1;
+            } else {
+                self.right_W = m_out;
+                self.right_V = n_out;
+
+                use LeftReturningHead::*;
+                match head {
+                    Left => self.state = HigherState::Left,
+                    C => self.state = HigherState::LeftC,
+                    Uc => {
+                        self.state = HigherState::LeftC;
+                        self.left_tape.push(B::U);
+                    },
+                    Cc => {
+                        self.state = HigherState::LeftC;
+                        add_or_merge_run(&mut self.left_tape, RunSymbolType::C, 1);
+                    }
+                }
+                self.self_steps += 1;
+            }
+        } else {
+            self.basic_step();
+        }
+    }
+
+    pub fn step_with_incrementing_trend_memo(&mut self, memo: &mut TrendMemo) {
+        use BlockSymbol as B;
+        use RunSymbolType::*;
+
+        let curr_total = self.right_W + self.right_V;
+        memo.advance_to(curr_total);
+        self.step_with_trend_memo(memo);
     }
 
     fn basic_step(&mut self) {
@@ -577,12 +1191,12 @@ impl CachedSimulator {
             (Left, [.., U], _, _) => {
                 self.state = Right;
                 self.left_tape.pop();
-                self.left_tape.push(D);
+                add_or_merge_run(&mut self.left_tape, D, 1u128);
             }
             // D < -> W a>
-            (Left, [.., D], _, _) => {
+            (Left, [.., Run(D, _)], _, _) => {
                 self.state = RightA;
-                self.left_tape.pop();
+                decrement_run(&mut self.left_tape, D);
                 add_or_merge_run(&mut self.left_tape, W, 1u128);
             }
             // W < -> < W
@@ -594,34 +1208,17 @@ impl CachedSimulator {
             // L < -> L D >
             (Left, [.., L], _, _) => {
                 self.state = Right;
-                self.left_tape.push(D);
+                self.left_tape.push(Run(D, 1u128));
             }
-            // L P < -> L P U >
-            (Left, [.., L, P], _, _) => {
+            // L1 < -> L1 > W
+            (Left, [.., L1], _, _) => {
                 self.state = Right;
-                self.left_tape.push(U);
+                self.right_W += 1;
             }
-            // W P < -> P < W
-            (Left, [.., Run(W, exp), P], _, _) => {
-                let n = *exp;
-                self.left_tape.pop();
-                self.left_tape.pop();
-                self.left_tape.push(P);
-                self.right_W += n as RightExp;
-            }
-            // D P < -> P W a>
-            (Left, [.., D, P], _, _) => {
-                self.state = RightA;
-                self.left_tape.pop();
-                self.left_tape.pop();
-                self.left_tape.push(P);
-                self.left_tape.push(Run(W, 1u128));
-            }
-            // Q P < -> U <c
-            (Left, [.., Q, P], _, _) => {
+            // C < -> U <c
+            (Left, [.., Run(C, _)], _, _) => {
                 self.state = LeftC;
-                self.left_tape.pop();
-                self.left_tape.pop();
+                decrement_run(&mut self.left_tape, C);
                 self.left_tape.push(U);
             }
             // W <c -> <c V
@@ -632,67 +1229,63 @@ impl CachedSimulator {
                 self.right_V += n as RightExp;
             }
             // D <c -> < W
-            (LeftC, [.., D], _, _) => {
+            (LeftC, [.., Run(D, _)], _, _) => {
                 self.state = Left;
+                decrement_run(&mut self.left_tape, D);
+                self.right_W += 1;
+            }
+            // L1 U <c -> L1 a> W
+            (LeftC, [.., L1, U], _, _) => {
+                self.state = RightA;
                 self.left_tape.pop();
                 self.right_W += 1;
             }
-            // P U <c -> P W a>
-            (LeftC, [.., P, U], _, _) => {
-                self.state = RightA;
-                self.left_tape.pop();
-                self.left_tape.push(Run(W, 1u128));
-            }
-            // W U <c -> W W a>
+            // W U <c -> W a> W
             (LeftC, [.., Run(W, _), U], _, _) => {
                 self.state = RightA;
                 self.left_tape.pop();
-                self.left_tape.push(Run(W, 1u128));
+                self.right_W += 1;
             }
-            // D U <c -> W U >
-            (LeftC, [.., D, U], _, _) => {
+            // D U <c -> W > W
+            (LeftC, [.., Run(D, _), U], _, _) => {
                 self.state = Right;
                 self.left_tape.pop();
-                self.left_tape.pop();
+                decrement_run(&mut self.left_tape, D);
                 add_or_merge_run(&mut self.left_tape, W, 1u128);
-                self.left_tape.push(U);
+                self.right_W += 1;
             }
-            // P U U <c -> D P U >
-            (LeftC, [.., P, U, U], _, _) => {
-                self.state = Right;
-                self.left_tape.pop();
-                self.left_tape.pop();
-                self.left_tape.pop();
-                self.left_tape.push(D);
-                self.left_tape.push(P);
-                self.left_tape.push(U);
-            }
-            // U U <c -> Q P U >
+            // U U <c -> C > W
             (LeftC, [.., U, U], _, _) => {
                 self.state = Right;
                 self.left_tape.pop();
                 self.left_tape.pop();
-                self.left_tape.push(Q);
-                self.left_tape.push(P);
-                self.left_tape.push(U);
+                add_or_merge_run(&mut self.left_tape, C, 1u128);
+                self.right_W += 1;
             }
-            // L <c -> L P U >
+            // C U <c -> C a> W
+            (LeftC, [.., Run(C, _), U], _, _) => {
+                self.state = RightA;
+                self.left_tape.pop();
+                self.right_W += 1;
+            }
+            // L <c -> L1 > W
             (LeftC, [.., L], _, _) => {
                 self.state = Right;
-                self.left_tape.push(P);
-                self.left_tape.push(U);
+                self.left_tape.pop();
+                self.left_tape.push(L1);
+                self.right_W += 1;
             }
-            // L P <c -> L D W W >
-            (LeftC, [.., L, P], _, _) => {
+            // L1 <c -> L D W W >
+            (LeftC, [.., L1], _, _) => {
                 self.state = Right;
                 self.left_tape.pop();
-                self.left_tape.push(D);
+                self.left_tape.push(L);
+                self.left_tape.push(Run(D, 1u128));
                 self.left_tape.push(Run(W, 2u128));
             }
-            // U Q P <c -> < W V
-            (LeftC, [.., U, Q, P], _, _) => {
+            // U C <c -> < W V
+            (LeftC, [.., U, Run(C, 1)], _, _) => {
                 self.state = Left;
-                self.left_tape.pop();
                 self.left_tape.pop();
                 self.left_tape.pop();
                 assert!(self.right_W == 0);
@@ -710,8 +1303,8 @@ impl CachedSimulator {
         let head = match (&self.state, self.left_tape.as_slice()) {
             (Left, []) => LeftReturningHead::Left,
             (LeftC, []) => LeftReturningHead::C,
-            (LeftC, [U]) => LeftReturningHead::U,
-            (LeftC, [Q, P]) => LeftReturningHead::QP,
+            (LeftC, [U]) => LeftReturningHead::Uc,
+            (LeftC, [Run(RunSymbolType::C, 1)]) => LeftReturningHead::Cc,
             _ => return None,
         };
         Some(RightTapeOutcome { head, m: self.right_W, n: self.right_V })
@@ -749,50 +1342,61 @@ impl fmt::Display for CachedSimulator {
 }
 
 fn main() {
-    let mut sim = BlockSimulator::new();
-    // let mut sim = CachedSimulator::new_outer();
-    println!("{}", sim);
+    // let mut sim = BlockSimulator::new();
+    // // let mut sim = CachedSimulator::new_outer();
+    // println!("{}", sim);
     // let max_steps = 100000000000u64;
-    let max_steps = 367832672 + 1000000000;
-    // let max_steps = 1000;
-    // let max_steps = 10000;
-    for k in 1..=max_steps {
-        let res = sim.step();
-        // sim.basic_step();
-        if k % 100000000 == 0 {
-        // if sim.left_tape.len() < 5 {
-            println!("{}", sim);
-        }
-        // if res.is_err() {
-        //     println!("{:?}", res);
-        //     break;
-        // }
-        {
-            use BlockSymbol::*;
-            if matches!(sim.left_tape.as_slice(), &[L, D, D, D, D, D, D, D, P, U, U]) {
-                println!("{}", sim);
-            }
-        }
-    }
-    println!();
-    println!("{}", sim);
+    // // let max_steps = 367832672 + 1000000000;
+    // // let max_steps = 1000;
+    // // let max_steps = 10000;
+    // for k in 1..=max_steps {
+    //     let res = sim.step();
+    //     // sim.basic_step();
+    //     if k % 100000000 == 0 {
+    //     // if sim.left_tape.len() < 3 {
+    //         println!("{}", sim);
+    //     }
+    //     // if res.is_err() {
+    //     //     println!("{:?}", res);
+    //     //     break;
+    //     // }
+    // //     {
+    // //         use BlockSymbol::*;
+    // //         use RunSymbolType::*;
+    // //         if matches!(sim.left_tape.as_slice(), &[L, Run(D, 7), P, U, U]) {
+    // //             println!("{}", sim);
+    // //         }
+    // //     }
+    // }
+    // println!();
+    // println!("{}", sim);
 
-    // let mut memo = Memo::new();
+    // let mut memo = NaiveMemo::new();
     // let mut sim = CachedSimulator::new_outer();
     // println!("{}", sim);
-    // // let max_steps = 100000000000u64;
     // let max_steps = 1000;
-    // // let max_steps = 100000;
+    // // let max_steps = 10000000;
     // for k in 1..=max_steps {
-    //     sim.step(&mut memo);
-    //     // if k % 100000000 == 0 {
-    //     // if sim.left_tape.len() < 5 {
+    //     sim.step_with_naive_memo(&mut memo);
+    //     // if k % 10000 == 0 {
+    //     // if sim.left_tape.len() < 4 || matches!(sim.left_tape.as_slice(), &[.., BlockSymbol::Q, BlockSymbol::P]) {
     //         println!("{}", sim);
     //     // }
     // }
     // println!();
     // println!("{}", sim);
     // println!("memo size: {}", memo.0.len());
+
+    // let mut memo = NaiveMemo::new();
+    // for m in 4..27 {
+    //     memo.show_sim(m, 0);
+    //     println!();
+    // }
+    // let total = 9;
+    // for n in 0..=9 {
+    //     memo.show_sim(total-n, n);
+    // }
+    // memo.show_sim(2,4);
 
     // for n0 in 0..=5 {
     //     for m0 in 0..=30-n0 {
@@ -802,12 +1406,142 @@ fn main() {
     //     println!();
     // }
 
-    // for total in 0..40 {
+    // let mut memo = NaiveMemo::new();
+    // for total in 0..6 {
     //     for n0 in 0..=total {
     //         let m0 = total - n0;
     //         let outcome = calculate_right_tape_outcome(m0, n0, HigherState::Right);
+    //         let outcome2 = memo.get_or_calculate(HigherState::Right, m0 as RightExp, n0 as RightExp);
+    //         assert_eq!(outcome, outcome2);
     //         println!("> {m0:>2},{n0:>2} --> {outcome}");
     //     }
     //     println!();
     // }
+
+    // let mut memo = NaiveMemo::new();
+    // for total in 0..=30 { // 200
+    //     use colored::*;
+    //     print!("{total:>3} ");
+    //     for n0 in 0..=total {
+    //         let m0 = total - n0;
+    //         let outcome = memo.get_or_calculate(HigherState::Right, m0, n0);
+    //         let s0 = match outcome.head {
+    //             LeftReturningHead::Left => "<",
+    //             LeftReturningHead::Uc => "U",
+    //             LeftReturningHead::C => "c",
+    //             LeftReturningHead::Cc => "C",
+    //         };
+    //         // let s = format!("{s0:>2}");
+    //         let s = format!("{s0:>2}{:>2},{:>2}", outcome.m, outcome.n);
+
+    //         let is_A = total >= 3 && outcome == memo.get_or_calculate(HigherState::Right, total, 0);
+    //         let is_B = total >= 3 && outcome == memo.get_or_calculate(HigherState::Right, total-1, 1);
+
+    //         let (next_is_A, next_is_B) = {
+    //             let possible_next_outcome = memo.get_or_calculate(HigherState::Right, outcome.m, outcome.n);
+    //             let possible_next_total = outcome.m + outcome.n;
+    //             if possible_next_total >= 3 {
+    //                 (
+    //                     possible_next_outcome == memo.get_or_calculate(HigherState::Right, possible_next_total, 0),
+    //                     possible_next_outcome == memo.get_or_calculate(HigherState::Right, possible_next_total-1, 1),
+    //                 )
+    //             } else {
+    //                 (false, false)
+    //             }
+    //         };
+    //         if is_A {
+    //             if next_is_A {
+    //                 print!("{}", s.blue().bold());
+    //             } else {
+    //                 print!("{}", s.blue());
+    //             }
+    //         } else if is_B {
+    //             if next_is_A {
+    //                 print!("{}", s.green().bold());
+    //             } else {
+    //                 print!("{}", s.green());
+    //             }
+    //         // if outcome.m == m0 && outcome.n == n0 {
+    //         //     print!("{}", s.red().bold());
+    //         // } else if outcome.n == n0 {
+    //         //     print!("{}", s.green().bold());
+    //         // } else if outcome.n < n0 {
+    //         //     print!("{}", s.blue());
+    //         } else {
+    //             print!("{}", s);
+    //         }
+    //     }
+    //     println!();
+    // }
+    // println!();
+
+    // let mut memo = TrendMemo::new();
+    // println!("{}\n", memo);
+    // while memo.max_total < 30 {
+    //     memo.increment();
+    //     println!("{}\n", memo);
+    // }
+    // let outcome = memo.fetch_existing_outcome(HigherState::Right, 17, 5).unwrap();
+    // println!("{outcome}");
+
+    let mut memo = TrendMemo::new();
+    let mut sim = CachedSimulator::new_outer();
+    println!("{}", sim);
+    let max_steps = 150;
+    // let max_steps = 8800;
+    // let max_steps = 5300;
+    // let max_steps = 10000000;
+    for k in 1..=max_steps {
+        sim.step_with_incrementing_trend_memo(&mut memo);
+        // if k % 10000 == 0 || k + 1000 >= max_steps {
+        // if sim.left_tape.len() < 4 || matches!(sim.left_tape.as_slice(), &[.., BlockSymbol::Q, BlockSymbol::P]) {
+            println!("{}", sim);
+        // }
+    }
+    println!();
+    println!("{}", sim);
+    println!("memo sizes: {} {} {} {} {}", memo.n0_trends.len(), memo.n1_trends.len(), memo.join_trend_late.len(), memo.misc_outcomes.len(), memo.n_parity_unknown.len());
+    print!("boundaries:");
+    for b in &memo.n_boundaries {
+        print!(" {b}");
+    }
+    println!();
+    memo.print_Cc_trends();
+
+    // let mut naive_memo = NaiveMemo::new();
+    // let mut trend_memo = TrendMemo::new();
+    // let max_total = 4500; //200
+    // // trend_memo.advance_to(max_total);
+    // for total in 0..=max_total {
+    //     println!("total = {total}");
+    //     trend_memo.advance_to(total);
+    //     for n0 in 0..=total {
+    //         let m0 = total - n0;
+    //         let outcome = naive_memo.get_or_calculate(HigherState::Right, m0, n0);
+    //         let outcome2 = trend_memo.fetch_existing_outcome(HigherState::Right, m0, n0).unwrap();
+    //         assert_eq!(outcome, outcome2);
+    //         // println!("> {m0:>2},{n0:>2} --> {outcome}");
+    //     }
+    //     // println!();
+    // }
+    // println!("{trend_memo}");
+
+    // dbg!(trend_memo.misc_outcomes.get(&RightRuns { m: 2, n: 9 }));
+    // dbg!(trend_memo.misc_outcomes.get(&RightRuns { m: 6, n: 19 }));
+    // dbg!(trend_memo.misc_outcomes.get(&RightRuns { m: 6, n: 43 }));
+    // dbg!(trend_memo.misc_outcomes.get(&RightRuns { m: 75, n: 9 }));
+    // dbg!(trend_memo.misc_outcomes.get(&RightRuns { m: 10, n: 89 }));
+}
+
+#[test]
+fn test_outcomes() {
+    let mut memo = NaiveMemo::new();
+    for total in 0..22 {
+        for n0 in 0..=total {
+            let m0 = total - n0;
+            let outcome = calculate_right_tape_outcome(m0, n0, HigherState::Right);
+            let outcome2 = memo.get_or_calculate(HigherState::Right, m0 as RightExp, n0 as RightExp);
+            assert_eq!(outcome, outcome2);
+        }
+    }
 }

@@ -11,9 +11,11 @@ W(exp) = 11
 U = 00
 V(exp) = 01
 D(exp) = 10
+C(exp) = 01
 P = 1
 Q = 0
 L = ^
+L1 = ^1
 R = $
 
 [rules]
@@ -30,21 +32,19 @@ D < -> W a>
 W < -> < W
 
 L < -> L D >
-L P < -> L P U >
+L1 < -> L1 > W
 
-W P < -> P < W
-D P < -> P W a>
-Q P < -> U <c
+C < -> U <c
 
 W <c -> <c V
 D <c -> < W
 
-P U <c -> P W a>
-W U <c -> W W a>
-D U <c -> W U >
-P U U <c -> D P U >
-U U <c -> Q P U >
+L1 U <c -> L1 a> W
+W U <c -> W a> W
+D U <c -> W > W
+U U <c -> C > W
+C U <c -> C a> W
 
-L <c -> L P U >
-L P <c -> L D W W >
-U Q P <c -> < W V
+L <c -> L1 > W
+L1 <c -> L D W W >
+U C <c -> < W V
