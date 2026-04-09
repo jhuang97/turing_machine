@@ -484,6 +484,43 @@ pub fn reduce_config(config: &DirectedHeadConfig) -> DirectedHeadConfig {
     config
 }
 
+pub fn run_to_undefined(starting_config: DirectedHeadConfig, tm: &TuringMachine, verbose: CheckerVerbosity) -> Result<usize, DirectedHeadStepResult> {
+    let mut sim = DirectedHeadSimulator::new(&starting_config, tm);
+
+    if verbose as isize >= 2 {
+        println!();
+    }
+    if verbose as isize >= 1 {
+        print!("{}: {} ", &sim.time, &sim.config);
+    }
+    if verbose as isize >= 2 {
+        println!();
+    }
+
+    loop {
+        let res = sim.step();
+        
+        if verbose as isize >= 2 {
+            println!("{}: {} ", &sim.time, &sim.config);
+        }
+        
+        if res == DirectedHeadStepResult::Undefined {
+            if verbose as isize == 1 {
+                println!("--> {}: {} Undefined", &sim.time, &sim.config);
+            }
+            return Ok(sim.time);
+        } else if res != DirectedHeadStepResult::Success {
+            if verbose as isize == 1 {
+                println!("--> {}: {} ", &sim.time, &sim.config);
+            }
+            if verbose as isize >= 2 {
+                println!("{:?}", res);
+            }
+            return Err(res);
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum CheckerVerbosity {
     Off = 0,
