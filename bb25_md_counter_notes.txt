@@ -190,6 +190,134 @@ W < X^n+2 R
 U < C1 P X^n+1 R
 +1
 
+try longitudinal analysis...
+probably would want to run-length-encode V and A for any sort of simulation
+
+heads:
+A = [<^-1 >] = [<A^-1 A>]
+s = [<^-1 w>] = [<A^-1 0B>]
+
+rules:
+A V -> V A A
+A X -> C1 P
+A C -> C1
+A C1 -> C2
+A C2 -> C A
+A P -> s
+A R -> (blocks and rules not closed)
+
+s V -> V A s
+s X -> X s
+s C -> C P A
+s C1 -> V s A
+s C2 -> V s
+s P -> V A A
+s R -> X R
+
+start:
+s^inf V X R
+
+proofs:
+A V
+<^-1 > V
+<^-1 U >
+<^-1 U < <^-1 >
+<^-1 U < A
+<^-1 W > A
+<^-1 W < A A
+<^-1 < V A A
+V A A
+
+A C2
+<^-1 F >
+<^-1 F < A
+<^-1 < C A
+C A
+
+A P
+<^-1 > P
+<^-1 w> 
+s
+
+s V
+<^-1 w> V
+<^-1 U w>
+<^-1 U < <^-1 w>
+<^-1 U < s
+<^-1 W > s
+<^-1 W < A s
+<^-1 < V A s
+V A s
+
+s X
+<^-1 w> X
+<^-1 Y w>
+<^-1 Y < s
+<^-1 < X s
+X s
+
+s C
+<^-1 w> C
+<^-1 F Q >
+<^-1 F Q < A
+<^-1 F < P A
+<^-1 < C P A
+C P A
+
+s C1
+<^-1 w> C1
+<^-1 U Q >
+<^-1 U Q < A
+<^-1 U < P A
+<^-1 W > P A
+<^-1 W w> A
+<^-1 W < s A
+<^-1 < V s A
+V s A
+
+s C2
+<^-1 w> C2
+<^-1 W w>
+<^-1 W < s
+<^-1 < V s
+V s
+
+s P
+<^-1 w> P
+<^-1 U >
+<^-1 U < A
+<^-1 W > A
+<^-1 W < A A
+<^-1 < V A A
+V A A
+
+proof of start?
+L w> V X R
+L < <^-1 w> V X R
+L < s V X R
+L w> s V X R
+L < <^-1 w> s V X R
+L < s^2 V X R
+...
+s^inf V X R
+
+s^inf V
+(V^-1 s V)^inf
+(V^-1 V A s)^inf
+(A s)^inf
+
+(A s)^inf V
+(V^-1 A s V)^inf
+(V^-1 A V A s)^inf
+(V^-1 V A^3 s)^inf
+(A^3 s)^inf
+
+(A^k s)^inf V
+(V^-1 A^k s V)^inf
+(V^-1 A^k V A s)^inf
+(V^-1 V A^2k A s)^inf
+(A^(2k+1) s)^inf
+
 Notes on 
 1RB2LA0RB1LA3LB_1LA3LB1RA4RA---
 ===============================
