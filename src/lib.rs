@@ -426,6 +426,16 @@ impl<'a> DirectedHeadSimulator<'a> {
         }
     }
 
+    pub fn new_with_time(config: &DirectedHeadConfig, tm: &'a TuringMachine, time_limit: usize) -> Self {
+        DirectedHeadSimulator {
+            config: config.clone(),
+            tm,
+            time: 0,
+            undefined: false,
+            time_limit,
+        }
+    }
+
     pub fn step(&mut self) -> DirectedHeadStepResult {
         if self.undefined {
             return DirectedHeadStepResult::Undefined;

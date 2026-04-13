@@ -1,0 +1,20 @@
+tm = 1RB3RB1LA2LA3RA_1LB2RA4RB0LA---
+
+[metastates]
+RightA  A>   A>
+RightB  B>   B>
+Left    <  <A
+LeftB  <B  <B
+
+[blocks]
+Dummy(exp) = 1
+RB = 11221111211211111111222222210111$
+R29 = 21111211211111111222222210111$
+N = 1221222
+N2 = 211
+N3 = 2222
+
+[rules]
+B> RB -> < N RB
+A> RB -> < N2 R29
+B> R29 -> < N3 RB
