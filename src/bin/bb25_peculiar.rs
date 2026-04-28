@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, fmt, usize};
+use std::{collections::{HashSet, VecDeque}, fmt, usize};
 
 use turing_machine::{DirectedHeadConfig, DirectedHeadSimulator, DirectedHeadStepResult, GeneralSymbol, State, Symbol, TMDirection, TuringMachine};
 
@@ -49,7 +49,7 @@ const fn parse_heads<const LEN: usize>(bytes: &[u8]) -> [LongSymbol; LEN] {
 }
 
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum LongSymbol {
     Ha, Hb, Hab,
     S1, S2, RB, R29
@@ -170,7 +170,7 @@ impl LongSim {
             },
             // a RB -> 211 R29
             (Some(Ha), Some(RB)) => {
-                self.debug_print();
+                // self.debug_print();
                 self.near_tape.pop_back();
                 self.end_tape.pop();
                 self.end_tape.extend_from_slice(&[R29, S1, S1, S2]);
@@ -219,7 +219,7 @@ impl fmt::Display for LongSim {
         self.head_steps.fmt(f)?;
         write!(f, ": (...) ")?;
 
-        const LEFT_PRINT_THRESHOLD: usize = 90;
+        const LEFT_PRINT_THRESHOLD: usize = 70;
         let l_th = LEFT_PRINT_THRESHOLD / 2;
         if self.near_tape.len() <= LEFT_PRINT_THRESHOLD {
             for symb in &self.near_tape {
@@ -257,19 +257,77 @@ impl fmt::Display for LongSim {
     }
 }
 
-fn main() {
-    // measure_left_side_heads();
-
+fn investigate_R29() {
     let mut sim = LongSim::new();
     println!("{sim}");
 
-    let max_steps = 1000000000000u64;
+    // let max_steps = 1000000000000u64;
     //                    516000000000
-    // let max_steps = 1800;
+    let max_steps = 10000000000u64;
+    let mut gas = 0;
     for i in 0..=max_steps {
-        if sim.step() && sim.head_steps % 1000000000 == 0
+        if sim.step() // && sim.head_steps % 1000000000 == 0
         {
-            println!("{sim}");
+            if matches!((sim.near_tape.back(), sim.end_tape.as_slice()), (Some(LongSymbol::Ha), [LongSymbol::RB])) {
+                gas = 1000;
+            }
+            if gas > 0 && sim.end_tape.len() < 50 {
+                if gas < 1000 {
+                    println!("{sim}");
+                } else {
+                    println!();
+                }
+                if gas < 1000 && sim.end_tape.first() == Some(&LongSymbol::RB) {
+                    gas = 0;
+                } else {
+                    gas -= 1;
+                }
+            }
         }
     }
+}
+
+fn investigate_R32plus7() {
+    let mut sim = LongSim::new();
+    println!("{sim}");
+    let mut rconf: HashSet<Vec<LongSymbol>> = HashSet::new();
+
+    let max_steps = 2000000000u64;
+    // let max_steps = 300000000000u64;
+    for i in 0..=max_steps {
+        if sim.step()
+            // && (sim.end_tape.len() == 8 || sim.end_tape.len() == 1)
+        {
+            if ((sim.end_tape.first() == Some(&LongSymbol::RB) && sim.end_tape.len() == 8) ||
+                (sim.end_tape.first() == Some(&LongSymbol::R29) && sim.end_tape.len() == 4)) && rconf.insert(sim.end_tape.clone()) {
+                println!("{sim}");
+            } else if sim.head_steps % 100000000 == 0 {
+                println!("{sim}");
+            }
+        }
+    }
+}
+
+fn main() {
+    // measure_left_side_heads();
+
+    // let mut sim = LongSim::new();
+    // println!("{sim}");
+
+    // // let max_steps = 1000000000000u64;
+    // //                    516000000000
+    // let max_steps = 300000;
+    // // let max_steps = 1800;
+    // for i in 0..=max_steps {
+    //     if sim.step()
+    //         // && sim.end_tape.len() <= 8
+    //         && (sim.end_tape.len() == 8 || sim.end_tape.len() == 1)
+    //     // && sim.head_steps % 1000000000 == 0
+    //     {
+    //         println!("{sim}");
+    //     }
+    // }
+
+    // investigate_R29();
+    investigate_R32plus7();
 }
