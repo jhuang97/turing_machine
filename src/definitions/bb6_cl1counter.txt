@@ -40,8 +40,8 @@ W <c -> <c V
 D <c -> < W
 
 L1 U <c -> L1 a> W
-W U <c -> W a> W
 D U <c -> W > W
+W U <c -> W a> W
 U U <c -> C > W
 C U <c -> C a> W
 

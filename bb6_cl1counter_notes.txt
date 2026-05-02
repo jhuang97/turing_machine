@@ -424,6 +424,345 @@ D U <c t-1
 ? W > t (m >= 1)
 
 need to track whether m = 0 or n = 0 on the right side?
+-----
+For t >= 3:
+Let T0(t) = M(t,   0) denote the result of `> r(t,0)`, including the returning head, and new m and n values.
+Let T1(t) = M(t-1, 1) denote the result of `> r(t-1,1)`.
+M(m,n) equals T0(m+n) or T1(m+n) in most cases, depending on the value of n.
+For sufficiently large m,
+M(m,n) = T0(m+n) when n in N0 = {0, 3-8, 21-44, ...}
+M(m,n) = T1(m+n) when n in N1 = {1-2, 9-20, 45-92, ...}
+
+There probably are recurrence relations but just several cases depending on whether the n values point to T0 or T1.
+For some small m, m,n points to something not in T0(t) or T1(t)...
+
+T0(t)
+> t,0
+U > t-1,0
+U T0(t-1)
+
+T1(t)
+> t-1,1
+U > t-2,1
+U T1(t-1)
+
+So T0(t), T1(t) depend on T0(t-1) and T1(t-1).
+
+Table: Cases that we see
+
+Columns:
+A = T0(t).head, B is the case of T0(t).n
+C, D similarly for T1(t)
+dn = T1(t).n - T0(t).n except where marked with (*) where it is T1(t).m - T0(t).n.
+N0: n in N0 but n != 0
+N1: n in N1
+
+   A  B   C  D  (dn: count)
+   =================================
+a. U  N0, <  N0 (-1: 6, 0: 371287, )
+b. U  N1, <  N1 (-1: 89679, 0: 79, 2: 9, )
+c. U  N1, <  N0 (-1: 65, )
+d. U  N0, <  N1 (1: 1, 3: 1, 4: 1, )
+e. U n=0, < n=0 (0: 9, )
+f. U  N1, < n=0 (-1: 8, )
+
+g. <  N1, U  N1 (0: 359146, 1: 1, )
+h. <  N0, U  N0 (0: 86, 1: 179499, 2: 1, )
+i. <  N1, U  N0 (1: 78, 2: 6, )
+j. < n=0, U n=0 (0: 9, )
+
+k. c  N1, U n=0 (-1*: 9, )
+l. U  N1, C  N1 (0: 9, )
+
+m. C  N0, c  N0 (1: 9, )
+
+Effect of a> head (copied here for convenience):
+a> m,n ->
+c 0,m     if n = 0
+< m+1,n-1 if n >= 1
+
+Notation:
+m0 = T0(t-1).m,  n0 = T0(t-1).n
+m1 = T1(t-1).m,  n1 = T1(t-1).n
+
+Next cases:
+d -> ????
+
+b -> b,c,f; c -> a; a -> a,b?
+f -> e
+e -> m
+m -> h?
+h -> h,i
+i -> g
+g -> g,h,j
+j -> k
+k -> l
+l -> b?
+
+Case a. T0(t-1) U N0, T1(t-1) < N0
+T0(t) -> U T0(t-1)
+U U <c m0,n0
+C > m0+1, n0 in N0
+C T0(t-1)
+C U <c m0,n0
+C a> m0+1, n0 in N0
+C < m0+2, n0-1
+U <c m0+2, n0-1
+T0(t) = U m0+2, n0-1
+
+T1(t) -> U T1(t-1)
+U < m1,n1
+D > m1, n1 in N0
+D T0(t-1)
+D U <c m0,n0
+W > m0+1, n0 in N0
+W T0(t-1)
+W U <c m0,n0
+W a> m0+1, n0 in N0
+W < m0+2, n0-1
+< m0+3, n0-1
+T1(t) = < m0+3, n0-1
+
+Thus, Case a at t-1 -> Case a or b at t with dn = 0 (unless n0-1 not in N0...).
+
+
+Case b. T0(t-1) U N1, T1(t-1) < N1
+T0(t) -> U T0(t-1)
+U U <c m0,n0
+C > m0+1,n0 in N1
+C T1(t-1)
+C < m1,n1
+U <c m1,n1
+T0(t) = U m1, n1
+
+T1(t) -> U T1(t-1)
+U < m1,n1
+D > m1,n1
+D T1(t-1)
+D < m1,n1
+W a> m1,n1
+W < m1+1,n1-1
+< m1+2,n1-1
+T1(t) = < m1+2, n1-1
+
+Goes to Case b, c, or f with dn = -1.
+
+
+Case c. T0(t-1) U N1, T1(t-1) < N0
+T0(t) -> U T0(t-1)
+U U <c m0,n0
+C > m0+1,n0 in N1
+C T1(t-1)
+C < m1,n1
+U <c m1,n1
+T0(t) = U m1, n1 (same as case b?)
+
+T1(t) -> U T1(t-1)
+U < m1,n1
+D > m1,n1 in N0
+D T0(t-1)
+D U <c m0,n0 in N1
+W > m0+1,n0 in N1
+W T1(t-1)
+W < m1,n1 in N0
+< m1+1,n1
+T1(t) = < m1+1, n1
+n1 in N0
+Goes to Case a with dn = 0.
+
+
+Case d. T0(t-1) U N0, T1(t-1) < N1
+T0(t) -> U T0(t-1)
+U U <c m0,n0
+C > m0+1,n0
+C T0(t-1)
+C U <c m0,n0
+C a> m0+1,n0
+C < m0+2,n0-1
+U <c m0+2,n0-1
+T0(t) = U m0+2, n0-1
+
+T1(t) -> U T1(t-1)
+U < m1,n1
+D > m1,n1
+D < m1,n1
+W a> m1,n1
+W < m1+1,n1-1
+< m1+2,n1-1
+T1(t) = < m1+2, n1-1
+
+???
+
+Case e. T0(t-1) U n=0, T1(t-1) < n=0
+T0(t) -> U T0(t-1)
+U U <c t-2,0
+C > t-1,0 in N0
+C U <c t-2,0
+C a> t-1,0
+C <c 0,t-1
+T0(t) = C 0,t-1
+
+T1(t) -> U T1(t-1)
+U < t-1,0
+D > t-1,0 in N0
+D U <c t-2,0
+W > t-1,0 in N0
+W U <c t-2,0
+W a> t-1,0
+W <c 0,t-1
+<c 0,t
+T1(t) = c 0,t
+
+Empirically this only goes to Case m. but why are t and t-1 guaranteed to be in N0?
+
+
+Case f. T0(t-1) U N1, T1(t-1) < n=0
+T0(t) -> U T0(t-1)
+U U <c m0,n0
+C > m0+1,n0 in N1
+C T1(t-1)
+C < t-1,0
+U <c t-1,0
+T0(t) = U t-1,0
+
+T1(t) -> U T1(t-1)
+U < t-1,0 in N1
+D > t-1,0 in N1
+D U <c m0,n0
+W > m0+1,n0 in N1
+W < t-1,0
+< t,0
+T1(t) = < t,0
+
+This goes to case e.
+
+
+Case g. T0(t-1) < N1, T1(t-1) U N1
+T0(t) -> U T0(t-1)
+U < m0,n0 in N1
+D > T1(t-1)
+D U <c m1,n1 in N1
+W > m1+1,n1 in N1
+W U <c m1,n1 in N1
+W a> m1+1,n1
+W < m1+2,n1-1
+< m1+3,n1-1
+T0(t) = < m1+3, n1-1
+
+T1(t) -> U T1(t-1)
+U U <c m1,n1 in N1
+C > m1+1,n1 in N1
+C U <c m1,n1 in N1
+C a> m1+1,n1 in N1
+C < m1+2,n1-1
+U <c m1+2, n1-1
+T1(t) = U m1+2, n1-1
+
+Goes to Case g or Case h or Case j with dn = 0.
+
+
+Case h. T0(t-1) < N0, T1(t-1) U N0
+T0(t) -> U T0(t-1)
+U < m0,n0 in N0
+D > m0,n0 in N0
+D < m0,n0 in N0
+W a> m0,n0
+W < m0+1, n0-1
+< m0+2, n0-1
+T0(t) = < m0+2, n0-1
+
+T1(t) -> U T1(t-1)
+U U <c m1,n1 in N0
+C > m1+1,n1 in N0
+C < m0,n0 in N0
+U <c m0,n0 in N0
+T0(t) = U m0,n0
+
+Goes to Case h or Case i with dn = 1.
+
+
+Case i. T0(t-1) < N1, T1(t-1) U N0
+T0(t) -> U T0(t-1)
+U < m0,n0 in N1
+D > m0,n0 in N1
+D U <c m1,n1 in N0
+W > m1+1,n1 in N0
+W < m0,n0 in N1
+< m0+1,n0
+T0(t) = < m0+1, n0
+
+T1(t) -> U T1(t-1)
+U U <c m1,n1 in N0
+C > m1+1,n1 in N0
+C < m0,n0 in N1
+U <c m0,n0
+T1(t) = U m0, n0
+
+n0 in N1
+Goes to Case g with dn = 0.
+
+
+Case j. T0(t-1) < n=0, T1(t-1) U n=0
+T0(t) -> U T0(t-1)
+U < t-1,0
+D > t-1,0 in N0
+D < t-1,0
+W a> t-1,0
+W <c 0,t-1
+<c 0,t
+T0(t) = c 0,t
+
+T1(t) -> U T1(t-1)
+U U <c t-2,0
+C > t-1,0 in N0
+C < t-1,0
+U <c t-1,0
+T1(t) = U t-1,0
+
+Goes to case k. Why is t empirically always in N1?
+
+
+Case k. T0(t-1) = c 0,t-1 (t-1 in N1), T1(t-1) = U t-2,0
+T0(t) -> U T0(t-1)
+U <c 0,t-1
+T0(t) = U 0,t-1
+
+T1(t) -> U T1(t-1)
+U U <c t-2,0
+C > t-1,0 in N0
+C <c 0,t-1
+T1(t) = C 0,t-1
+
+Goes to Case l.
+
+
+Case l. T0(t-1) = U 0,t-2, T1(t-1) = C 0,t-2 (t-2 in N1)
+T0(t) -> U T0(t-1)
+U U <c 0,t-2
+C > 1,t-2
+Due to small m, don't follow T0(t-1) even though t-2 in N1.
+Apply rule > 1,n+1 -> < 2,n
+C < 2,t-3
+U <c 2,t-3
+T0(t) = U 2, t-3
+
+T1(t) -> U T1(t-1)
+U C <c 0,t-2
+< 1,t-1
+T1(t) = < 1, t-1
+Goes to Case b with dn = 2? Except m is small so might not follow the T0 and T1 trends.
+
+
+Case m. T0(t) = C 0,t-1 (t-1 in N0), T1(t) = c 0,t (t in N0)
+T0(t) -> U T0(t-1)
+U C <c 0,t-1
+< 1,t
+T0(t) = < 1,t
+
+T1(t) -> U T1(t-1)
+U <c 0,t
+T1(t) = U 0,t
+Goes to Case h with dn=0. Except m is small so might not follow the T0 and T1 trends.
 
 ================
 rules backup #1:

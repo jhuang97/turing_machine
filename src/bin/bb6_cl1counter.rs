@@ -344,7 +344,7 @@ impl BlockSimulator {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 enum LeftReturningHead { Left, C, Uc, Cc}
 
 impl fmt::Display for LeftReturningHead {
@@ -988,8 +988,25 @@ impl TrendMemo {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 enum TrendParity { N0, N1 }
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+enum NCase {
+    Zero,
+    Parity(TrendParity)
+}
+
+impl fmt::Display for NCase {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match &self {
+            NCase::Zero => "n=0",
+            NCase::Parity(TrendParity::N0) => "N0",
+            NCase::Parity(TrendParity::N1) => "N1",
+        };
+        fmt::Display::fmt(s, f)
+    }
+}
 
 #[allow(non_snake_case)]
 struct CachedSimulator {
@@ -1475,38 +1492,85 @@ fn main() {
     // }
     // println!();
 
-    // let mut memo = TrendMemo::new();
-    // println!("{}\n", memo);
-    // while memo.max_total < 30 {
-    //     memo.increment();
-    //     println!("{}\n", memo);
-    // }
-    // let outcome = memo.fetch_existing_outcome(HigherState::Right, 17, 5).unwrap();
-    // println!("{outcome}");
-
-    let mut memo = TrendMemo::new();
-    let mut sim = CachedSimulator::new_outer();
-    println!("{}", sim);
-    let max_steps = 150;
-    // let max_steps = 8800;
-    // let max_steps = 5300;
-    // let max_steps = 10000000;
-    for k in 1..=max_steps {
-        sim.step_with_incrementing_trend_memo(&mut memo);
-        // if k % 10000 == 0 || k + 1000 >= max_steps {
-        // if sim.left_tape.len() < 4 || matches!(sim.left_tape.as_slice(), &[.., BlockSymbol::Q, BlockSymbol::P]) {
-            println!("{}", sim);
-        // }
+    fn is_cU((h0, h1): (LeftReturningHead, LeftReturningHead)) -> bool {
+        h0 == LeftReturningHead::C && h1 == LeftReturningHead::Uc
     }
-    println!();
-    println!("{}", sim);
-    println!("memo sizes: {} {} {} {} {}", memo.n0_trends.len(), memo.n1_trends.len(), memo.join_trend_late.len(), memo.misc_outcomes.len(), memo.n_parity_unknown.len());
+    fn get_ncase(n: u32, memo: &TrendMemo) -> NCase {
+        if n == 0 {
+            NCase::Zero
+        } else {
+            NCase::Parity(memo.find_parity_and_boundary_index(n).0.unwrap())
+        }
+    }
+    let mut memo = TrendMemo::new();
+    // println!("{}\n", memo);
+    let max_total = 1000000;
+    while memo.max_total < max_total {
+        memo.increment();
+        // println!("{}\n", memo);
+    }
     print!("boundaries:");
     for b in &memo.n_boundaries {
         print!(" {b}");
     }
     println!();
-    memo.print_Cc_trends();
+    let mut dn_distr: HashMap<_, BTreeMap<i32, usize>> = HashMap::new();
+    for t in 3..=max_total {
+        let outcome0 = memo.fetch_existing_outcome(HigherState::Right, t, 0).unwrap();
+        let outcome1 = memo.fetch_existing_outcome(HigherState::Right, t-1, 1).unwrap();
+        let case0 = get_ncase(outcome0.n, &memo);
+        let case1 = get_ncase(outcome1.n, &memo);
+        let heads = (outcome0.head, outcome1.head);
+        let dn = if is_cU(heads) { outcome1.m as i32 - outcome0.n as i32 }
+            else { outcome1.n as i32 - outcome0.n as i32 };
+        *(dn_distr.entry((heads.0, case0, heads.1, case1)).or_default())
+            .entry(dn)
+            .or_default() += 1;
+
+        {
+            use LeftReturningHead::*;
+            match (heads.0, heads.1, dn) {
+                (Uc, Left, -1 | 0) | (Left, Uc, 0 | 1) => (),
+                _ => println!("{t}: {outcome0} {outcome1}"),
+            }
+        }
+    }
+
+    for (&(head0, case0, head1, case1), sub_map) in dn_distr.iter() {
+        print!("{} {:>3}, {} {:>3}", head0, case0, head1, case1);
+        if is_cU((head0, head1)) {
+            print!("*");
+        }
+        print!(" (");
+        for (dn, count) in sub_map.iter() {
+            print!("{dn}: {count}, ");
+        }
+        println!(")");
+    }
+
+    // let mut memo = TrendMemo::new();
+    // let mut sim = CachedSimulator::new_outer();
+    // println!("{}", sim);
+    // // let max_steps = 150;
+    // let max_steps = 8800;
+    // // let max_steps = 5300;
+    // // let max_steps = 10000000;
+    // for k in 1..=max_steps {
+    //     sim.step_with_incrementing_trend_memo(&mut memo);
+    //     // if k % 10000 == 0 || k + 1000 >= max_steps {
+    //     // if sim.left_tape.len() < 4 || matches!(sim.left_tape.as_slice(), &[.., BlockSymbol::Q, BlockSymbol::P]) {
+    //         println!("{}", sim);
+    //     // }
+    // }
+    // println!();
+    // println!("{}", sim);
+    // println!("memo sizes: {} {} {} {} {}", memo.n0_trends.len(), memo.n1_trends.len(), memo.join_trend_late.len(), memo.misc_outcomes.len(), memo.n_parity_unknown.len());
+    // print!("boundaries:");
+    // for b in &memo.n_boundaries {
+    //     print!(" {b}");
+    // }
+    // println!();
+    // memo.print_Cc_trends();
 
     // let mut naive_memo = NaiveMemo::new();
     // let mut trend_memo = TrendMemo::new();
