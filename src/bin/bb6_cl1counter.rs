@@ -1358,6 +1358,116 @@ impl fmt::Display for CachedSimulator {
     }
 }
 
+fn draw_image_of_trend(size: usize) {
+    #[derive(Default, Clone)]
+    struct Pixel { r: u8, g: u8, b: u8 }
+
+    let mut data: Vec<Vec<Pixel>> = vec![vec![Pixel::default(); size]; size];
+
+    let target_pixel = |outcome: &RightTapeOutcome| {
+        let t = (outcome.m + outcome.n) as usize;
+        let n = outcome.n as usize;
+        if t < size && n < size {
+            Some((t, n))
+        } else {
+            None
+        }
+    };
+
+    let mut memo = NaiveMemo::new();
+    for total in 0..size as u32 {
+        let (t0_outcome, t1_outcome) = if total >= 3 {
+            (Some(memo.get_or_calculate(HigherState::Right, total, 0)),
+            Some(memo.get_or_calculate(HigherState::Right, total-1, 1)))
+        } else { (None, None) };
+
+        for n0 in 0..=total {
+            let pix = &mut data[total as usize][n0 as usize];
+            let m0 = total - n0;
+            let outcome = memo.get_or_calculate(HigherState::Right, m0, n0);
+            let r_level: u8 = match outcome.head {
+                LeftReturningHead::Left => 20,
+                LeftReturningHead::Uc => 30,
+                LeftReturningHead::C => 60,
+                LeftReturningHead::Cc => 120,
+            };
+            pix.r += r_level;
+
+            let is_t0 = total >= 3 && outcome == t0_outcome.unwrap();
+            let is_t1 = total >= 3 && outcome == t1_outcome.unwrap();
+
+            // let (next_is_A, next_is_B) = {
+            //     let possible_next_outcome = memo.get_or_calculate(HigherState::Right, outcome.m, outcome.n);
+            //     let possible_next_total = outcome.m + outcome.n;
+            //     if possible_next_total >= 3 {
+            //         (
+            //             possible_next_outcome == memo.get_or_calculate(HigherState::Right, possible_next_total, 0),
+            //             possible_next_outcome == memo.get_or_calculate(HigherState::Right, possible_next_total-1, 1),
+            //         )
+            //     } else {
+            //         (false, false)
+            //     }
+            // };
+            if is_t0 {
+                pix.b += 60;
+            } else if is_t1 {
+                pix.g += 60;
+            // if outcome.m == m0 && outcome.n == n0 {
+            //     print!("{}", s.red().bold());
+            // } else if outcome.n == n0 {
+            //     print!("{}", s.green().bold());
+            // } else if outcome.n < n0 {
+            //     print!("{}", s.blue());
+            } else {
+                pix.r += 60;
+                pix.g += 60;
+                pix.b += 60;
+            }
+        }
+
+        // if let Some(outcome) = t0_outcome &&
+        //     let Some((r, c)) = target_pixel(&outcome) {
+        //     data[r][c].b = data[r][c].b.saturating_add(60);
+        // }
+        // if let Some(outcome) = t1_outcome &&
+        //     let Some((r, c)) = target_pixel(&outcome) {
+        //     data[r][c].g = data[r][c].g.saturating_add(60);
+        // }
+    }
+
+    let mut memo = TrendMemo::new();
+    let mut sim = CachedSimulator::new_outer();
+    loop {
+        sim.step_with_incrementing_trend_memo(&mut memo);
+        if sim.state == HigherState::Right {
+            let total = (sim.right_W + sim.right_V) as usize;
+            if total >= size {
+                break;
+            }
+            let pix = &mut data[total as usize][sim.right_V as usize];
+            pix.r = pix.r.saturating_add(80);
+            pix.g = pix.g.saturating_add(80);
+            pix.b = pix.b.saturating_add(80);
+        }
+    }
+
+    let data_flat: Vec<u8> = data.into_iter()
+        .flatten()
+        .map(|p| [p.r, p.g, p.b, 255])
+        .flatten()
+        .collect();
+
+    use std::fs::File;
+    use std::io::BufWriter;
+    let file = File::create("bb6_cl1counter_map.png").unwrap();
+    let w = &mut BufWriter::new(file);
+    let mut encoder = png::Encoder::new(w, size as u32, size as u32);
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    let mut writer = encoder.write_header().unwrap();
+    writer.write_image_data(&data_flat).unwrap();
+}
+
 fn main() {
     // let mut sim = BlockSimulator::new();
     // // let mut sim = CachedSimulator::new_outer();
@@ -1436,7 +1546,7 @@ fn main() {
     // }
 
     // let mut memo = NaiveMemo::new();
-    // for total in 0..=30 { // 200
+    // for total in 0..=200 { // 30 200
     //     use colored::*;
     //     print!("{total:>3} ");
     //     for n0 in 0..=total {
@@ -1448,8 +1558,9 @@ fn main() {
     //             LeftReturningHead::C => "c",
     //             LeftReturningHead::Cc => "C",
     //         };
+    //         let s = format!("{s0}");
     //         // let s = format!("{s0:>2}");
-    //         let s = format!("{s0:>2}{:>2},{:>2}", outcome.m, outcome.n);
+    //         // let s = format!("{s0:>2}{:>2},{:>2}", outcome.m, outcome.n);
 
     //         let is_A = total >= 3 && outcome == memo.get_or_calculate(HigherState::Right, total, 0);
     //         let is_B = total >= 3 && outcome == memo.get_or_calculate(HigherState::Right, total-1, 1);
@@ -1492,61 +1603,61 @@ fn main() {
     // }
     // println!();
 
-    fn is_cU((h0, h1): (LeftReturningHead, LeftReturningHead)) -> bool {
-        h0 == LeftReturningHead::C && h1 == LeftReturningHead::Uc
-    }
-    fn get_ncase(n: u32, memo: &TrendMemo) -> NCase {
-        if n == 0 {
-            NCase::Zero
-        } else {
-            NCase::Parity(memo.find_parity_and_boundary_index(n).0.unwrap())
-        }
-    }
-    let mut memo = TrendMemo::new();
-    // println!("{}\n", memo);
-    let max_total = 1000000;
-    while memo.max_total < max_total {
-        memo.increment();
-        // println!("{}\n", memo);
-    }
-    print!("boundaries:");
-    for b in &memo.n_boundaries {
-        print!(" {b}");
-    }
-    println!();
-    let mut dn_distr: HashMap<_, BTreeMap<i32, usize>> = HashMap::new();
-    for t in 3..=max_total {
-        let outcome0 = memo.fetch_existing_outcome(HigherState::Right, t, 0).unwrap();
-        let outcome1 = memo.fetch_existing_outcome(HigherState::Right, t-1, 1).unwrap();
-        let case0 = get_ncase(outcome0.n, &memo);
-        let case1 = get_ncase(outcome1.n, &memo);
-        let heads = (outcome0.head, outcome1.head);
-        let dn = if is_cU(heads) { outcome1.m as i32 - outcome0.n as i32 }
-            else { outcome1.n as i32 - outcome0.n as i32 };
-        *(dn_distr.entry((heads.0, case0, heads.1, case1)).or_default())
-            .entry(dn)
-            .or_default() += 1;
+    draw_image_of_trend(6400);
 
-        {
-            use LeftReturningHead::*;
-            match (heads.0, heads.1, dn) {
-                (Uc, Left, -1 | 0) | (Left, Uc, 0 | 1) => (),
-                _ => println!("{t}: {outcome0} {outcome1}"),
-            }
-        }
-    }
-
-    for (&(head0, case0, head1, case1), sub_map) in dn_distr.iter() {
-        print!("{} {:>3}, {} {:>3}", head0, case0, head1, case1);
-        if is_cU((head0, head1)) {
-            print!("*");
-        }
-        print!(" (");
-        for (dn, count) in sub_map.iter() {
-            print!("{dn}: {count}, ");
-        }
-        println!(")");
-    }
+    // fn is_cU((h0, h1): (LeftReturningHead, LeftReturningHead)) -> bool {
+    //     h0 == LeftReturningHead::C && h1 == LeftReturningHead::Uc
+    // }
+    // fn get_ncase(n: u32, memo: &TrendMemo) -> NCase {
+    //     if n == 0 {
+    //         NCase::Zero
+    //     } else {
+    //         NCase::Parity(memo.find_parity_and_boundary_index(n).0.unwrap())
+    //     }
+    // }
+    // let mut memo = TrendMemo::new();
+    // // println!("{}\n", memo);
+    // let max_total = 1000000;
+    // while memo.max_total < max_total {
+    //     memo.increment();
+    //     // println!("{}\n", memo);
+    // }
+    // print!("boundaries:");
+    // for b in &memo.n_boundaries {
+    //     print!(" {b}");
+    // }
+    // println!();
+    // let mut dn_distr: HashMap<_, BTreeMap<i32, usize>> = HashMap::new();
+    // for t in 3..=max_total {
+    //     let outcome0 = memo.fetch_existing_outcome(HigherState::Right, t, 0).unwrap();
+    //     let outcome1 = memo.fetch_existing_outcome(HigherState::Right, t-1, 1).unwrap();
+    //     let case0 = get_ncase(outcome0.n, &memo);
+    //     let case1 = get_ncase(outcome1.n, &memo);
+    //     let heads = (outcome0.head, outcome1.head);
+    //     let dn = if is_cU(heads) { outcome1.m as i32 - outcome0.n as i32 }
+    //         else { outcome1.n as i32 - outcome0.n as i32 };
+    //     *(dn_distr.entry((heads.0, case0, heads.1, case1)).or_default())
+    //         .entry(dn)
+    //         .or_default() += 1;
+    //     {
+    //         use LeftReturningHead::*;
+    //         match (heads.0, heads.1, dn) {
+    //             (Uc, Left, -1 | 0) | (Left, Uc, 0 | 1) => (),
+    //             _ => println!("{t}: {outcome0} {outcome1}"),
+    //         }
+    //     }
+    // }
+    // for (&(head0, case0, head1, case1), sub_map) in dn_distr.iter() {
+    //     print!("{} {:>3}, {} {:>3}", head0, case0, head1, case1);
+    //     if is_cU((head0, head1)) {
+    //         print!("*");
+    //     }
+    //     print!(" (");
+    //     for (dn, count) in sub_map.iter() {
+    //         print!("{dn}: {count}, ");
+    //     }
+    //     println!(")");
+    // }
 
     // let mut memo = TrendMemo::new();
     // let mut sim = CachedSimulator::new_outer();
