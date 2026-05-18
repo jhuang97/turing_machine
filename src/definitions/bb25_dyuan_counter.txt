@@ -1,0 +1,71 @@
+tm = 1RB3LA1LA2RB2RA_2LA4RA3LB1RA---
+
+[metastates]
+Left    <  <A
+LeftB   <B <B
+RightA  A> A>
+RightB  B> B>
+Right4A a> 4A>
+
+[blocks]
+s13 = 13
+s33 = 33
+s31 = 31
+s11 = 11
+
+R0 = $
+R = 332$
+R1 = 1$
+R2 = 2$
+R3 = 3$
+R12 = 12$
+R32 = 32$
+
+s21 = 21
+s24 = 24
+s22 = 22
+s42 = 42
+s12 = 12
+
+s1(exp) = 1
+s2(exp) = 2
+L = ^11
+
+[rules]
+A> s13 -> < s33
+A> s33 -> s21 A>
+s21 < -> < s13
+A> s31 -> s24 A>
+s24 < -> s22 A>
+s22 < -> < s11
+A> s11 -> < s31
+
+B> s13 -> s42 B>
+s42 < -> < s13
+B> s33 -> s12 B>
+s12 < -> < s31
+B> s31 -> < s33
+B> s11 -> s22 B>
+B> R -> < s13 R
+
+B> R32 -> < s31 R0
+A> R0 -> < R32
+B> R0 -> < R2
+s21 <B -> s24 A>
+s22 <B -> <B s33
+s12 <B -> s42 B>
+A> R32 -> <B s33 R0
+
+s2 < -> < s1
+L < s1 -> L s2 a>
+a> s1 s1 -> s2 s2 a>
+a>    s13 ->    s2 s21 A>
+a> s1 s13 -> s2 s2 s42 B>
+
+A> R -> < s13 R1
+A> R2 -> < R1
+A> R1 -> < R3
+A> R3 -> < R12
+B> R12 -> < s13 R0
+B> R3 -> < R
+B> R1 -> <B s33 R3
