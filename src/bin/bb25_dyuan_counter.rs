@@ -576,13 +576,17 @@ fn try_pushing_head_cycle() {
     }
 }
 
+fn is_pow2_or_0(n: u64) -> bool {
+    (n & (n - 1)) == 0
+}
+
 fn main() {
     let mut sim = LongSim::new();
     println!("{sim}");
 
-    // let max_steps = 1000000000000u64;
+    let max_steps = 1000000000000u64;
     // //                    516000000000
-    let max_steps = 100000;
+    // let max_steps = 100000;
     // let max_steps = 1000;
     // let max_steps = 100;
     for i in 0..=max_steps {
@@ -591,7 +595,16 @@ fn main() {
         // //         && (sim.end_tape.len() == 8 || sim.end_tape.len() == 1)
         //     // && sim.head_steps % 10000000 == 0
         {
-            println!("{sim}");
+            // if sim.head_steps % 1000 == 0 {
+            //     println!("{sim}");
+            // }
+
+            let n = sim.head_steps;
+            if is_pow2_or_0(n) || (n % 3 == 0 && is_pow2_or_0(n / 3)) {
+                if let [LongSymbol::R, LongSymbol::S13(k), ..] = sim.end_tape.as_slice() {
+                    println!("{n} {k}");
+                }
+            }
         }
     }
 

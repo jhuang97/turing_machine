@@ -23,6 +23,8 @@ num-bigint = "0.4.6"
 num-traits = "0.2.19"
 num-integer = "0.1.46"
 png = "0.18.1"
+bitbybit = "2.0.0"
+arbitrary-int = "2.1.0"
 
 [profile.release]
 overflow-checks = true
