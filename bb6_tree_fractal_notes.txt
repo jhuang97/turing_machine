@@ -1,0 +1,537 @@
+1RB---_0RC1LC_1LD0RF_0LE0LD_0RF1LD_1RF1RA
+
+> Q Q -> ***HALT***
+w> Q Q -> ***HALT***
+
+Let f = <^-1 >
+Let w = <^-1 w>
+
+f Y -> Y f
+f Q Y -> w
+w Q Y -> Q Y w
+w Y Q -> Y Q Y Y f f
+w Y Y -> Y Q Y Q
+f R0 -> R1
+f R1 -> Y Q Y Y Q Y^7 R0
+
+tape at t=84:
+L > Y^5 R0
+
+f^inf Y^5 R0
+Y^5 f^inf R0
+f^inf Y Q Y^2 Q Y^7 R0
+f^inf f^3 Y Q Y^2 Q Y^7 R0
+f^inf Y^3 Q Y^2 Q Y Q Y^3 f^2 R0
+f^inf Y^3 Q Y^2 Q Y Q Y^3 f R1
+f^inf Y^3 Q Y^2 Q Y Q Y^3 Y Q Y^2 Q Y^7 R0
+f^inf Y^3 Q Y^2 Q Y Q Y^4 Q Y^2 Q Y^7 R0
+f^inf f^6 Y^3 Q Y^2 Q Y Q Y^4 Q Y^2 Q Y^7 R0
+f^inf f^6 Y^3 Q Y^2 Q Y Q Y^4 Q Y^2 Q Y^7 R0
+f^inf Y^6 Q Y^17  f^10 R0
+
+f QYYQYYYYY
+w YQYYYYY
+YQYY ff YYYYY
+
+
+Proofs of longitudinal rules:
+f Y
+<^-1 > Y
+<^-1 X >
+<^-1 X < <^-1 >
+<^-1 < Y f
+Y f
+
+f Q Y
+<^-1 w>
+w
+
+w Q Y
+<^-1 X P w>
+<^-1 X P < w
+<^-1 < Q Y w
+Q Y w
+
+w Y Q
+<^-1 X X D >
+<^-1 X X D < f
+<^-1 X X P X > f
+<^-1 X X P X < f f
+<^-1 X X P < Y f f
+<^-1 X < Q Y Y f f
+<^-1 < Y Q Y Y f f
+Y Q Y Y f f
+
+Maybe I should try longitudinal analysis in the other direction?!
+
+Start?
+L > Y^5 R0
+L X^5 > R0
+L X^5 < R1
+L < Y^5 R1
+L X > Y^5 R1
+L X^6 > R1
+L X^6 X^2 P X^2 P X^6 < R0
+
+Let h = < >^-1
+
+L X^5 < R1
+L X^5 < >^-1 > R1
+L X^5 h > R1
+L X^5 h X^2 P X^2 P X^6 < R0
+L X^5 h X^2 P X^2 P X^6 < >^-1 > R0
+L X^5 h X^2 P X^2 P X^6 h > R0
+L X^5 h X^2 P X^2 P X^6 h < R1
+L X^5 h X^2 P X^2 P X^6 h < >^-1 > R1
+L X^5 h X^2 P X^2 P X^6 h h > R1
+L X^5 h X^2 P X^2 P X^6 h h X^2 P X^2 P X^6 < R0
+L X^5 h X^2 P X^2 P X^6 h h X^2 P X^2 P X^6 < >^-1 > R0
+L X^5 h X^2 P X^2 P X^6 h h X^2 P X^2 P X^6 h > R0
+L X^5 h X^2 P X^2 P X^6 h h X^2 P X^2 P X^6 h < R1
+
+L X^5 (h X^2 P X^2 P X^6 h)^inf
+L X^6 (X^2 P X^2 P X^6 h h)^inf
+
+L X^6 (X^2 P X^2 P X^6 h^2 X^2 P X^2 P X^6 h^2)^inf
+L X^6 (h X^3 P X^8 X^2 P X^2 P X^6 h^2)^inf
+L X^6 (h X^3 P X^10 P X^2 P X^6 h^2)^inf
+L X^6 (h^4 X^5 P X^4 P X P X^2 D X^7 h)^inf
+L X^6 (h^4 X^5 P X^4 P X P X^2 P X^8)^inf
+L X^10 (X^5 P X^4 P X P X^2 P X^8 h^4)^inf
+L X^10 (h^3 X^6 P X P X^2 P X^12)^inf
+L X^13 (X^6 P X P X^2 P X^12 h^3)^inf *
+* either propagate h^3 through everything here, or double the cycle
+L X^13 (h^2 X^7 D X^15)^inf
+L X^15 (X^7 D X^15 h^2)^inf
+// can't, backtrack
+L X^13 (X^6 P X P X^2 P X^12 h^3)^inf
+
+L X^13 (X^6 P X P X^2 P X^12 h^3 X^6 P X P X^2 P X^12 h^3)^inf
+L X^13 (h^2 X^7 D X^15 X^6 P X P X^2 P X^12 h^3)^inf
+L X^13 (h^2 X^7 D X^21 P X P X^2 P X^12 h^3)^inf
+L X^13 (h^8 X^10 P X^2 D X^6 P X^4 P X P X^2 D X^15)^inf
+L X^21 (X^10 P X^2 D X^6 P X^4 P X P X^2 D X^15 h^8)^inf
+L X^21 (h^6 X^14 P X P X P X P X^2 D X^23)^inf
+L X^27 (X^14 P X P X P X P X^2 D X^23 h^6)^inf *
+L X^27 (h^3 X^14 P X^2 D X^29)^inf
+L X^30 (X^14 P X^2 D X^29 h^3)^inf *
+
+L X^30 (X^14 P X^2 D X^29 h^3 X^14 P X^2 D X^29 h^3)^inf
+L X^30 (h X^15 P X^32 X^14 P X^2 D X^29 h^3)^inf
+L X^30 (h^11 X^21 P X^4 P X P X^2 P X^10 P X^2 D X^6 P X^4 P X P X^2 P X^32)^inf
+L X^41 (X^21 P X^4 P X P X^2 P X^10 P X^2 D X^6 P X^4 P X P X^2 P X^32 h^11)^inf *
+L X^41 (h^5 X^23 P X^22 P X P X^2 D X^43)^inf
+L X^46 (X^23 P X^22 P X P X^2 D X^43 h^5)^inf *
+L X^46 (h^7 X^27 D X^9 P X P X P X P X^2 P X^48)^inf
+L X^53 (X^27 D X^9 P X P X P X P X^2 P X^48 h^7)^inf
+
+leftward long. rules:
+(if no w> head)
+X h -> h X
+X^2 P X^2 P X^6 h -> h X^3 D X^7
+X^3 D X^7 h -> X^3 P X^8
+X^3 P X^8 X^2 P X^2 P X^6 h -> h^3 X^5 P X^4 P X P X^2 D X^7
+(at this point, give up on doing this by hand)
+
+X h
+X < >^-1
+< Y >^-1
+< >^-1 > Y >^-1
+h X > >^-1
+h X
+
+X^2 P X^2 P X^6 h
+X^2 P X^2 P X^6 < >^-1
+X^2 P X^2 P < Y^6 >^-1
+X^2 P X < Q Y^7 >^-1
+X^2 P < Y Q Y^7 >^-1
+X < Q Y^2 Q Y^7 >^-1
+< X Q Y^2 Q Y^7 >^-1
+h > Y Q Y^2 Q Y^7 >^-1
+h X > Q Y^2 Q Y^7 >^-1
+h X w> Y Q Y^7 >^-1
+h X^3 D > Y^7 >^-1
+h X^3 D X^7 > >^-1
+h X^3 D X^7
+
+X^3 D X^7 h
+X^3 D < Y^7 >^-1
+X^3 P X > Y^7 >^-1
+X^3 P X^8 > >^-1
+X^3 P X^8
+
+X^3 P X^8 X^2 P X^2 P X^6 h
+X^3 P X^10 P X^2 P X^6 < >^-1
+X^3 P X^10 P X^2 P < Y^6 >^-1
+X^3 P X^10 P X < Q Y^7 >^-1
+X^3 P X^10 P < Y Q Y^7 >^-1
+X^3 P X^9 < Q Y^2 Q Y^7 >^-1
+X^3 P < Y^9 Q Y^2 Q Y^7 >^-1
+X^2 < Q Y^10 Q Y^2 Q Y^7 >^-1
+< Y^2 Q Y^10 Q Y^2 Q Y^7 >^-1
+h > Y^2 Q Y^10 Q Y^2 Q Y^7 >^-1
+h X^2 > Q Y^10 Q Y^2 Q Y^7 >^-1
+h X^2 w> Y^9 Q Y^2 Q Y^7 >^-1
+h X^2 < Y Q Y Q Y^7 Q Y^2 Q Y^7 >^-1
+h^2 X^2 > Y Q Y Q Y^7 Q Y^2 Q Y^7 >^-1
+h^2 X^3 > Q Y Q Y^7 Q Y^2 Q Y^7 >^-1
+h^2 X^3 w> Q Y^7 Q Y^2 Q Y^7 >^-1
+h^2 X^4 P w> Y^6 Q Y^2 Q Y^7 >^-1
+h^2 X^4 P < Y Q Y Q Y^4 Q Y^2 Q Y^7 >^-1
+h^2 X^3 < Q Y^2 Q Y Q Y^4 Q Y^2 Q Y^7 >^-1
+h^3 X^3 > Q Y^2 Q Y Q Y^4 Q Y^2 Q Y^7 >^-1
+h^3 X^3 w> Y Q Y Q Y^4 Q Y^2 Q Y^7 >^-1
+h^3 X^5 D > Y Q Y^4 Q Y^2 Q Y^7 >^-1
+h^3 X^5 D X > Q Y^4 Q Y^2 Q Y^7 >^-1
+h^3 X^5 D X w> Y^3 Q Y^2 Q Y^7 >^-1
+h^3 X^5 D X < Y Q Y Q Y Q Y^2 Q Y^7 >^-1
+h^3 X^5 D < Y^2 Q Y Q Y Q Y^2 Q Y^7 >^-1
+h^3 X^5 P X > Y^2 Q Y Q Y Q Y^2 Q Y^7 >^-1
+h^3 X^5 P X^3 > Q Y Q Y Q Y^2 Q Y^7 >^-1
+h^3 X^5 P X^3 w> Q Y Q Y^2 Q Y^7 >^-1
+h^3 X^5 P X^4 P w> Q Y^2 Q Y^7 >^-1
+h^3 X^5 P X^4 P X P w> Y Q Y^7 >^-1
+h^3 X^5 P X^4 P X P X X D > Y^7 >^-1
+h^3 X^5 P X^4 P X P X^2 D X^7 > >^-1
+h^3 X^5 P X^4 P X P X^2 D X^7
+
+Wrote a longitudinal simulation.  Some backtracking needed.  Highlights from a simulation for 10000 steps:
+# doublings, # propagation steps since last double: tape  what to do for next step
+0, 0: L X^6 (X^2 P X^2 P X^6 h^2)^inf Double
+1, 1: L X^13 (X^6 P X P X^2 P X^12 h^3)^inf Double
+2, 2: L X^30 (X^14 P X^2 D X^29 h^3)^inf Double
+3, 4: L X^62 (X^30 P X^2 D X^61 h^3)^inf Double
+4, 6: L X^125 (X^62 P X P X^2 P X^124 h^3)^inf Double
+5, 9: L X^253 (X^126 P X P X^2 D X^251 h^4)^inf Double
+6, 14: L X^509 (X^254 P X P X^2 D X^507 h^4)^inf Double
+7, 21: L X^1021 (X^510 P X P X^2 D X^1019 h^4)^inf Double
+8, 33: L X^2046 (X^1022 P X^2 P X^2046 h^2)^inf Double
+9, 49: L X^4093 (X^2046 P X P X^2 P X^4092 h^3)^inf Double
+10, 73: L X^8189 (X^4094 P X P X^2 P X^8188 h^3)^inf Double
+11, 108: L X^16382 (X^8190 P X^2 P X^16382 h^2)^inf Double
+12, 159: L X^32765 (X^16382 P X P X^2 P X^32764 h^3)^inf Double
+13, 239: L X^65533 (X^32766 P X P X^2 D X^65531 h^4)^inf Double
+14, 359: L X^131069 (X^65534 P X P X^2 D X^131067 h^4)^inf Double
+15, 537: L X^262141 (X^131070 P X P X^2 P X^262140 h^3)^inf Double
+16, 802: L X^524285 (X^262142 P X P X^2 P X^524284 h^3)^inf Double
+17, 1196: L X^1048574 (X^524286 P X^2 P X^1048574 h^2)^inf Double
+18, 1793: L X^2097150 (X^1048574 P X^2 P X^2097150 h^2)^inf Double
+19, 2667: L X^4194302 (X^2097150 P X^2 P X^4194302 h^2)^inf Double
+
+So empirically it looks like this TM does not halt. But need to prove why.
+If we double the cycle but use a different spacing between the two blocks (i.e., vary the number of X's between the non-X parts of the two blocks), then almost certainly there will be 1) halting or 2) sending > Q to the right or 3) sending a w> to the right from the combined block after repeated applications of the h head, as opposed to reducing to X^m P X^n. Only a few spacings work.  Why?
+
+All these empirical patterns maintain a P X^2 P (or, Q Y^2 Q) at the right end. Must have only "w> Q Y^2 Q" and not "> Q Y^2 Q" until the last two h heads...?
+
+All infinite cycles from that simulation are of the form:
+1. X^a P X^2 P X^b h^2
+2. X^a P X^2 D X^b h^3
+3. X^a P X P X^2 P X^b h^3
+4. X^a P X P X^2 D X^b h^4
+
+After doubling the cycle they all evolve into a similar structure:
+1.
+X^a P X^2 P X^b h^2 X^a P X^2 P X^b h^2
+X^a+1 P X^b+2 X^a P X^2 P X^b h^2
+X^a+1 P X^a+b+2 P X^2 P X^b h^2
+
+2.
+X^a P X^2 D X^b h^3 X^a P X^2 D X^b h^3
+X^a+1 P X^b+3 X^a P X^2 D X^b h^3
+X^a+1 P X^a+b+3 P X^2 D X^b h^3
+X^a+1 P X^a+b+3 P X^2 P X^b+1 h^2
+
+3.
+X^a P X P X^2 P X^b h^3 X^a P X P X^2 P X^b h^3
+X^a+1 D X^b+3 X^a P X P X^2 P X^b h^3
+X^a+1 P X^b+4 X^a P X^2 D X^b+1 h^2
+X^a+1 P X^a+b+4 P X^2 D X^b+1 h^2
+X^a+1 P X^a+b+4 P X^2 P X^b+2 h
+
+4.
+X^a P X P X^2 D X^b h^4 X^a P X P X^2 D X^b h^4
+X^a+1 D X^b+4 X^a P X P X^2 D X^b h^4
+X^a+1 P X^b+5 X^a P X^2 D X^b+2 h^2
+X^a+1 P X^a+b+5 P X^2 D X^b+2 h^2
+X^a+1 P X^a+b+5 P X^2 P X^b+3 h
+
+total length: 24 * 2^n (n >= 0)
+length excluding P and P X^2 P: 24 * 2^n - 5
+spacing between P and P X^2 P: (24 * 2^n - 4)/2 = 12 * 2^n - 2
+    = 10, 22, 46, 94, ...
+4 also kind of belongs in this sequence.
+
+Wrote a longitudinal simulation that does not require backtracking:
+0, 0: L X^6 (X^2 P X^2 P X^6 h^2)^inf Double
+0 | 1, 0: L X^7 (X^3 P X^10 P X^2 P X^6 h^3)^inf Prop
+8 | 1, 8: L X^14 (X^6 P X^2 P X^14 h^2)^inf Double
+9 | 2, 0: L X^15 (X^7 P X^22 P X^2 P X^14 h^3)^inf Prop
+25 | 2, 16: L X^30 (X^14 P X^2 P X^30 h^2)^inf Double
+26 | 3, 0: L X^31 (X^15 P X^46 P X^2 P X^30 h^3)^inf Prop
+58 | 3, 32: L X^62 (X^30 P X^2 P X^62 h^2)^inf Double
+59 | 4, 0: L X^63 (X^31 P X^94 P X^2 P X^62 h^3)^inf Prop
+123 | 4, 64: L X^126 (X^62 P X^2 P X^126 h^2)^inf Double
+124 | 5, 0: L X^127 (X^63 P X^190 P X^2 P X^126 h^3)^inf Prop
+252 | 5, 128: L X^254 (X^126 P X^2 P X^254 h^2)^inf Double
+253 | 6, 0: L X^255 (X^127 P X^382 P X^2 P X^254 h^3)^inf Prop
+509 | 6, 256: L X^510 (X^254 P X^2 P X^510 h^2)^inf Double
+510 | 7, 0: L X^511 (X^255 P X^766 P X^2 P X^510 h^3)^inf Prop
+1022 | 7, 512: L X^1022 (X^510 P X^2 P X^1022 h^2)^inf Double
+1023 | 8, 0: L X^1023 (X^511 P X^1534 P X^2 P X^1022 h^3)^inf Prop
+2047 | 8, 1024: L X^2046 (X^1022 P X^2 P X^2046 h^2)^inf Double
+2048 | 9, 0: L X^2047 (X^1023 P X^3070 P X^2 P X^2046 h^3)^inf Prop
+4096 | 9, 2048: L X^4094 (X^2046 P X^2 P X^4094 h^2)^inf Double
+4097 | 10, 0: L X^4095 (X^2047 P X^6142 P X^2 P X^4094 h^3)^inf Prop
+8193 | 10, 4096: L X^8190 (X^4094 P X^2 P X^8190 h^2)^inf Double
+8194 | 11, 0: L X^8191 (X^4095 P X^12286 P X^2 P X^8190 h^3)^inf Prop
+16386 | 11, 8192: L X^16382 (X^8190 P X^2 P X^16382 h^2)^inf Double
+
+Plotted this as an image.  Does look very much like a fractal.
+
+pattern:
+25-26, 2-3, 16-0, 30-31, 14-15, 46, 30-30
+58-59, 3-4, 32-0, 62-63, 30-31, 94, 62-62
+123-124, 4-5, 64-0, 126-127, 62-63, 190, 126-126
+252-253, 5-6, 128-0, 254-255, 126-127, 382, 254-254
+
+
+Let a_n = 6 * 2^n - 2 for n = 0, 1, 2, ...
+P X^a_(n+1) (P X)^m P X^2 P h^k --?--> P X^a_n (P X)^m+1 P X^2 P (n >= 1) (1)
+
+(P X)^n+1 P X^2 P h^2 -> (P X)^n P X^2 P
+
+Smallest cases:
+X P X^4 P X^2 P h^2 -> h^2 X^2 P X P X^2 P X^2
+X P X^10 P X^2 P h^2 -> h^3 X^3 P X^4 P X P X^2 P X^2
+X P X^22 P X^2 P h^6 -> h^7 X^5 P X^10 P X P X^2 P X^6
+
+Since Rule 1 only has P's and no D's, it should be possible to prove this using rightward longitudinal analysis?
+
+---
+w Q Y^n -> Q Y^2 Q Y Q Y^n-3
+w Q Y^2 Q -> Q Y^2 Q Y^2 f^2
+w^k Q Y^2 Q -> Q Y^2 Q Y^2k f^2k
+w^k+1 Y^n -> Y Q Y^2k+1 f^2k Q Y^n-2
+w^k+1 Y^2 -> Y Q Y^2k+1 f^2k Q
+---
+w Q Y^n
+Q Y w Y^n-1
+Q Y^2 Q Y Q Y^n-3
+---
+w Q Y^2 Q
+Q Y w Y Q
+Q Y^2 Q Y^2 f f
+---
+f Q Y^2 Q Y Q Y^n
+Y Q Y^4 Q Y^2 Q Y Q Y^n-6
+---
+w^k Y^n?
+
+w Y^n
+Y Q Y Q Y^n-2
+
+w Y Q Y Q Y^n-2
+Y Q Y^2 f^2 Y Q Y^n-2
+Y Q Y^3 f^2 Q Y^n-2
+
+w Y Q Y^2 f^2 Y Q Y^n-2
+Y Q Y^2 f^2 Y^2 f^2 Y Q Y^n-2
+Y Q Y^5 f^4 Q Y^n-2
+
+----
+f Q Y^n
+w Y^n-1
+Y Q Y Q Y^n-3
+
+f Y Q Y Q Y^n-3
+Y f Q Y Q Y^n-3
+Y w Q Y^n-3
+Y Q Y w Y^n-4 *
+Y Q Y^2 Q Y Q Y^n-6
+
+f Y Q Y^2 Q Y Q Y^n-6
+Y f Q Y^2 Q Y Q Y^n-6
+Y w Y Q Y Q Y^n-6
+Y^2 Q Y^2 f f Y Q Y^n-6
+Y^2 Q Y^3 f f Q Y^n-6
+Y^2 Q Y^3 f w Y^n-7
+Y^2 Q Y^3 f Y Q Y Q Y^n-9
+Y^2 Q Y^4 f Q Y Q Y^n-9
+Y^2 Q Y^4 w Q Y^n-9
+Y^2 Q Y^4 Q Y w Y^n-10 *
+Y^2 Q Y^4 Q Y^2 Q Y Q Y^n-12
+
+f Y^2 Q Y^4 Q Y^2 Q Y Q Y^n-12
+Y^2 f Q Y^4 Q Y^2 Q Y Q Y^n-12
+Y^2 w Y^3 Q Y^2 Q Y Q Y^n-12
+Y^3 Q Y Q Y Q Y^2 Q Y Q Y^n-12
+
+f Y^3 Q Y Q Y Q Y^2 Q Y Q Y^n-12
+Y^3 f Q Y Q Y Q Y^2 Q Y Q Y^n-12
+Y^3 w Q Y Q Y^2 Q Y Q Y^n-12
+Y^3 Q Y Q Y w Y Q Y Q Y^n-12
+Y^3 Q Y Q Y^2 Q Y^2 f f Y Q Y^n-12
+Y^3 Q Y Q Y^2 Q Y^3 f f Q Y^n-12
+Y^3 Q Y Q Y^2 Q Y^3 f w Y^n-13
+Y^3 Q Y Q Y^2 Q Y^3 f Y Q Y Q Y^n-15
+Y^3 Q Y Q Y^2 Q Y^4 f Q Y Q Y^n-15
+Y^3 Q Y Q Y^2 Q Y^4 w Q Y^n-15
+Y^3 Q Y Q Y^2 Q Y^4 Q Y w Y^n-16
+Y^3 Q Y Q Y^2 Q Y^4 Q Y^2 Q Y Q Y^n-18
+
+f Y^3 Q Y Q Y^2 Q Y^4 Q Y^2 Q Y Q Y^n-18
+Y^3 f Q Y Q Y^2 Q Y^4 Q Y^2 Q Y Q Y^n-18
+Y^3 w Q Y^2 Q Y^4 Q Y^2 Q Y Q Y^n-18
+Y^3 Q Y w Y Q Y^4 Q Y^2 Q Y Q Y^n-18
+Y^3 Q Y^2 Q Y^2 f f Y^4 Q Y^2 Q Y Q Y^n-18
+Y^3 Q Y^2 Q Y^6 f f Q Y^2 Q Y Q Y^n-18
+Y^3 Q Y^2 Q Y^6 f w Y Q Y Q Y^n-18
+Y^3 Q Y^2 Q Y^6 f Y Q Y^2 f f Y Q Y^n-18
+Y^3 Q Y^2 Q Y^6 f Y Q Y^2 f Y f Q Y^n-18
+Y^3 Q Y^2 Q Y^6 f Y Q Y^2 f Y w Y^n-19
+Y^3 Q Y^2 Q Y^6 f Y Q Y^2 f Y^2 Q Y Q Y^n-21
+Y^3 Q Y^2 Q Y^6 f Y Q Y^4 f Q Y Q Y^n-21
+Y^3 Q Y^2 Q Y^6 f Y Q Y^4 w Q Y^n-21
+Y^3 Q Y^2 Q Y^6 f Y Q Y^4 Q Y w Y^n-22
+Y^3 Q Y^2 Q Y^7 f Q Y^4 Q Y w Y^n-22
+Y^3 Q Y^2 Q Y^7 w Y^3 Q Y w Y^n-22
+Y^3 Q Y^2 Q Y^8 Q Y Q Y Q Y w Y^n-22
+
+f Y^3 Q Y^2 Q Y^8 Q Y Q Y Q Y w Y^n-22
+Y^3 f Q Y^2 Q Y^8 Q Y Q Y Q Y w Y^n-22
+Y^3 w Y Q Y^8 Q Y Q Y Q Y w Y^n-22
+Y^4 Q Y^2 f f Y^8 Q Y Q Y Q Y w Y^n-22
+Y^4 Q Y^10 f f Q Y Q Y Q Y w Y^n-22
+Y^4 Q Y^10 f w Q Y Q Y w Y^n-22
+Y^4 Q Y^10 f Q Y Q Y w w Y^n-22
+Y^4 Q Y^10 w Q Y w w Y^n-22
+Y^4 Q Y^10 Q Y w w w Y^n-22 *
+Y^4 Q Y^10 Q Y w w Y Q Y Q Y^n-24
+Y^4 Q Y^10 Q Y w Y Q Y^2 f f Y Q Y^n-24
+Y^4 Q Y^10 Q Y w Y Q Y^3 f f Q Y^n-24
+Y^4 Q Y^10 Q Y^2 Q Y^2 f f Y^3 f f Q Y^n-24
+Y^4 Q Y^10 Q Y^2 Q Y^5 f f f f Q Y^n-24
+Y^4 Q Y^10 Q Y^2 Q Y^5 f f f w Y^n-25
+Y^4 Q Y^10 Q Y^2 Q Y^5 f f f Y Q Y Q Y^n-27
+Y^4 Q Y^10 Q Y^2 Q Y^6 f f f Q Y Q Y^n-27
+Y^4 Q Y^10 Q Y^2 Q Y^6 f f w Q Y^n-27
+Y^4 Q Y^10 Q Y^2 Q Y^6 f f Q Y w Y^n-28
+Y^4 Q Y^10 Q Y^2 Q Y^6 f f Q Y^2 Q Y Q Y^n-30
+Y^4 Q Y^10 Q Y^2 Q Y^6 f Y Q Y^4 Q Y^2 Q Y Q Y^n-36
+Y^4 Q Y^10 Q Y^2 Q Y^7 f Q Y^4 Q Y^2 Q Y Q Y^n-36
+Y^4 Q Y^10 Q Y^2 Q Y^7 w Y^3 Q Y^2 Q Y Q Y^n-36
+Y^4 Q Y^10 Q Y^2 Q Y^8 Q Y Q Y Q Y^2 Q Y Q Y^n-36
+
+(Wait, f Q Y^n is actually quite similar to the start of the entire TM.)
+
+w^k+1 Y^2 -> Y Q Y^2k+1 f^2k Q
+
+0.1. f^2 Q Y^4 -> Y Q Y w
+0.2. f^3 Q Y^4 -> Y w^2
+
+1.1. f^6 Q Y^10 -> Y^3 Q Y w^3
+1.2. f^7 Q Y^10 -> Y^3 w^4
+1.3. f^6 Q Y^10 Q Y^2 Q -> Y^3 Q Y Q Y^2 Q Y^6 f^6
+1.4. f^7 Q Y^10 Q Y^2 Q -> Y^3     Q Y^2 Q Y^8 f^8
+
+f^14 Q Y^22
+f^7 f^7 Q Y^10 Y^12
+f^7 Y^3 w^4 Y^12 (by 1.2)
+f^7 Y^4 Q Y^7 f^6 Q Y^10
+f^7 Y^4 Q Y^7 Y^3 Q Y w^3 (by 1.1)
+f^7 Y^4 Q Y^7 Y^3 Q Y w^3
+f^7 Y^4 Q Y^10 Q Y w^3
+Y^4 Y^3 w^4 Q Y w^3 (by 1.2)
+Y^7 Q Y w^7 -> 2.1
+
+Y^7 Q Y w^7 Q Y^2 Q
+Y^7 Q Y Q Y^2 Q Y^14 f^14
+
+f Y^7 Q Y Q Y^2 Q Y^14 f^14
+Y^7 w Q Y^2 Q Y^14 f^14
+Y^7 Q Y^2 Q Y^16 f^16
+
+2.1. f^14 Q Y^22 -> Y^7 Q Y w^7
+2.2. f^15 Q Y^22 -> Y^7 w^8
+
+This induction is probably enough to show that the machine is nonhalting.
+
+Renumber the sequence:
+let a_1 = 4, a_2 = 10, a_3 = 22, and in general,
+a_n = 3 * 2^n - 2 for n = 1, 2, 3, ...
+
+2, 3, a_1, 1, 1, 2
+6, 7, a_2, 3, 3, 4
+14, 15, a_3, 7, 7, 8
+2^(n+1)-2, 2^(n+1)-1, a_n, 2^n - 1, 2^n
+
+f^(2^(n+1)-2) Q Y^a_n -> Y^(2^n - 1) Q Y w^(2^n - 1)
+f^(2^(n+1)-1) Q Y^a_n -> Y^(2^n - 1) w^2^n
+
+---
+try writeup:
+
+I believe `1RB---_0RC1LC_1LD0RF_0LE0LD_0RF1LD_1RF1RA` is a fractal and does not halt.
+
+Longitudinal analysis towards the right:
+Let f = <D^-1 F>, w = <D^-1 11B>.
+Then,
+f 0 -> 0 f
+f 10 -> w
+w 10 -> 10 w
+w 01 -> 01 00 f^2
+w 00 -> 01 01
+F> 11 -> ***HALT***
+11B> 11 -> ***HALT***
+
+Start: f^inf 1 0^inf (This is slightly different than the start of the TM from state A, but the two trajectories are equivalent in terms of halting.)
+
+Let a_1 = 4, a_2 = 10, a_3 = 22, and in general for n >= 1, a_n = 3 * 2^n - 2.
+
+We can prove the following statements for all integers n >= 1, which should imply that the TM does not halt.
+(1) f^(2^(n+1)-2) 1 0^a_n -> 0^(2^n - 1) 1 0 w^(2^n - 1)
+(2) f^(2^(n+1)-1) 1 0^a_n -> 0^(2^n - 1) w^2^n
+
+Base case, n = 1:
+f^2 1 0^4 -> 0 1 0 w
+f^3 1 0^4 -> 0 w^2
+This can be shown by direct simulation:
+f f 1 0^4 -> f w 0^3 -> f 0101 0 -> 0 f 10 10 -> 0 w 10 -> 010 w
+f 010 w -> 0 f 10 w -> 0 w^2
+
+Then, by induction, assuming (1) and (2) for n, we can prove (1) and (2) for n+1:
+f^(2^(n+2)-2) 1 0^a_(n+1)
+= f^(2^(n+1)-1) f^(2^(n+1)-1) 1 0^a_n 0^2 0^a_n
+-> f^(2^(n+1)-1) 0^(2^n - 1) w^2^n 0^2 0^a_n (by (2))
+-> f^(2^(n+1)-1) 0^(2^n - 1) w^(2^n - 1) 01 01 0^a_n
+-> f^(2^(n+1)-1) 0^(2^n - 1) 01 0^(2^(n+1)-2) f^(2^(n+1)-2) 01 0^a_n
+-> f^(2^(n+1)-1) 0^2^n 1 0^(2^(n+1)-1) f^(2^(n+1)-2) 1 0^a_n
+-> f^(2^(n+1)-1) 0^2^n 1 0^(2^(n+1)-1) 0^(2^n - 1) 1 0 w^(2^n - 1) (by (1))
+= f^(2^(n+1)-1) 0^2^n 1 0^a_n 1 0 w^(2^n - 1)
+-> 0^2^n f^(2^(n+1)-1) 1 0^a_n 1 0 w^(2^n - 1)
+-> 0^2^n 0^(2^n - 1) w^2^n 1 0 w^(2^n - 1) (by (2))
+-> 0^2^n 0^(2^n - 1) 1 0 w^2^n w^(2^n - 1)
+= 0^(2^(n+1) - 1) 1 0 w^(2^(n+1) - 1)
+
+f 0^(2^(n+1) - 1) 1 0 w^(2^(n+1) - 1)
+-> 0^(2^(n+1) - 1) f 10 w^(2^(n+1) - 1)
+-> 0^(2^(n+1) - 1) w^2^(n+1)
+and we are done.
+
+Earlier, I also tried longitudinal analysis towards the left. Let h = <D F>^-1.
+
+Then,
+0^inf h -> 0^inf 1
+0^inf 1^6 (1^2 0 1^2 0 1^6 h^2)^inf
+
+I ran a simulation and got:
+0^inf 1^6 (1^2 0 1^2 0 1^6 h^2)^inf
+-> 0^inf 1^7 (1^3 0 1^10 0 1^2 0 1^6 h^3)^inf
+-> 0^inf 1^14 (1^6 0 1^2 0 1^14 h^2)^inf
+-> 0^inf 1^15 (1^7 0 1^22 0 1^2 0 1^14 h^3)^inf
+-> 0^inf 1^30 (1^14 0 1^2 0 1^30 h^2)^inf
+-> 0^inf 1^31 (1^15 0 1^46 0 1^2 0 1^30 h^3)^inf
+-> ...
+so there is a cycle with 12 tape cells which then doubles to 24 cells, 48, and so forth. But the longitudinal analysis in this direction is more annoying since in a block simulation, the 11B> head also appears.
+
+The space-time or longitudinal diagram looks kind of like a tree where the branches pair up and combine over time.
