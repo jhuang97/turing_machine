@@ -426,6 +426,12 @@ Y^4 Q Y^10 Q Y^2 Q Y^8 Q Y Q Y Q Y^2 Q Y Q Y^n-36
 
 w^k+1 Y^2 -> Y Q Y^2k+1 f^2k Q
 
+w Y^3 -> Y Q Y Q Y
+w^k+2 Y^3 -> Y Q Y^2k+3 f^2k+1 w
+
+w Q Y^3 -> Q Y^2 Q Y Q
+w^k+2 Q Y^4 -> Q Y^2 Q Y^2k+3 f^2k+1 w
+
 0.1. f^2 Q Y^4 -> Y Q Y w
 0.2. f^3 Q Y^4 -> Y w^2
 
@@ -535,3 +541,69 @@ I ran a simulation and got:
 so there is a cycle with 12 tape cells which then doubles to 24 cells, 48, and so forth. But the longitudinal analysis in this direction is more annoying since in a block simulation, the 11B> head also appears.
 
 The space-time or longitudinal diagram looks kind of like a tree where the branches pair up and combine over time.
+
+----
+mxdys says that I need to check what happens to the leftover w heads at the end of statements (1) and (2).
+
+This is not necessarily straightforward to do.
+
+Probably need to figure out w^k 0^inf and f^k 1 0^inf starting from small values of k?
+
+Might be able to find an inductive proof, though it might be different than the earlier one...
+
+Use:
+w Y^3 -> Y Q Y Q Y
+w^k+1 Y^2 -> Y Q Y^2k+1 f^2k Q
+(2 -> 2, 3 -> 4, 4 -> 6, 5 -> 8)
+
+f Y^3 -> Y Q Y Q
+f^2 Q Y^6 -> Y Q Y^2 Q Y Q
+can send w^2 now
+f^3 Q Y^4 -> Y w^2
+f^4 Q Y^10 -> Y^3 Q Y Q Y Q Y  w
+can send w^3 now
+f^5 Q Y^10 -> Y^3 Q Y Q Y  w^2
+f^6 Q Y^10 -> Y^3 Q Y  w^3
+can send w^4 now
+f^7 Q Y^10 -> Y^3  w^4
+f^8 Q Y^22 -> Y^5 Q Y Q Y^7 Q Y  w^3
+can send w^5 now
+f^9 Q Y^22 -> Y^5 Q Y^2 Q Y Q Y^4 Q Y  w^3
+f^10 Q Y^22 -> Y^6 Q Y^4 Q Y Q Y  w^4
+can send w^6 now
+f^11 Q Y^22 -> Y^7 Q Y Q Y Q Y Q Y  w^4
+f^12 Q Y^22 -> Y^7 Q Y Q Y Q Y  w^5
+can send w^7 now
+f^13 Q Y^22 -> Y^7 Q Y Q Y  w^6
+f^14 Q Y^22 -> Y^7 Q Y  w^7
+can send w^8 now
+f^15 Q Y^22 -> Y^7  w^8
+
+---
+so w^8 depends on f^14 -> w^7 -> f^12 -> w^5 -> f^8 -> w^3 -> f^4 -> w?
+w^16 -> f^30 -> w^15 -> f^28 -> w^13 -> f^24 -> w^10 -> f^18 -> w^7
+...
+
+I think that my previous proof for `1RB---_0RC1LC_1LD0RF_0LE0LD_0RF1LD_1RF1RA` was insufficient - mxdys objected to unchecked w heads, and also by racheline's standard, my proof did not account for every step in the TM's simulation, as it didn't describe what happens at the right end of the tape.
+
+But I now do have an outline for a complete proof:
+
+We can prove the following statements for all integers n >= 1:
+(A) f^(2^(n+1)-1) 1 0^a_n -> 0^(2^n - 1) w^2^n
+(B) f^(2^(n+1)-2) 1 0^a_n -> 0^(2^n - 1) 1 0 w^(2^n - 1)
+(C) f^m 1 0^a_n -> [some finite string of 0 and 1] w^s
+where 0 <= m < 2^(n+1) - 2 and s >= 0.
+
+Then we handle any unchecked w heads at the right end.
+If there is only 1 w head:
+w 00 -> 01 01 and all reductions are done.
+If there is w^s with s > 1:
+w^s 0^a_n -> w^s-1 01 01 -> 01 0^(2s-2) f^(2s-2) 01 -> 01 0^(2s-1) f^(2s-2) 1
+
+Then we have to go back to (A), (B), or (C) to handle the f^(2s-2) 1, but I have a sketch of how to show that the number of f heads always decreases. It involves some painstaking accounting of individual f and w heads.
+
+If we can show these things, then f^n 1 0^inf is defined for all n.
+
+----
+I wrote down elsewhere an argument of why the number of f heads always decreases.
+mxdys apparently didn't need that, and built off my initial inductive proof to prove this TM nonhalting in Rocq. See https://discord.com/channels/960643023006490684/1239205785913790465/1516464297407021086

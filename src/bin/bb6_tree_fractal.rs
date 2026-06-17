@@ -967,15 +967,16 @@ fn main() {
     //     }
     // }
 
-    let mut v = parse_right_tape("Q Y^4").unwrap();
+    let mut v = parse_right_tape("Q Y^94").unwrap();
     println!("start: {}", DisplayRTape(&v));
     let mut in_right_heads = RightHeadSeq({
         use RightHead::*;
-        vec![(F, 100)]
+        // vec![(W, 1), (F, 100)]
+        vec![(F, 5)]
     });
     let mut in_heads_so_far = RightHeadSeq::new();
     let mut out_right_heads = RightHeadSeq::new();
-    loop {
+    for _ in 0..100 {
         let Some(next_head) = in_right_heads.pop() else {
             break;
         };
