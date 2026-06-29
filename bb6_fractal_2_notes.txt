@@ -1,0 +1,370 @@
+1RB1LD_0RC0RB_1LD1LA_0LE---_1LF0LD_1LA0LB
+
+On the second attempt, I achieved a pretty clean block analysis of this.
+
+Symbols:
+left:  L, X, M, N, S,   P
+right: R, Y, W,    T, D
+
+Try leftward longitudinal analysis.
+Let z = < >^-1
+Start: L X M S z^inf
+
+L z -> L X
+X z -> z X
+M z -> z M
+
+X S z -> z z M S
+M S z -> z N S
+N S z -> P z X S
+L S z -> L X M S
+
+X P -> M
+M P z -> N
+S P -> X
+
+N z -> P S
+
+M S z z z
+z N S z z
+z P z X S z
+z P z z z M S
+
+----
+M z
+M < >^-1
+< W >^-1
+z > W >^-1
+z > W >^-1
+z M > >^-1
+z M
+
+X S z
+X S < >^-1
+X < D >^-1
+< Y D >^-1
+z > Y D >^-1
+z X > D >^-1
+z M < T >^-1
+z < W T >^-1
+z z > W T >^-1
+z z M > T >^-1
+z z M S > >^-1
+z z M S
+
+M S z
+M S < >^-1
+M < D >^-1
+< W D >^-1
+z > W D >^-1
+z M > D >^-1
+z N > T >^-1
+z N S > >^-1
+z N S
+
+N S z
+N S < >^-1
+N < D >^-1
+P > T D >^-1
+P S > D >^-1
+P < Y T >^-1
+P z > Y T >^-1
+P z X > T >^-1
+P z X S > >^-1
+P z X S
+
+L S z
+L S < >^-1
+L < D >^-1
+L X > D >^-1
+L M < T >^-1
+L < W T >^-1
+L X > W T >^-1
+L X M > T >^-1
+L X M S > >^-1
+L X M S
+
+X P z
+X P < >^-1
+< W >^-1
+z > W >^-1
+z M > >^-1
+z M
+
+N z
+N < >^-1
+P > T >^-1
+P S > >^-1
+P S
+
+Mirror everything to make the pattern easier to see.
+
+Mirror the definitions of the heads and blocks:
+z = (<C00)^-1 0E>
+
+X = 010
+P = 0
+M = 0010
+N = 0110
+S = 10
+
+z 0^inf -> X 0^inf
+z X -> X z
+z M -> M z
+
+z S 0^inf -> S M X 0^inf
+z S X -> S M z z
+z S M -> S N z
+z S N -> S X z P
+
+P X = M
+z P M -> N
+P S = X
+
+z N -> S P
+
+Let A(n,m) = S X^(2^n - 1) M X^(2^n - 1) X^m 0^inf
+Start: z^inf A(1, 1)
+Then, for n >= 1,
+z^(2*3^n) A(n, m) -> A(n+1, m + 2*(3^n - 2^n))
+so it is nonhalting.
+
+Sim (we are concerned with the left two exponents:
+0 | 30: L X M > T R
+26 | 168: L X^2 M X S X^2 > R
+126 | 1080: L X^6 M X^3 S X^8 > R
+522 | 8236: L X^20 M X^7 S X^26 > R
+2090 | 68944: L X^66 M X^15 S X^80 > R
+8330 | 602348: L X^212 M X^31 S X^242 > R
+33226 | 5357120: L X^666 M X^63 S X^728 > R
+1, 2 -> 1, 1 -> A(1, 1)
+3, 6 -> 3, 3 -> A(2, 3) (+2 * 1, 1 = 3^1 - 2^1)
+7, 20 -> 7, 13 -> A(3, 13) (+2 * 10, 10 = 3^2 - 2^2)
+15, 66 -> 15, 51 -> A(4, 51) (+2 * 19, 19 = 3^3 - 2^3)
+31, 212 -> 31, 181 -> A(5, 181) (+2 * 65, 65 = 3^4 - 2^4)
+63, 666 -> 63, 603 -> A(6, 603) (+2 * 211, 211 = 3^5 - 2^5)
+
+z S M X L
+S N z X L
+S N X^2 L
+z S N X^2 L
+S X z M X L
+S X M X^2 L
+---
+Start: z^inf S M X 0^inf
+---
+alt start: z^inf S 0^inf
+---
+
+z S X^2
+S M X z^2
+z S M X z^2
+S N X z^3
+z S N X z^3
+S X z P X z^3
+S X z M z^3
+S X M z^4
+=> z^3 S X^2 -> S X M z^4
+
+z S X -> S M z^2
+z S M -> S N z
+z S N -> S X z P
+=>
+z^3 S X -> S X z P z^3
+z^2 S M -> S X z P z
+
+z^2 S M X L -> S X M X^2 L
+
+z^2 P M X -> z N X -> S P X -> S M
+z^4 P M X -> S X z P z
+
+z^3 S X^3
+S X z P z^3 X^2
+S X z P X^2 z^3
+S X z M X z^3
+S X M X z^4
+...
+z^3 S X M X z^4
+S X z P z^3 M X z^4
+S X z P M X z^7
+S X N X z^7
+...
+z^3 S X N X z^7
+S X z P z^3 N X z^7
+S X z P z^2 S P X z^7
+S X z P z^2 S M z^7
+S X z P S X z P z^8
+S X z X^2 z P z^8
+S X^3 z^2 P z^8
+OR
+z^6 S X M X
+z^3 S X z P z^3 M X
+S X z P z^4 P z^3 M X
+S X z P z^4 P M X z^3
+S X z P z^2 S M z^3
+S X z P S X z P z^4
+S X z X^2 z P z^4
+S X^3 z^2 P z^4
+=>
+z^9 S X^3 -> S X^3 z^2 P z^8
+z^6 S X M X -> S X^3 z^2 P z^4
+
+z^2 P M X -> S M
+z^4 P M X -> S X z P z
+
+z^6 S X M X^2 L -> S X^3 M X^6 L
+.
+z^10 P M X^3 -> z^6 S X z P z X^2
+->
+z^6 S X z P X^2 z
+z^6 S X z M X z
+z^6 S X M X z^2
+S X^3 z^2 P z^6
+
+.
+z^9 S X^7
+S X^3 z^2 P z^8 X^4
+S X^3 z^2 P X^4 z^8
+S X^3 z^2 M X^3 z^8
+S X^3 M X^3 z^10
+...
+z^9 S X^3 M X^3
+S X^3 z^2 P z^8 M X^3
+S X^3 z^2 P M X^3 z^8
+S X^3 z N X^3 z^8
+S X^3 S P X^3 z^8
+S X^3 S M X^2 z^8
+...
+z^9 S X^3 S M X^2
+S X^3 z^2 P z^8 S M X^2
+S X^3 z^2 P z^6 S X z P X^2 z
+S X^3 z^2 P z^6 S X z M X z
+S X^3 z^2 P z^6 S X M X z^2
+S X^3 z^2 P S X^3 z^2 P z^6
+S X^3 z^2 X^4 z^2 P z^6
+S X^7 z^4 P z^6
+...
+or:
+z^18 S X^3 M X^3
+z^9 S X^3 z^2 P z^8 M X^3
+S X^3 z^2 P z^10 P z^8 M X^3
+S X^3 z^2 P z^10 P M X^3 z^8
+S X^3 z^2 P S X^3 z^2 P z^6 z^8
+S X^3 z^2 X^4 z^2 P z^14
+S X^4 z^4 P z^14
+=>
+z^27 S X^7 -> S X^7 z^4 P z^24
+z^18 S X^3 M X^3 -> S X^7 z^4 P z^14
+
+z^28 P M X^7
+z^18 z^10 P M X^3 X^4
+z^18 S X^3 z^2 P z^6 X^4
+z^18 S X^3 z^2 P X^4 z^6
+z^18 S X^3 z^2 M X^3 z^6
+z^18 S X^3 M X^3 z^8
+S X^7 z^4 P z^14 z^8
+S X^7 z^4 P z^22
+
+z^28 P M X^7 -> z^18 S X^3 M X^3 z^8
+z^28 P M X^7 -> S X^7 z^4 P z^22
+
+z^27 S X^15
+S X^7 z^4 P z^24 X^8
+S X^7 z^4 P X^8 z^24
+S X^7 z^4 M X^7 z^24
+S X^7 M X^7 z^28
+...
+z^54 S X^7 M X^7
+S X^7 z^4 P z^24 z^4 P z^24 M X^7
+S X^7 z^4 P z^28 P M X^7 z^24
+S X^7 z^4 P S X^7 z^4 P z^22 z^24
+S X^7 z^4 X^8 z^4 P z^46
+S X^15 z^8 P z^46
+
+looks like the inductive proof needs three kinds of statements and then it should work
+
+can these types of statements be proved by themselves?
+z^4 P M X -> z^2 S M
+z^10 P M X^3 -> z^6 S X M X z^2
+z^28 P M X^7 -> z^18 S X^3 M X^3 z^8
+
+z^2 P M X -> S M
+z^4 P M X^3 -> S X M X z^2
+z^10 P M X^7 -> S X^3 M X^3 z^8
+
+z^2 P M X -> z N X -> S P X -> S M
+z^4 P M X^3 -> z^2 z^2 P M X X^2 -> z^2 S M X^2 -> ???
+I guess not.
+
+
+z^3 S X   -> S X z P z^3
+z^2 S M   -> S X z P z
+z^4 P M X -> S X z P z
+
+z^9  S X^3   -> S X^3 z^2 P z^8
+z^6  S X M X -> S X^3 z^2 P z^4
+z^10 P M X^3 -> S X^3 z^2 P z^6
+
+z^27 S X^7       -> S X^7 z^4 P z^24
+z^18 S X^3 M X^3 -> S X^7 z^4 P z^14
+z^28 P M X^7     -> S X^7 z^4 P z^22
+
+z S X^n                           -> S M X^n-1 z^2
+z^2 P M X^n -> z N X^n -> S P X^n -> S M X^n-1
+
+(a_n + 2^(n-1) + 2 = 3^n + 1)
+
+Let a_n = 3^n - 2^(n-1) - 1. (a_1 = 1, a_2 = 6, a_3 = 22, a_4 = 72, ...)
+
+Can show the following statements
+(1) z^3^n         S X^(2^n - 1) -> S X^(2^n - 1) z^2^(n-1) P z^(a_n + 2)
+(2) z^(3^n + 1) P M X^(2^n - 1) -> S X^(2^n - 1) z^2^(n-1) P z^a_n
+(3) z^(2*3^n) S X^(2^n - 1) M X^(2^n - 1) -> S X^(2^(n+1) - 1) z^2^n P z^(2*a_n + 2)
+for n = 1, 2, 3, ...
+
+Base cases:
+(1) n = 1
+z^3 S X -> z^2 S M z^2 -> z S N z^3 -> S X z P z^3
+(2) n = 1
+z^4 P M X -> z^3 N X -> z^2 S P X = z^2 S M -> ... -> S X z P z
+
+Induction assuming (1) and (2) for n:
+z^3^n S X^(2^(n+1) - 1)
+S X^(2^n - 1) X^2^n
+S X^(2^n - 1) z^2^(n-1) P z^(a_n + 2) X^2^n (by (1))
+S X^(2^n - 1) z^2^(n-1) M X^(2^n - 1) z^(a_n + 2)
+S X^(2^n - 1) M X^(2^n - 1) z^(a_n + 2^(n-1) + 2)
+
+z^(2*3^n) S X^(2^n - 1) M X^(2^n - 1) z^(a_n + 2^(n-1) + 2)
+S X^(2^n - 1) z^2^(n-1) P z^(a_n + 2) z^2^(n-1) P z^(a_n + 2) M X^(2^n - 1) z^(a_n + 2^(n-1) + 2) (by (1) twice)
+S X^(2^n - 1) z^2^(n-1) P z^(3^n + 1) P M X^(2^n - 1) z^(2*a_n + 2^(n-1) + 4)
+S X^(2^n - 1) z^2^(n-1) P S X^(2^n - 1) z^2^(n-1) P z^a_n z^(2*a_n + 2^(n-1) + 4) (by (2))
+S X^(2^n - 1) z^2^(n-1) X^2^n z^2^(n-1) P z^(3*a_n + 2^(n-1) + 4)
+S X^(2^(n+1) - 1) z^2^n P z^(3*a_n + 2^(n-1) + 4)
+S X^(2^(n+1) - 1) z^2^n P z^(3^(n+1) - 3*2^(n-1) - 3 + 2^(n-1) + 4)
+S X^(2^(n+1) - 1) z^2^n P z^(a_(n+1) + 2)
+(1) proved for n+1
+(3) proved for n
+
+z^(3^(n+1) + 1) P M X^(2^(n+1) - 1)
+z^(2*3^n) z^(3^n + 1) P M X^(2^n - 1) X^2^n
+z^(2*3^n) S X^(2^n - 1) z^2^(n-1) P z^a_n X^2^n (by (2))
+z^(2*3^n) S X^(2^n - 1) z^2^(n-1) P X^2^n z^a_n
+z^(2*3^n) S X^(2^n - 1) z^2^(n-1) M X^(2^n - 1) z^a_n
+z^(2*3^n) S X^(2^n - 1) M X^(2^n - 1) z^(a_n + 2^(n-1))
+S X^(2^(n+1) - 1) z^2^n P z^(2*a_n + 2) z^(a_n + 2^(n-1)) (by (3) for n)
+S X^(2^(n+1) - 1) z^2^n P z^(3*a_n + 2^(n-1) + 2)
+S X^(2^(n+1) - 1) z^2^n P z^a_(n+1)
+(2) proved for n+1
+
+...
+Proof of z^(2*3^n) A(n,m) -> A(n+1, m + 2*(3^n - 2^n))
+
+z^(2*3^n) S X^(2^n - 1) M X^(2^n - 1) X^m 0^inf
+S X^(2^(n+1) - 1) z^2^n P z^(2*a_n + 2) X^m) 0^inf (by (3))
+S X^(2^(n+1) - 1) z^2^n P X^(2*a_n + m + 2) 0^inf
+S X^(2^(n+1) - 1) z^2^n M X^(2*a_n + m + 1) 0^inf
+S X^(2^(n+1) - 1) M X^(2*a_n + 2^n + m + 1) 0^inf
+S X^(2^(n+1) - 1) M X^(2*3^n - 2^n - 2 + 2^n + m + 1) 0^inf
+S X^(2^(n+1) - 1) M X^(2*3^n - 1 + m) 0^inf
+S X^(2^(n+1) - 1) M X^(2^(n+1) - 1) X^(m + 2*(3^n - 2^n)) 0^inf

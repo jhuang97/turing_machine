@@ -1,0 +1,44 @@
+tm = 1RB1LD_0RC0RB_1LD1LA_0LE---_1LF0LD_1LA0LB
+
+[metastates]
+Right     >  B>
+Left      <  <B01
+LeftE     <E <E
+
+[blocks]
+X(exp) = 100
+Y(exp) = 011
+
+X1 = 10
+Y1 = 01
+X3 = 1000
+Y3 = 0111
+D = 00
+G = 1100
+
+L = ^
+R = 01$
+
+[rules]
+> Y -> X >
+X < -> < Y
+
+L < -> L X X >
+> R -> < R
+
+> D -> <E Y1
+> Y3 -> X3 >
+> Y1 -> X1 >
+
+X X1 < -> < D Y
+X3 < -> X <E Y
+X3 X1 < -> X <E D Y
+G X1 < -> <E Y Y1 Y
+X G < -> X3 X1 X >
+
+X X1 <E -> < Y
+X X <E -> < Y3
+X3 <E -> G >
+X3 X <E -> X <E Y3
+X3 X1 X <E -> X <E D Y3
+G X1 X <E -> <E Y Y1 Y3
