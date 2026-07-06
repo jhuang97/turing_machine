@@ -1,0 +1,116 @@
+1RB1RD_1LC0LE_1RA0LB_1RA1RF_0RA0RC_1RE---
+
+Let z = < >^-1
+Let y = <^-1 >
+
+1^3 z -> Y (5)
+Y z -> z Y (6)
+
+y X^n R -> X^n+3 R (6n + 28)
+I^3n A> R -> < X^(4n+3) R (12n^2 + 41n + 33)
+
+1^3 < >^-1
+Y > >^-1
+Y
+
+Y < >^-1
+< X >^-1 (2)
+< >^-1 > X >^-1
+z > X >^-1
+z Y > >^-1 (4)
+z Y
+
+<^-1 > X^n R
+<^-1 Y^n > R (4n)
+<^-1 Y^n+3 < R (22)
+<^-1 < X^n+3 R (2n + 6)
+X^n+3 R
+
+I^3n A> R or I^3n > R
+I^3n Y^3 < R (27 or 22)
+I^3n < X^3 R (6)
+I^3n < (>^-1 <)^n (<^-1 >)^n X^3 R
+I^3n (< >^-1)^n < (<^-1 >)^n X^3 R
+I^3n z^n < y^n X^3 R
+Y^n < y^n X^3 R (3n^2 + 2n) (**)
+Y^n < X^(3n+3) R (9n^2 + 37n) (*)
+< X^(4n+3) R (2n)
+
+(*)
+sum (6k+28) for k = 3, 6, 9, ..., 3n
+= sum (18k + 28) for k = 1, 2, 3, ..., n
+= 28n + 18 * n * (n+1) / 2
+= 28n + 9n^2 + 9n
+= 9n^2 + 37n
+
+(**)
+I^3n z^n
+n applications of 1^3 z -> Y
+(0 + 1 + ... + n-1) applications of Y z -> z Y
+5n + 6n(n-1)/2
+= 5n + 3n^2 - 3n
+= 3n^2 + 2n
+
+
+A 1111111111111 >1 1
+E 1111111111111  1 11 >0
+
+L I^78 A> R
+seems to lead to a new block rule that I need to handle:
+L Y I < X X -> L I I I I I I Y A>
+
+
+L I^33952 A> R
+--> L I^2 Y I < X^82762270772085561905434870941963 R
+--> L Y^4 I^3 Y A> X^82762270772085561905434870941960 R
+...
+--> L Y^5 > X^220699388725561498414492989178564 R
+
+L I^154981 A> R
+L I^315488 A> R
+L I^1092741 A> R
+also interesting
+
+I have, at this point, accumulated a bunch of "[...] Y I < [...]" rules but I think
+Y I < -> < X I
+might be able to replace them all????
+
+Will try regenerating rule code.
+patched code to put back in:
+            // > X -> Y >
+            (Right, _, [.., Run(X, exp)]) => {
+                let n = *exp;
+                self.right_tape.pop();
+                add_or_merge_run(&mut self.left_tape, Y, n);
+                n.checked_mul(4u128).ok_or(SimError::Overflow)?
+            }
+            // A> X -> I I A>
+            (RightA, _, [.., Run(X, exp)]) => {
+                let n = *exp;
+                // decrement_run(&mut self.right_tape, X);
+                self.right_tape.pop();
+                add_or_merge_run(
+                    &mut self.left_tape,
+                    I,
+                    n.checked_mul(2u128).ok_or(SimError::Overflow)?,
+                );
+                2u128 * n
+            }
+
+rules to delete:
+I I I Y I < -> Y Y Y A>
+I I I Y I Y I < X X -> Y Y Y I I I I I Y A>
+Y Y I < -> < X X I
+L Y I < X X -> L I I I I I I Y A>
+L I Y I < X X -> L I I I I I I I I Y A>
+L I I Y I < X X X -> L Y Y Y Y I I I Y A>
+Y I I Y I < -> P Y Y Y A>
+P Y I < X X -> I I I I I I Y A>
+
+halting configurations:
+A> I I X -> ***HALT***
+A> I I I -> ***HALT***
+
+I don't see an easy way to argue that those configurations are unreachable. Need to check whether this TM is an energy vampire?
+
+This TM has already been analyzed: https://wiki.bbchallenge.org/wiki/1RB---_0RC0RE_1RD1RF_1LE0LB_1RC0LD_1RC1RA
