@@ -1,0 +1,86 @@
+tm = 1RB0RD_1LC1LB_---1LD_1RA0RE_1RD0LF_1LE0LD
+
+[metastates]
+Left   < <E1
+Right  > 0E>
+RightA a> 0D>
+RightWide w> 01111010E>1
+
+[blocks]
+X(exp) = 01
+
+C = 011
+C2 = 0011
+P = 0
+Q = 0
+G = 0111
+GR = 0111
+J = 01111
+
+L = ^
+R = $
+
+[rules]
+X < -> < X
+C < -> < C
+L < -> L X >
+
+> X -> X >
+> C -> < X P
+> P C -> C Q >
+X > P X P X -> < C X C
+> P X -> C a>
+
+> R -> < X X R
+G < -> Q C a>
+
+a> X -> X a>
+X a> R -> < C X X X R
+
+X Q C < -> < C X P
+a> C -> X Q >
+
+C Q < -> G >
+X Q < -> C >
+
+w> X -> X w>
+w> C -> X X C X X a>
+
+C X a> P X -> w>
+X X a> P X X -> Q w>
+X X a> P X C -> Q X C X X a>
+X X a> P C -> Q C X X a>
+X X X a> P X P X -> < C X P C X P
+
+Q Q < -> X >
+
+w> P X -> < X C C X P
+w> P C -> < X C C X X
+
+X X X a> P X P C -> < C X P C X X
+X C a> P C -> < C X GR
+X X a> P X GR -> Q X C X X Q >
+C X X a> P X P X -> Q X C a> X X X P
+C X a> P C -> X C X X a>
+> GR -> < X X
+
+a> GR X -> C C a>
+C C a> P X -> Q C X X Q >
+C C a> P C -> Q C X a> GR
+X X > P P X -> Q C X X a>
+X X > P P C -> Q C X X Q >
+C X X a> P X P C -> Q X C a> X X X X
+w> GR -> X X C X X Q >
+
+X X a> P P X -> < X C X P
+> P GR X -> G C a>
+G Q < -> J >
+J < -> X C a>
+Q X > P P C -> < C X C
+X X a> P P C -> < X C X X
+G C a> P X -> X C X X Q >
+G C a> P C X -> X C X C C a>
+Q X > P P X -> < C X X
+C a> P P C -> Q C X X a>
+C a> P P X -> Q C X a> P
+a> GR C -> C C Q >

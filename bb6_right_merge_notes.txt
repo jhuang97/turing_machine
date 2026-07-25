@@ -1,0 +1,188 @@
+1RB0RD_1LC1LB_---1LD_1RA0RE_1RD0LF_1LE0LD
+
+Vaguely resembles a Skelet 1-like but also kind of different.
+
+Symbols on right:
+R1, X, T, Q
+Symbols on left:
+L, X, T, Q
+(Q T = X)
+Q a> Q X -> ***HALT***
+Q > Q Q X -> ***HALT***
+
+But I don't think Q a> is possible?
+Q Q on the right side is possible, however.
+Maybe Q > Q is not possible though? Maybe it is possible via a> T Q ?
+
+Is it possible to find a closed set?
+The a> head can be replaced with two heads which have more symbols on the left side and avoid the Q a> case.
+
+Difficulties:
+Might be hard to prove Q > Q Q X impossible...
+T t> Q R1 -> < X T T T R not closed
+
+Longitudinal analysis attempt:
+Define
+h = <^-1 >
+a = <^-1 a>
+b = <^-1 b>
+
+h X -> X h
+a X -> X a
+b X -> X b
+h Q X -> X T a
+
+h   T -> Q
+a X T -> X T h^2
+
+h Q X^n+2 T -> X T X^n+1 T h^2
+h^2 Q X^n+2 T -> X Q X^n+1 T h^2
+
+h^2 Q X -> X Q a
+h^2 T X -> X T a
+
+h R1 ->     X^2 R1
+a R1 -> X T X^2 R1
+
+h X Q X T -> X T X Q a h^2
+h X Q X Q X -> X T X^2 T
+h Q X^2 Q X -> X b
+h X Q X^3 Q X^2 -> X T X Q X a h b
+
+a X^3 Q X^2 -> X T X hb
+b T -> X T X^2 a
+hb T -> X Q X^2 a
+
+a X^3 Q X^n+2 T -> X T X^n+2 Q X^2 a
+
+b Q X -> X T X T X Q
+hb Q X -> X Q X T X Q
+
+h Q X
+<^-1 X T a>
+<^-1 X T < a
+<^-1 X T < a
+X T a
+
+a X T
+<^-1 X a> T
+<^-1 X Q >
+<^-1 X Q < h
+<^-1 X T > h
+<^-1 X T < h h
+X T h h
+
+h Q X^n+2 T
+X T a X^n+1 T
+X T X^n a X T
+X T X^n+1 T h^2
+
+a X X X Q X X
+<^-1 X X X a> Q X X
+<^-1 X Q X T X a> Q X
+<^-1 X Q X T X X T a>
+<^-1 X Q X T X X T < a
+<^-1 X Q X T X < X T a
+<^-1 X Q < X T X X T a
+<^-1 X T > X T X X T a
+<^-1 X T X > T X X T a
+<^-1 X T X < Q X X T a
+<^-1 X T X < Q X X T a
+X T X Q X X T a
+
+h X Q X T
+<^-1 > X Q X T
+<^-1 X X T a> T
+<^-1 X X T Q >
+<^-1 X X T Q < h
+<^-1 X X T T > h
+<^-1 X X T T < h h
+<^-1 X Q X T a> h h
+<^-1 X Q X T < a h h
+<^-1 X Q < X T a h h
+<^-1 X T > X T a h h
+<^-1 X T X > T a h h
+<^-1 X T X < Q a h h
+X T X Q a h h
+
+h X Q X Q X
+<^-1 X > Q X Q X
+<^-1 X X T a> Q X
+<^-1 X <f X X T
+<^-1 < X T X X T
+X T X X T
+
+a X^3 Q X^2
+<^-1 X X X a> Q X X
+<^-1 X Q X T X a> Q X
+<^-1 X Q X b>
+<^-1 X Q X < b
+<^-1 X Q < X b
+<^-1 X T > X b
+<^-1 X T X > b
+<^-1 X T X < h b
+X T X h b
+
+h Q X^2 Q X
+<^-1 > Q X^2 Q X
+<^-1 X T a> X Q X
+<^-1 X T X a> Q X
+<^-1 X b>
+<^-1 X < b
+X b
+
+h X Q X^3 Q X^2
+<^-1 X > Q X^3 Q X^2
+<^-1 X X T a> X^2 Q X^2
+<^-1 X X T X^2 a> Q X^2
+<^-1 X X T Q X T a> X Q X
+<^-1 X X T Q X T X a> Q X
+<^-1 X X T Q X b>
+<^-1 X X T Q X < b
+<^-1 X X T Q < X b
+<^-1 X X T T > X b
+<^-1 X X T T < X h b
+<^-1 X Q X T a> X h b
+<^-1 X Q X T < X a h b
+<^-1 X Q < X T X a h b
+<^-1 X T > X T X a h b
+<^-1 X T X > T X a h b
+<^-1 X T X < Q X a h b
+X T X Q X a h b
+
+
+In forward simulation, the head stops returning to the left end of the tape after 43873633 base steps.
+Would be interesting to figure out why.
+Translated cycler?
+Some type of stride acceleration or uni-cycle?
+
+The right tape has 1924 terms. Maybe try to push longitudinal analysis through these terms and see what happens.
+
+...Set up a longitudinal analysis and gradually adding more rules as needed. Now up to 22 rules:
+[there was a list here but it got outdated]
+
+Working on adding
+h^2 1 Q 1 T 1 Q 1 T 1 Q 3
+When the sim hits this case, the tape has 1971 terms.
+
+After adding more rules, the long. sim reaches 50844 head steps with 2218 terms on the tape.
+
+Wrote two declarative macros to try to make the code for the long. sim less verbose. Converted some of the code.
+
+Some rules do produce a lot more heads, which might be part of why the head apparently does not return to the left end anymore. (Most extreme case so far: take in one h^2 term, output 7 head terms)
+
+Made a visualization of how the longitudinal simulation proceeds; there might be no end to this kind of thing; can't eyeball any translated cycler from just the first 50000 simulation steps.
+
+Plotted number of head terms in the long. sim's near tape over time. It is increasing, as expected, but the trend is disorderly and does not look like a translated cycler has been established.
+
+
+The head still returns to the left after this?
+2222874 | 41575001: L 1147 T T < 1053 T 6 T [...] R1
+1790
+
+The head still returns to the left after this:
+2353640 | 43812085: L 1151 T 1 T > 1052 Q 7 T 5 T 3 [...] 6 R1
+
+The head does not return to the left end after this?
+2355426 | 43873633: L 1154 T T > 1053 Q 6 T 6 T [...] T 6 R1
+1924

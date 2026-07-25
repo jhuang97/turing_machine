@@ -1,0 +1,64 @@
+tm = 1RB0RD_1LC1LB_---1LD_1RA0RE_1RD0LF_1LE0LD
+
+[metastates]
+Left       <  <E1
+LeftF      <f <F01
+Right      >  0E>
+RightT     t> 10D>
+RightShift s> 010D>
+RightB     b> 101011B>1
+
+[blocks]
+X(exp) = 01
+L1 = ^01
+R1 = 01$
+R = $
+Q = 0
+T = 1
+
+[rules]
+> R1 -> < X X R1
+> X -> X >
+> T -> < Q
+> Q R1 -> <f X Q X X X T X X R1
+> Q X -> X t>
+> Q T -> > X
+L1 > Q Q X -> L1 X X X T s>
+X > Q Q X -> T <f X X
+L1 T > Q Q X -> L1 X X X X X >
+X T > Q Q X -> <f X X T T
+T T > Q Q X -> < X T T T T
+
+s> Q T -> s> X
+Q T < -> X <
+Q T <f -> X <f
+
+L1 < -> L1 X >
+X < -> < X
+X T < -> < X T
+Q < -> T >
+X T T < -> Q X t>
+T T T < -> X t>
+
+X <f -> < X T
+X T <f -> Q X t>
+T T <f -> X t>
+
+s> R1 -> < X X T X X R1
+s> X -> X s>
+s> T -> X Q >
+T s> Q X -> b>
+X s> Q X -> Q X T s> Q
+s> Q Q X -> < X T X Q
+
+b> X -> X b>
+b> T -> X T X s>
+b> Q X -> < X T X T X Q
+
+t> R1 -> <f X T X X R1
+t> X -> T s>
+t> T -> T Q >
+X t> Q X -> <f X X T
+t> Q T -> t> X
+t> Q Q X -> T <f X Q
+T t> Q R1 -> < X T T T R
