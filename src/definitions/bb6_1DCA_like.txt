@@ -1,0 +1,109 @@
+tm = 1RB0LE_0RC---_1RD0LA_1RE0RF_1LC1RD_1RE1RA
+
+[metastates]
+Left   < <E00
+RightC c> 10C>
+RightE e> 11E>
+RightEOnly E> E>
+RightD D> D>
+RightA a> 01A>
+RightB B> B>
+RightF F> F>
+LeftA  <a <A01
+LeftC  <C <C
+
+[blocks]
+L = ^
+X(exp) = 1
+D0 = 1100
+S0 = 1110
+D1 = 1111
+
+K = 10
+J = 01
+M = 11
+U = 00
+R = $
+
+[rules]
+S0 < M M -> S0 < D1
+D1 < M M -> D1 < D1
+c> M M -> c> D1
+e> M M -> e> D1
+S0 < M U -> S0 < D0
+D1 < M U -> D1 < D0
+c> M R -> c> D0 R
+e> M R -> e> D0 R
+D1 <a -> < D1
+c> M D0 -> c> D1 U
+e> M D0 -> e> D1 U
+
+X < -> < X
+L < -> L X X c>
+c> X -> X c>
+
+D1 < -> < D1
+S0 < -> < D0
+
+c> D0 -> S0 e>
+e> D0 -> D1 c>
+
+c> D1 -> D1 c>
+e> D1 -> S0 e>
+
+c> K -> M J D>
+e> K -> M e>
+F> K -> M B>
+D> K -> J E>
+E> K -> e>
+a> K -> <C K J
+
+c> J -> K K F>
+e> J -> < M
+F> J -> M D>
+D> J -> M D>
+B> J -> c>
+E> J -> <C M
+
+c> M -> M c>
+e> M -> M K F>
+F> M -> e>
+D> M -> a>
+E> M -> K F>
+a> M -> J M D>
+
+c> U -> K e>
+e> U -> < K
+F> U -> <a
+D> U -> <a
+B> U -> J D>
+E> U -> <C K
+a> U -> J c>
+
+c> R -> <a U K R
+e> R -> < K R
+F> R -> <a R
+D> R -> <a R
+B> R -> <C K J R
+E> R -> <C K R
+a> R -> <C K J U K R
+
+K < -> <a U
+K <a -> M c>
+K <C -> M D>
+
+M < -> < M
+M <a -> < M
+M <C -> <
+
+J < -> <C K J
+J <a -> <C K J
+J <C -> c>
+
+D> D1 -> J M D>
+F> D1 -> M K F>
+a> D1 -> J M a>
+
+D> D0 -> J c>
+F> D0 -> < K
+a> D0 -> <C K J M

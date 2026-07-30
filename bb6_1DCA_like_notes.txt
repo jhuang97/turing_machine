@@ -1,0 +1,105 @@
+1RB0LE_0RC---_1RD0LA_1RE0RF_1LC1RD_1RE1RA
+
+Longitudinal analysis:
+Let
+h0 = <^-1 c>
+ha = <a^-1 c>
+h1 = <^-1 e>
+
+h0 D0 -> D0 h1
+h1 D0 -> D1 h0 or D1 ha
+h0 D1 -> D1 h0 or D1 ha
+h1 D1 -> D0 h1
+
+Let
+C0 = D0 h1
+C1 = D1 h0 or D1 ha
+(These digits and heads will be constantly regrouped but hopefully this helps me organize the longitudinal simulation)
+
+x = 10011
+x_heads = !x = 01100
+h_out = (!x & 00001) = (0000)0
+h_in = (0000)1
+heads = (x_heads >> 1) | (h_in << 4) = 00110 | 10000 = 10110
+x_new = x ^ heads = 10011 ^ 10110 = 00101
+
+h1 C1 C0 C0 C1 C1
+h1 D1 h0 D0 h1 D0 h1 D1 h0 D1 h0
+ 1     0     1     1     0    h0
+    1     0     0     1     1
+   D0 h1 D0 h1 D1 h0 D0 h1 D1 h0 h0
+   C0    C0    C1    C0    C1
+
+ 10011
+^10110
+------
+ 00101
+
+
+
+8 | 167: L X^3 < D0 D1 K J M R
+11 | 202: L X^5 c> D0 D1 K J M R
+start: h0^inf D0 D1 K J M R
+
+going forward:
+h0^inf D0 D1 K J M R
+h1^inf D1 K J M R
+h1^inf D0 h1 K J M R
+h1^inf D0 D1 M R
+h1^inf D1 h0 D1 M R
+h1^inf D0 h1 D1 h0 M R (advance both the h1 and h0 head)
+h1^inf D0 h1 D1 D0 K R
+h1^inf D1 h0 D0 h1 D0 K R
+h1^inf D0 h1 D0 h1 D1 h0 K R
+
+
+h0 D0
+<^-1 c> D0
+<^-1 S0 e>
+<^-1 S0 < h1
+<^-1 < D0 h1
+D0 h1
+
+h1 D0
+<^-1 e> D0
+<^-1 D1 c>
+<^-1 D1 < h0
+<^-1 < D1 h0
+D1 h0
+or
+<^-1 D1 <a ha
+<^-1 < D1 ha
+D1 ha
+
+h0 D1
+<^-1 c> D1
+<^-1 D1 c>
+<^-1 D1 < h0
+D1 h0
+
+h1 D1
+<^-1 e> D1
+<^-1 S0 e>
+<^-1 S0 < h1
+<^-1 < D0 h1
+D0 h1
+
+Set up simulation with compressed tape. Simulation runs for hours without halting.
+step_packed_digits() takes up over 90% of runtime?
+
+Ran simulation until:
+160900000 (160051540): h1^inf P<848460> C:000000011010 < M M M R
+160900000 (160051540): h1^inf P<848460> C:000000011010 < M M M R
+266300000 (264895727): h1^inf P<1404273> C:0 < M U M U M M K J U K R
+
+
+Halting rules:
+B> K -> ***HALT***
+a> J -> ***HALT***
+B> M -> ***HALT***
+
+four other rules that haven't been reached in forward simulation yet:
+E> M -> K F>
+B> U -> J D>
+E> U -> <C K
+K <C -> M D>

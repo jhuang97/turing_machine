@@ -1,0 +1,83 @@
+tm = 1RB0LE_0RC---_1RD0LA_1RE0RF_1LC1RD_1RE1RA
+
+[metastates]
+Left   < <E00
+RightC c> 10C>
+RightE e> 11E>
+
+[blocks]
+L = ^
+X(exp) = 1
+D0 = 1100
+S0 = 1110
+D1 = 1111
+
+Q = 1
+P = 1
+P0 = 100
+P1 = 111
+P2 = 11
+P5 = 10
+P6 = 00
+P3 = 001
+P4 = 101
+Q0 = 110
+Q2 = 11
+Q5 = 10
+Q7 = 0
+R = $
+
+[rules]
+e> P2 D1 -> e> D1 P2
+c> P2 D1 -> c> D1 P2
+e> P2 D0 -> e> D1 P6
+c> P2 D0 -> c> D1 P6
+c> P P1 -> c> D1
+e> P P1 -> e> D1
+c> P1 P1 R -> c> D1 D0 R
+e> P1 P1 R -> e> D1 D0 R
+c> P1 P0 R -> c> D1 R
+e> P1 P0 R -> e> D1 R
+c> P1 D0 -> c> D1 P0
+e> P1 D0 -> e> D1 P0
+c> P1 P1 P0 R -> c> D1 P1 R
+e> P1 P1 P0 R -> e> D1 P1 R
+c> P1 P1 P1 R -> c> D1 D1 P0 R
+e> P1 P1 P1 R -> e> D1 D1 P0 R
+
+X < -> < X
+L < -> L X X c>
+c> X -> X c>
+
+D1 < -> < D1
+S0 < -> < D0
+
+c> D0 -> S0 e>
+e> D0 -> D1 c>
+
+c> D1 -> D1 c>
+e> D1 -> S0 e>
+
+c> P0 -> Q0 e>
+e> P0 -> < P1
+Q0 < -> < P0
+
+e> R -> < P0 R
+e> P1 R -> < D0 P0 P0 R
+c> P1 R -> < P1 P3 R
+
+e> P1 P3 R -> < D0 D0 P0 R
+
+D1 c> R -> < D1 P3 R
+D1 c> P3 R -> < D1 P3 P2 R
+D1 c> P3 P2 R -> < D1 P6 D0 P0 P0 R
+e> P6 -> < P5
+e> P5 -> Q2 e>
+Q2 < -> < P2
+e> P2 P0 -> S0 Q c>
+Q < -> < P
+c> P6 -> Q5 e>
+
+D1 Q5 < -> < D1 P6
+c> P5 D0 -> Q0 Q5 Q c>
+Q0 Q5 < P D1 -> D1 Q7 e>
