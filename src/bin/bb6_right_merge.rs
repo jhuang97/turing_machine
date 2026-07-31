@@ -1041,6 +1041,14 @@ impl LongSim {
                 };
 
                 match (h, x_exp, self.end_tape.as_slice()) {
+                    // h 1 Q 1 T -> 1 T 1 Q a h^2 (40)
+                    (H, 1.., [.., T, x!(), Q]) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp);
+                        push_near!(self T 1 Q a h^2);
+                        for _ in 0..3 {
+                            self.end_tape.pop();
+                        }
+                    }
                     // h Q X -> X T a
                     (H, _, [.., x!(_), Q]) => {
                         push_run_vd(&mut self.near_tape, X, x_exp + 1);
@@ -1087,6 +1095,16 @@ impl LongSim {
                         push_run_vd(&mut self.near_tape, X, x_exp);
                         self.end_tape.extend_from_slice(&[x!(2), T, x!()]);
                     }
+                    // h^2 T 1 T 1 Q 3 -> 2 Q 1 a h b a (119) revised to
+                    // h^2 T 1 T 1 Q 3 -> 2 Q a 1 h b a
+                    (H2, _, [.., x!(3..), Q, x!(), T, x!(), T]) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp + 2);
+                        push_near!(self Q a 1 hb a);
+                        for _ in 0..5 {
+                            self.end_tape.pop();
+                        }
+                        decrease_run_by(&mut self.end_tape, X, 3);
+                    }
                     // h^2 T 1 T 1 Q 2 T -> 3 h b a h^2 (163) revised to
                     // h^2 T 1 T 1 Q 2 T -> 2 h b a 1 h^2
                     (H2, _, [.., T, x!(2), Q, x!(), T, x!(), T]) => {
@@ -1095,6 +1113,15 @@ impl LongSim {
                         for _ in 0..7 {
                             self.end_tape.pop();
                         }
+                    }
+                    // h^2 1 T 1 T 1 Q 1 T 1 -> 1 T 2 Q 1 T 1 Q a h^2 (164)
+                    (H2, 1.., [.., x!(_), T, x!(), Q, x!(), T, x!(), T]) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp);
+                        push_near!(self T 2 Q 1 T 1 Q a h^2);
+                        for _ in 0..7 {
+                            self.end_tape.pop();
+                        }
+                        decrement_run(&mut self.end_tape, X);
                     }
                     // h^2 1 T 1 T -> 1 T 1 Q a h^2 (46)
                     (H2, 1.., [.., T, x!(), T]) => {
@@ -1113,6 +1140,19 @@ impl LongSim {
                         decrement_run(&mut self.end_tape, X);
                         self.end_tape.extend_from_slice(&[T, x!(2), T, x!()]);
                     }
+                    // h^2 T 2 T T 3 Q 3 T -> 2 Q 2 a h b a h b a (398) revised to
+                    // h^2 T 2 T T 3 Q 3 T -> 2 Q a 1 h b a 1 h b a
+                    (H2, _, [.., T, x!(3), Q, x!(3), T, T, x!(2), T]) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp + 2);
+                        push_near!(self Q a 1 hb a 1 hb a);
+                        for _ in 0..8 {
+                            self.end_tape.pop();
+                        }
+                    }
+                    // h^2 1 T 2 T T 3 Q 2 -> 1 T 1 Q 1 a h b a h b (144) revised to
+                    // h^2 1 T 2 T T 3 Q 2 -> 1 T 1 Q a 1 h b a h b
+                    // not implemented
+                    //
                     // h^2 1 T 2 T T 1 Q 1 -> 1 T 3 Q 2 a h^2 (188) revised to
                     // h^2 1 T 2 T T 1 Q 1 -> 1 T 3 Q a 2 h^2
                     (H2, 1.., [.., x!(_), Q, x!(), T, T, x!(2), T]) => {
@@ -1161,6 +1201,16 @@ impl LongSim {
                         }
                         decrease_run_by(&mut self.end_tape, X, 2);
                     }
+                    // h^2 1 T 3 Q 1 T -> 1 T 2 h b a (127) revised to
+                    // h^2 1 T 3 Q 1 T -> 1 T 1 h b a 1
+                    (H2, 1.., [.., T, x!(), Q, x!(3), T]) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp);
+                        push_near!(self T 1 hb a);
+                        for _ in 0..5 {
+                            self.end_tape.pop();
+                        }
+                        add_or_merge_run(&mut self.end_tape, X, 1);
+                    }
                     // h^2 1 T 3 Q 1 Q 3 -> 1 T 2 Q 1 T 1 h b (203)
                     (H2, 1.., [.., x!(3..), Q, x!(), Q, x!(3), T]) => {
                         push_run_vd(&mut self.near_tape, X, x_exp);
@@ -1192,6 +1242,15 @@ impl LongSim {
                         self.end_tape.pop();
                         self.end_tape.pop();
                     }
+                    // h^2 Q 1 T 2 Q 1 T 3 Q 4 T -> 3 T 3 T 1 a^2 h b a h^3 b a h^2 (836) revised to
+                    // h^2 Q 1 T 2 Q 1 T 3 Q 4 T -> 3 T 3 T a^2 h b a h^2 1 h b a h^2
+                    (H2, _, [.., T, x!(4), Q, x!(3), T, x!(), Q, x!(2), T, x!(), Q]) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp + 3);
+                        push_near!(self T 3 T a a hb a h^2 1 hb a h^2);
+                        for _ in 0..11 {
+                            self.end_tape.pop();
+                        }
+                    }
                     // h^2 Q 1 T 2 Q 1 T 3 Q 3 T -> 7 h b a h^3 b a h^2 (696) revised to
                     // h^2 Q 1 T 2 Q 1 T 3 Q 3 T -> 5 h b a 1 h^2 1 h b a h^2
                     (H2, _, [.., T, x!(3), Q, x!(3), T, x!(), Q, x!(2), T, x!(), Q]) => {
@@ -1210,6 +1269,14 @@ impl LongSim {
                             self.end_tape.pop();
                         }
                         decrease_run_by(&mut self.end_tape, X, 3);
+                    }
+                    // h^2 Q 1 T 2 Q 1 T 3 Q 2 T -> 3 T 2 Q 1 T 1 Q a h^3 b a h^2 (601)
+                    (H2, _, [.., T, x!(2), Q, x!(3), T, x!(), Q, x!(2), T, x!(), Q]) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp + 3);
+                        push_near!(self T 2 Q 1 T 1 Q a h^2 hb a h^2);
+                        for _ in 0..11 {
+                            self.end_tape.pop();
+                        }
                     }
                     // h^2 Q 1 T 2 Q 1 T 3 Q 1 T 3 -> 4 T 2 T 1 Q 1 Q 1 a h^3 b a h^2 (599), revised to
                     // h^2 Q 1 T 2 Q 1 T 3 Q 1 T 3 -> 4 T 2 T 1 Q 1 Q a h^2 1 h b a h^2
@@ -1235,6 +1302,36 @@ impl LongSim {
                         push_run_vd(&mut self.near_tape, X, x_exp + 4);
                         push_near!(self T 2 T 1 Q 1 Q a h^2 1 hb a h^2);
                         for _ in 0..11 {
+                            self.end_tape.pop();
+                        }
+                        decrease_run_by(&mut self.end_tape, X, 3);
+                    }
+                    // h^2 Q 1 T 2 Q 1 T 3 Q 1 T 2 Q 3 -> 4 T 2 T 2 Q 4 a^2 h b a (609) revised to
+                    // h^2 Q 1 T 2 Q 1 T 3 Q 1 T 2 Q 3 -> 4 T 2 T 2 Q a^2 4 h b a
+                    (
+                        H2,
+                        _,
+                        [
+                            ..,
+                            x!(3..),
+                            Q,
+                            x!(2),
+                            T,
+                            x!(),
+                            Q,
+                            x!(3),
+                            T,
+                            x!(),
+                            Q,
+                            x!(2),
+                            T,
+                            x!(),
+                            Q,
+                        ],
+                    ) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp + 4);
+                        push_near!(self T 2 T 2 Q a a 4 hb a);
+                        for _ in 0..13 {
                             self.end_tape.pop();
                         }
                         decrease_run_by(&mut self.end_tape, X, 3);
@@ -1381,6 +1478,43 @@ impl LongSim {
                         }
                         decrease_run_by(&mut self.end_tape, X, 3);
                     }
+                    // h^2 1 Q 1 T 1 Q 3 T 1 Q 1 T 1 Q 1 T 3 -> 1 Q 4 T 1 Q 2 T 1 h b a^2 h b a h^2 (1028)
+                    // not implemented
+                    //
+                    // h^2 1 Q 1 T 1 Q 3 T 1 Q 1 T 1 Q 1 T 4 Q 3 -> 1 Q 4 T 1 Q 2 T 1 Q 4 a h^3 b a h b a (1284) revised to
+                    // h^2 1 Q 1 T 1 Q 3 T 1 Q 1 T 1 Q 1 T 4 Q 3 -> 1 Q 4 T 1 Q 2 T 1 Q 1 a 1 h^2 1 h b a 1 h b a
+                    (
+                        H2,
+                        1..,
+                        [
+                            ..,
+                            x!(3..),
+                            Q,
+                            x!(4),
+                            T,
+                            x!(),
+                            Q,
+                            x!(),
+                            T,
+                            x!(),
+                            Q,
+                            x!(),
+                            T,
+                            x!(3),
+                            Q,
+                            x!(),
+                            T,
+                            x!(),
+                            Q,
+                        ],
+                    ) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp);
+                        push_near!(self Q 4 T 1 Q 2 T 1 Q 1 a 1 h^2 1 hb a 1 hb a);
+                        for _ in 0..17 {
+                            self.end_tape.pop();
+                        }
+                        decrease_run_by(&mut self.end_tape, X, 3);
+                    }
                     // h^2 1 Q 1 T 1 Q 3 T -> 1 Q 3 T a^2 h b a h^2 (261)
                     (H2, 1.., [.., T, x!(3), Q, x!(), T, x!(), Q]) => {
                         push_run_vd(&mut self.near_tape, X, x_exp);
@@ -1478,6 +1612,14 @@ impl LongSim {
                             self.end_tape.pop();
                         }
                     }
+                    // h^2 1 Q 1 T 1 Q 1 T 1 Q 4 T -> 1 Q 1 Q 3 T 2 Q a^2 h^3 b a h^2 (419)
+                    (H2, 1.., [.., T, x!(4), Q, x!(), T, x!(), Q, x!(), T, x!(), Q]) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp);
+                        push_near!(self Q 1 Q 3 T 2 Q a a h^2 hb a h^2);
+                        for _ in 0..11 {
+                            self.end_tape.pop();
+                        }
+                    }
                     // h^2 1 Q 1 T 1 Q 1 T 1 Q 3 T 2 Q 3 -> 1 Q 3 Q 1 T 1 h b a h^3 b a h b a (739)
                     (
                         H2,
@@ -1524,6 +1666,17 @@ impl LongSim {
                             self.end_tape.pop();
                         }
                         decrease_run_by(&mut self.end_tape, X, 3);
+                    }
+                    // h^2 1 Q 1 T 1 Q 1 T 1 Q 2 T -> 1 Q 1 Q 4 a h^2 b a h^2 (243) revised to
+                    // h^2 1 Q 1 T 1 Q 1 T 1 Q 2 T -> 1 Q 1 Q a h 3 h b a 1 h^2
+                    (H2, 1.., [.., T, x!(2), Q, x!(), T, x!(), Q, x!(), T, x!(), Q]) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp);
+                        push_near!(self Q 1 Q a);
+                        self.push_near_head(H);
+                        push_near!(self 3 hb a 1 h^2);
+                        for _ in 0..11 {
+                            self.end_tape.pop();
+                        }
                     }
                     // h^2 1 Q 1 T 1 Q 1 T 1 Q 1 T 2 Q 3 -> 1 Q 3 Q 1 T 1 Q T 1 Q T 1 h b a (387) revised to
                     // h^2 1 Q 1 T 1 Q 1 T 1 Q 1 T 2 Q 3 -> 1 Q 3 Q 1 T 5 h b a
@@ -1581,6 +1734,16 @@ impl LongSim {
                         for _ in 0..3 {
                             self.end_tape.pop();
                         }
+                    }
+                    // h^2 1 Q 3 Q 1 T -> 1 Q 2 h b a (127) revised to
+                    // h^2 1 Q 3 Q 1 T -> 1 Q 1 h b a 1
+                    (H2, 1.., [.., T, x!(), Q, x!(3), Q]) => {
+                        push_run_vd(&mut self.near_tape, X, x_exp);
+                        push_near!(self Q 1 hb a);
+                        for _ in 0..5 {
+                            self.end_tape.pop();
+                        }
+                        add_or_merge_run(&mut self.end_tape, X, 1);
                     }
                     // h^2 Q 2 Q 1 -> 1 h b (13)
                     (H2, _, [.., x!(_), Q, x!(2), Q]) => {
@@ -1817,9 +1980,9 @@ fn process_right(draw: bool) {
                 img_idx += 1;
             }
 
-            if sim.head_steps > 152000 {
-                // if true {
-                // if ((sim.near_tape.len() as i32) - 2554).abs() < 10 {
+            if sim.head_steps > 393000 {
+                // if sim.head_steps > 176000 && sim.head_steps < 176218 {
+                // if ((sim.near_tape.len() as i32) - 2304).abs() < 10 {
                 println!("{sim}");
 
                 let n_head_terms = sim
@@ -1854,7 +2017,7 @@ fn main() {
 
     // check_right_long_rule("h^2", "1 Q 1 T 1 Q 3 T 2 Q 3");
     // check_right_long_rule("h^2", "1 Q 1 T 1 Q 1 T 2 Q 2 T");
-    check_right_long_rule("a", "3 Q 1 Q 1")
+    // check_right_long_rule("a", "3 Q 1 Q 1")
 
-    // process_right(false);
+    process_right(false);
 }
