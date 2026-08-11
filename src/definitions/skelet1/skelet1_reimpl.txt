@@ -64,3 +64,9 @@ P < -> < P
 > P D D X -> C2 C1 D >
 > P D C X -> G1 D > P
 > P D R -> C1 < P R
+
+L < C X -> L C1 > D P
+
+C0 < -> C1 > X
+C2 < -> C > X
+> P D R -> < C C X X X R

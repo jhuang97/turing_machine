@@ -5,12 +5,11 @@ use std::fs;
 use std::io::Write;
 use std::rc::Rc;
 
+use proc_macro2::Ident;
 use proc_macro2::TokenStream;
 use quote::format_ident;
 use quote::quote;
-use proc_macro2::Ident;
 use syn::token::Token;
-use turing_machine::check_transition_rule;
 use turing_machine::CheckerVerbosity;
 use turing_machine::ConfigTransitionRule;
 use turing_machine::DirectedHeadConfig;
@@ -21,24 +20,42 @@ use turing_machine::RLEDefinitionSymbol;
 use turing_machine::Symbol;
 use turing_machine::TMDirection;
 use turing_machine::TuringMachine;
+use turing_machine::check_transition_rule;
 
-fn process_tm_rle_file(fname: &str, verbosity: CheckerVerbosity) -> (String, TuringMachine, Vec<Rc<Metastate>>, Vec<Rc<SymbolOverRLE>>, Vec<CheckedRule>) {
+fn process_tm_rle_file(
+    fname: &str,
+    verbosity: CheckerVerbosity,
+) -> (
+    String,
+    TuringMachine,
+    Vec<Rc<Metastate>>,
+    Vec<Rc<SymbolOverRLE>>,
+    Vec<CheckedRule>,
+) {
     let contents = fs::read_to_string(fname).unwrap();
-    let lines: Vec<String> = contents.lines()
+    let lines: Vec<String> = contents
+        .lines()
         .filter(|s| s.len() > 0)
-        .map(|s| s.to_owned()).collect();
+        .map(|s| s.to_owned())
+        .collect();
 
     assert!(lines[0].starts_with("tm = "));
     let tm_def = &lines[0]["tm = ".len()..];
     let tm = TuringMachine::from_standard_notation(tm_def);
 
-    let (section_indices, section_titles): (Vec<usize>, Vec<String>) = lines.iter().enumerate()
+    let (section_indices, section_titles): (Vec<usize>, Vec<String>) = lines
+        .iter()
+        .enumerate()
         .filter(|(_, s)| s.starts_with("[") && s.ends_with("]"))
-        .map(|(i, s)| (i, s[1..s.len()-1].to_owned()))
+        .map(|(i, s)| (i, s[1..s.len() - 1].to_owned()))
         .unzip();
     let mut indices_end = section_indices[1..section_indices.len()].to_vec();
     indices_end.push(lines.len());
-    let lines_by_section: Vec<_> = section_indices.iter().zip(indices_end.iter()).map(|(i1, &i2)| &lines[i1+1..i2]).collect();
+    let lines_by_section: Vec<_> = section_indices
+        .iter()
+        .zip(indices_end.iter())
+        .map(|(i1, &i2)| &lines[i1 + 1..i2])
+        .collect();
 
     // for (title, section_lines) in section_titles.iter().zip(lines_by_section.iter()) {
     //     println!("{title}");
@@ -51,7 +68,10 @@ fn process_tm_rle_file(fname: &str, verbosity: CheckerVerbosity) -> (String, Tur
     let state_table = parse_metastates(lines_by_section[0]).unwrap();
 
     for metastate in &state_table {
-        println!("{}, {}, {}", metastate.name, metastate.short_name, metastate.definition);
+        println!(
+            "{}, {}, {}",
+            metastate.name, metastate.short_name, metastate.definition
+        );
     }
 
     assert!(section_titles[1] == "rle");
@@ -61,9 +81,13 @@ fn process_tm_rle_file(fname: &str, verbosity: CheckerVerbosity) -> (String, Tur
     let symbol_table = parse_symbol_definitions(lines_by_section[2]);
 
     assert!(section_titles[3] == "rules");
-    let rules: Vec<PrototypeRule> = lines_by_section[3].iter().map(|s| parse_rule(s.as_str(), &state_table, &symbol_table))
-        .collect::<Result<Vec<_>,_>>().unwrap();
-    let base_rules: Vec<ConfigTransitionRule> = rules.iter().map(|r| r.to_base_rule(&rle_def)).collect();
+    let rules: Vec<PrototypeRule> = lines_by_section[3]
+        .iter()
+        .map(|s| parse_rule(s.as_str(), &state_table, &symbol_table))
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let base_rules: Vec<ConfigTransitionRule> =
+        rules.iter().map(|r| r.to_base_rule(&rle_def)).collect();
 
     let mut checked_rules = Vec::new();
     let mut n_verified = 0;
@@ -81,14 +105,20 @@ fn process_tm_rle_file(fname: &str, verbosity: CheckerVerbosity) -> (String, Tur
                     n_steps,
                     original_input: rule.original_input.clone(),
                 })
-            },
+            }
             _ => n_not_verified += 1,
         }
     }
 
     println!("{n_verified} rule(s) verified, {n_not_verified} rule(s) not verified.\n");
 
-    (tm_def.to_owned(), tm, state_table, symbol_table, checked_rules)
+    (
+        tm_def.to_owned(),
+        tm,
+        state_table,
+        symbol_table,
+        checked_rules,
+    )
 }
 
 #[derive(PartialEq)]
@@ -97,7 +127,7 @@ struct Metastate {
     short_name: String,
     definition: DirectedHeadConfig,
     original_def: String,
-    ident: Ident
+    ident: Ident,
 }
 
 fn parse_metastates(lines: &[String]) -> Result<Vec<Rc<Metastate>>, ParseConfigError> {
@@ -112,7 +142,7 @@ fn parse_metastates(lines: &[String]) -> Result<Vec<Rc<Metastate>>, ParseConfigE
             short_name: parts[1].to_owned(),
             definition: config,
             original_def: parts[2].to_owned(),
-            ident: format_ident!("{}", parts[0])
+            ident: format_ident!("{}", parts[0]),
         }));
     }
     Ok(state_table)
@@ -139,22 +169,24 @@ fn parse_symbol_definitions(lines: &[String]) -> Vec<Rc<SymbolOverRLE>> {
     for line in lines {
         let (name_s, definition_s) = line.split_once(" = ").unwrap();
         let (name, repeat): (String, bool) = if name_s.ends_with("(exp)") {
-            (name_s[..name_s.len()-5].to_owned(), true)
+            (name_s[..name_s.len() - 5].to_owned(), true)
         } else {
             (name_s.to_owned(), false)
         };
 
-        let definition = definition_s.chars()
+        let definition = definition_s
+            .chars()
             .map(|c| match c {
                 '^' | '$' => MetaRLESymbol::End,
                 '0'..='9' => MetaRLESymbol::Run(c.to_digit(10).unwrap().try_into().unwrap()),
-                _ => unimplemented!()
+                _ => unimplemented!(),
             })
             .collect::<Vec<_>>();
-        symbol_table.push(Rc::new(SymbolOverRLE { 
-            name: name.clone(), 
-            definition, repeat, 
-            ident: format_ident!("{name}")
+        symbol_table.push(Rc::new(SymbolOverRLE {
+            name: name.clone(),
+            definition,
+            repeat,
+            ident: format_ident!("{name}"),
         }));
     }
     symbol_table
@@ -163,7 +195,7 @@ fn parse_symbol_definitions(lines: &[String]) -> Vec<Rc<SymbolOverRLE>> {
 #[derive(Debug)]
 enum MetaRLESymbol {
     Run(u8),
-    End
+    End,
 }
 
 #[derive(Debug)]
@@ -171,7 +203,7 @@ struct SymbolOverRLE {
     name: String,
     definition: Vec<MetaRLESymbol>,
     repeat: bool,
-    ident: Ident
+    ident: Ident,
 }
 
 impl fmt::Display for SymbolOverRLE {
@@ -190,7 +222,11 @@ struct PrototypeConfig {
 
 impl PrototypeConfig {
     fn to_base_config(&self, rle_def: &RLEDefinition) -> DirectedHeadConfig {
-        fn extend(tape: &mut Vec<GeneralSymbol>, higher_symbol: Rc<SymbolOverRLE>, def: &Vec<RLEDefinitionSymbol>) {
+        fn extend(
+            tape: &mut Vec<GeneralSymbol>,
+            higher_symbol: Rc<SymbolOverRLE>,
+            def: &Vec<RLEDefinitionSymbol>,
+        ) {
             for symbol in &higher_symbol.definition {
                 match *symbol {
                     MetaRLESymbol::Run(n) => {
@@ -203,7 +239,7 @@ impl PrototypeConfig {
                                 tape.push(GeneralSymbol::Basic(base_symbol.symbol));
                             }
                         }
-                    },
+                    }
                     MetaRLESymbol::End => tape.push(GeneralSymbol::End),
                 }
             }
@@ -243,7 +279,7 @@ impl PrototypeConfig {
 }
 
 impl fmt::Display for PrototypeConfig {
-    fn fmt (&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if !self.lhs.is_empty() {
             for s in &self.lhs {
                 write!(f, "{} ", s)?;
@@ -275,7 +311,7 @@ impl PrototypeRule {
     fn to_base_rule(&self, rle_def: &RLEDefinition) -> ConfigTransitionRule {
         ConfigTransitionRule {
             before: self.before.to_base_config(rle_def),
-            after: self.after.to_base_config(rle_def)
+            after: self.after.to_base_config(rle_def),
         }
     }
 }
@@ -284,39 +320,58 @@ struct CheckedRule {
     before: PrototypeConfig,
     after: PrototypeConfig,
     n_steps: usize,
-    original_input: String
+    original_input: String,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ParseRuleError {
     SymbolNotFound,
-    Split
+    Split,
 }
 
-fn parse_rule(s: &str, state_table: &Vec<Rc<Metastate>>, 
-    symbol_table: &Vec<Rc<SymbolOverRLE>>) -> Result<PrototypeRule, ParseRuleError>
-{
+fn parse_rule(
+    s: &str,
+    state_table: &Vec<Rc<Metastate>>,
+    symbol_table: &Vec<Rc<SymbolOverRLE>>,
+) -> Result<PrototypeRule, ParseRuleError> {
     let (before_s, after_s) = s.split_once("->").ok_or(ParseRuleError::Split)?;
     let before = parse_config(before_s, state_table, symbol_table)?;
     let after = parse_config(after_s, state_table, symbol_table)?;
-    Ok(PrototypeRule { before, after, original_input: s.to_owned() })
+    Ok(PrototypeRule {
+        before,
+        after,
+        original_input: s.to_owned(),
+    })
 }
 
-fn parse_config(s: &str, state_table: &Vec<Rc<Metastate>>, 
-    symbol_table: &Vec<Rc<SymbolOverRLE>>) -> Result<PrototypeConfig, ParseRuleError>
-{
+fn parse_config(
+    s: &str,
+    state_table: &Vec<Rc<Metastate>>,
+    symbol_table: &Vec<Rc<SymbolOverRLE>>,
+) -> Result<PrototypeConfig, ParseRuleError> {
     let (left_s, right_s, state) = split_rule(s, state_table)?;
-    let lhs = left_s.trim().split_whitespace()
+    let lhs = left_s
+        .trim()
+        .split_whitespace()
         .map(|s| parse_higher_symbol(s, symbol_table))
-        .collect::<Result<Vec<_>,_>>()?;
-    let rhs = right_s.trim().split_whitespace()
+        .collect::<Result<Vec<_>, _>>()?;
+    let rhs = right_s
+        .trim()
+        .split_whitespace()
         .map(|s| parse_higher_symbol(s, symbol_table))
-        .collect::<Result<Vec<_>,_>>()?;
+        .collect::<Result<Vec<_>, _>>()?;
 
-    Ok(PrototypeConfig { lhs, rhs, metastate: state })
+    Ok(PrototypeConfig {
+        lhs,
+        rhs,
+        metastate: state,
+    })
 }
 
-fn split_rule(s: &str, state_table: &Vec<Rc<Metastate>>) -> Result<(String, String, Rc<Metastate>), ParseRuleError> {
+fn split_rule(
+    s: &str,
+    state_table: &Vec<Rc<Metastate>>,
+) -> Result<(String, String, Rc<Metastate>), ParseRuleError> {
     for state in state_table {
         let delim = if s.starts_with(&state.short_name) {
             format!("{} ", state.short_name)
@@ -333,10 +388,13 @@ fn split_rule(s: &str, state_table: &Vec<Rc<Metastate>>) -> Result<(String, Stri
     Err(ParseRuleError::Split)
 }
 
-fn parse_higher_symbol(s: &str, symbol_table: &Vec<Rc<SymbolOverRLE>>) -> Result<Rc<SymbolOverRLE>, ParseRuleError> {
+fn parse_higher_symbol(
+    s: &str,
+    symbol_table: &Vec<Rc<SymbolOverRLE>>,
+) -> Result<Rc<SymbolOverRLE>, ParseRuleError> {
     for symbol in symbol_table {
         if s == symbol.name {
-            return Ok(Rc::clone(symbol))
+            return Ok(Rc::clone(symbol));
         }
     }
     eprintln!("Cannot parse symbol {s}");
@@ -356,10 +414,13 @@ struct RuleImpl {
 /// the "from" half-tape should lose one RLE symbol
 /// the "to" half-tape should gain one RLE symbol
 fn directionless_pass_through(
-    from0: &[Rc<SymbolOverRLE>], from1: &[Rc<SymbolOverRLE>], from_ident: Ident,
-    to0: &[Rc<SymbolOverRLE>], to1: &[Rc<SymbolOverRLE>], to_ident: Ident)
-    -> Option<(TokenStream, TokenStream, TokenStream)>
-{
+    from0: &[Rc<SymbolOverRLE>],
+    from1: &[Rc<SymbolOverRLE>],
+    from_ident: Ident,
+    to0: &[Rc<SymbolOverRLE>],
+    to1: &[Rc<SymbolOverRLE>],
+    to_ident: Ident,
+) -> Option<(TokenStream, TokenStream, TokenStream)> {
     if from0.len() != from1.len() + 1 {
         return None;
     }
@@ -373,12 +434,21 @@ fn directionless_pass_through(
     }
 
     // the block must not have other RLE symbols; the blocks must match
-    let cannot_match_preserved_block = 
-        |(s1, s2): (&Rc<SymbolOverRLE>, &Rc<SymbolOverRLE>)| s1.repeat || s2.repeat || s1.name != s2.name;
-    if (&to0[..]).iter().zip((&to1[1..]).iter()).any(cannot_match_preserved_block) {
+    let cannot_match_preserved_block = |(s1, s2): (&Rc<SymbolOverRLE>, &Rc<SymbolOverRLE>)| {
+        s1.repeat || s2.repeat || s1.name != s2.name
+    };
+    if (&to0[..])
+        .iter()
+        .zip((&to1[1..]).iter())
+        .any(cannot_match_preserved_block)
+    {
         return None;
     }
-    if (&from0[1..]).iter().zip((&from1[..]).iter()).any(cannot_match_preserved_block) {
+    if (&from0[1..])
+        .iter()
+        .zip((&from1[..]).iter())
+        .any(cannot_match_preserved_block)
+    {
         return None;
     }
 
@@ -394,10 +464,10 @@ fn directionless_pass_through(
         let ident = s.ident.clone();
         quote! { #ident }
     });
-    let from_match = quote!{ [.., #from_symb_expr, #(#block_idents),*]};
+    let from_match = quote! { [.., #from_symb_expr, #(#block_idents),*]};
     let to_match = half_tape_match(&to_block);
 
-    let mut changes_vec: Vec<TokenStream> = vec![ quote!{ let n = *exp; } ];
+    let mut changes_vec: Vec<TokenStream> = vec![quote! { let n = *exp; }];
     for _ in 0..from0.len() {
         changes_vec.push(quote! { self.#from_ident.pop(); });
     }
@@ -409,7 +479,7 @@ fn directionless_pass_through(
     for _ in 0..to_block.len() {
         changes_vec.push(quote! { self.#to_ident.pop(); });
     }
-    changes_vec.push(quote!{ add_or_merge_run(&mut self.#to_ident, #to_symb_ident, n); });
+    changes_vec.push(quote! { add_or_merge_run(&mut self.#to_ident, #to_symb_ident, n); });
     for s in &to_block {
         let s_ident = s.ident.clone();
         changes_vec.push(quote! { self.#to_ident.push(#s_ident); });
@@ -427,20 +497,26 @@ fn try_process_passing_through_run(rule: &CheckedRule) -> Option<RuleImpl> {
 
     let left0 = &rule.before.lhs;
     let left1 = &rule.after.lhs;
-    let right0: Vec<_> = rule.before.rhs.iter()
-        .rev()
-        .map(|s| Rc::clone(s)).collect();
-    let right1: Vec<_> = rule.after.rhs.iter()
-        .rev()
-        .map(|s| Rc::clone(s)).collect();
+    let right0: Vec<_> = rule.before.rhs.iter().rev().map(|s| Rc::clone(s)).collect();
+    let right1: Vec<_> = rule.after.rhs.iter().rev().map(|s| Rc::clone(s)).collect();
 
-    let (left_match, right_match, sim_changes) =     
-    if let Some(res) = directionless_pass_through(&right0, &right1, format_ident!("right_tape"),
-        &left0, &left1, format_ident!("left_tape"))
-    {
+    let (left_match, right_match, sim_changes) = if let Some(res) = directionless_pass_through(
+        &right0,
+        &right1,
+        format_ident!("right_tape"),
+        &left0,
+        &left1,
+        format_ident!("left_tape"),
+    ) {
         (res.1, res.0, res.2)
-    } else if let Some(res) = directionless_pass_through(&left0, &left1, format_ident!("left_tape"),
-        &right0, &right1, format_ident!("right_tape")) {
+    } else if let Some(res) = directionless_pass_through(
+        &left0,
+        &left1,
+        format_ident!("left_tape"),
+        &right0,
+        &right1,
+        format_ident!("right_tape"),
+    ) {
         res
     } else {
         return None;
@@ -449,7 +525,12 @@ fn try_process_passing_through_run(rule: &CheckedRule) -> Option<RuleImpl> {
     let rule_steps = rule.n_steps as u128;
     let step_count = quote! { #rule_steps * n };
 
-    Some(RuleImpl { left_match, right_match, sim_changes, step_count })
+    Some(RuleImpl {
+        left_match,
+        right_match,
+        sim_changes,
+        step_count,
+    })
 }
 
 fn half_tape_match(half_tape0: &Vec<Rc<SymbolOverRLE>>) -> TokenStream {
@@ -470,19 +551,18 @@ fn half_tape_match(half_tape0: &Vec<Rc<SymbolOverRLE>>) -> TokenStream {
         }
     });
 
-    quote!{ [.., #(#symbols_match),*]}
+    quote! { [.., #(#symbols_match),*]}
 }
 
 enum TapeAddition {
-    Run {
-        symb: Rc<SymbolOverRLE>,
-        exp: u128
-    },
-    Normal(Rc<SymbolOverRLE>)
+    Run { symb: Rc<SymbolOverRLE>, exp: u128 },
+    Normal(Rc<SymbolOverRLE>),
 }
 
-fn half_tape_changes(half_tape0: &Vec<Rc<SymbolOverRLE>>, half_tape_new: &Vec<Rc<SymbolOverRLE>>,
-    tape_ident: Ident
+fn half_tape_changes(
+    half_tape0: &Vec<Rc<SymbolOverRLE>>,
+    half_tape_new: &Vec<Rc<SymbolOverRLE>>,
+    tape_ident: Ident,
 ) -> Vec<TokenStream> {
     let mut change_start_idx = 0;
     while half_tape0.len() > change_start_idx
@@ -496,14 +576,12 @@ fn half_tape_changes(half_tape0: &Vec<Rc<SymbolOverRLE>>, half_tape_new: &Vec<Rc
 
     // remove old symbols from half tape
     for idx in (change_start_idx..half_tape0.len()).rev() {
-        changes.push(
-            if idx == 0 && half_tape0[0].repeat {
-                let t = half_tape0[0].ident.clone();
-                quote! { decrement_run(&mut self.#tape_ident, #t); }
-            } else {
-                quote! { self.#tape_ident.pop(); }
-            }
-        );
+        changes.push(if idx == 0 && half_tape0[0].repeat {
+            let t = half_tape0[0].ident.clone();
+            quote! { decrement_run(&mut self.#tape_ident, #t); }
+        } else {
+            quote! { self.#tape_ident.pop(); }
+        });
     }
 
     use TapeAddition::*;
@@ -515,27 +593,28 @@ fn half_tape_changes(half_tape0: &Vec<Rc<SymbolOverRLE>>, half_tape_new: &Vec<Rc
         .map(|s| {
             let s0 = s.first().unwrap();
             if s0.repeat {
-                Run { symb: Rc::clone(s0), exp: s.len() as u128 }
+                Run {
+                    symb: Rc::clone(s0),
+                    exp: s.len() as u128,
+                }
             } else {
                 assert_eq!(s.len(), 1);
                 Normal(Rc::clone(s0))
             }
         })
         .enumerate()
-        .map(|(tidx, tadd)| {
-            match tadd {
-                Run { symb, exp } => {
-                    let t = symb.ident.clone();
-                    if change_start_idx == 0 && tidx == 0 {
-                        quote! { add_or_merge_run(&mut self.#tape_ident, #t, #exp); }
-                    } else {
-                        quote! { self.#tape_ident.push(Run(#t, #exp)); }
-                    }
+        .map(|(tidx, tadd)| match tadd {
+            Run { symb, exp } => {
+                let t = symb.ident.clone();
+                if change_start_idx == 0 && tidx == 0 {
+                    quote! { add_or_merge_run(&mut self.#tape_ident, #t, #exp); }
+                } else {
+                    quote! { self.#tape_ident.push(Run(#t, #exp)); }
                 }
-                Normal(symb) => {
-                    let t = symb.ident.clone();
-                    quote! { self.#tape_ident.push(#t); }
-                }
+            }
+            Normal(symb) => {
+                let t = symb.ident.clone();
+                quote! { self.#tape_ident.push(#t); }
             }
         })
         .collect();
@@ -557,38 +636,50 @@ fn try_process_rule_general(rule: &CheckedRule) -> Option<RuleImpl> {
     }
 
     let lhs0 = &rule.before.lhs;
-    let rtape0: Vec<_> = rule.before.rhs.iter()
-        .rev()
-        .map(|s| Rc::clone(s)).collect();
+    let rtape0: Vec<_> = rule.before.rhs.iter().rev().map(|s| Rc::clone(s)).collect();
 
     let lhs1 = &rule.after.lhs;
-    let rtape1: Vec<_> = rule.after.rhs.iter()
-        .rev()
-        .map(|s| Rc::clone(s)).collect();
+    let rtape1: Vec<_> = rule.after.rhs.iter().rev().map(|s| Rc::clone(s)).collect();
 
     let left_match = half_tape_match(lhs0);
     let right_match = half_tape_match(&rtape0);
     changes_vec.extend(half_tape_changes(lhs0, lhs1, format_ident!("left_tape")));
-    changes_vec.extend(half_tape_changes(&rtape0, &rtape1, format_ident!("right_tape")));
+    changes_vec.extend(half_tape_changes(
+        &rtape0,
+        &rtape1,
+        format_ident!("right_tape"),
+    ));
 
     let sim_changes = quote! { #(#changes_vec)* };
     let rule_steps = rule.n_steps as u128;
 
     Some(RuleImpl {
-        left_match, right_match, sim_changes,
-        step_count: quote! { #rule_steps }
+        left_match,
+        right_match,
+        sim_changes,
+        step_count: quote! { #rule_steps },
     })
 }
 
-fn generate_rule_code(rule: &CheckedRule, symbol_table: &Vec<Rc<SymbolOverRLE>>, state_table: &Vec<Rc<Metastate>>) -> TokenStream {
+fn generate_rule_code(
+    rule: &CheckedRule,
+    symbol_table: &Vec<Rc<SymbolOverRLE>>,
+    state_table: &Vec<Rc<Metastate>>,
+) -> TokenStream {
     let case_comment = format!("\\ {}", rule.original_input);
 
     let state0_ident = &rule.before.metastate.ident.clone();
 
-    let rule_impl: Option<RuleImpl> = try_process_passing_through_run(rule)
-        .or_else(|| try_process_rule_general(rule));
+    let rule_impl: Option<RuleImpl> =
+        try_process_passing_through_run(rule).or_else(|| try_process_rule_general(rule));
 
-    if let Some(RuleImpl {left_match, right_match, sim_changes, step_count}) = rule_impl {
+    if let Some(RuleImpl {
+        left_match,
+        right_match,
+        sim_changes,
+        step_count,
+    }) = rule_impl
+    {
         quote! {
             #[doc = #case_comment]
             (#state0_ident, #left_match, #right_match) => {
@@ -607,24 +698,29 @@ fn generate_rule_code(rule: &CheckedRule, symbol_table: &Vec<Rc<SymbolOverRLE>>,
     }
 }
 
-fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symbol_table: Vec<Rc<SymbolOverRLE>>, checked_rules: Vec<CheckedRule>) {
-    let state_names = state_table.iter()
-        .map(|st| st.ident.clone());
+fn generate_simulator_code(
+    tm_def: String,
+    state_table: Vec<Rc<Metastate>>,
+    symbol_table: Vec<Rc<SymbolOverRLE>>,
+    checked_rules: Vec<CheckedRule>,
+) {
+    let state_names = state_table.iter().map(|st| st.ident.clone());
 
-    let state_print_cases = state_table.iter()
-        .map(|st| {
-            let ident = st.ident.clone();
-            let short_name = st.short_name.clone();
-            quote! {
-                HigherState::#ident => write!(f, "{}", #short_name.red().bold())?
-            }
-        });
+    let state_print_cases = state_table.iter().map(|st| {
+        let ident = st.ident.clone();
+        let short_name = st.short_name.clone();
+        quote! {
+            HigherState::#ident => write!(f, "{}", #short_name.red().bold())?
+        }
+    });
 
-    let non_run_symbol_names = symbol_table.iter()
+    let non_run_symbol_names = symbol_table
+        .iter()
         .filter(|st| !st.repeat)
         .map(|st| st.ident.clone());
 
-    let run_symbol_names = symbol_table.iter()
+    let run_symbol_names = symbol_table
+        .iter()
         .filter(|st| st.repeat)
         .map(|st| st.ident.clone());
 
@@ -671,7 +767,9 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
         }
     };
 
-    let match_cases = checked_rules.iter().map(|r| generate_rule_code(r, &symbol_table, &state_table));
+    let match_cases = checked_rules
+        .iter()
+        .map(|r| generate_rule_code(r, &symbol_table, &state_table));
 
     let block_sim_def = quote! {
         fn add_or_merge_run(tape: &mut Vec<BlockSymbol>, run_type: RunSymbolType, nadd: Exp) {
@@ -710,10 +808,10 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
         impl fmt::Display for BlockSimulator {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 use colored::*;
-        
+
                 const LEFT_PRINT_THRESHOLD: usize = 100;
                 let l_th = LEFT_PRINT_THRESHOLD / 2;
-                
+
                 self.self_steps.fmt(f)?;
                 write!(f, " | {}: ", self.base_steps)?;
                 if self.left_tape.len() <= LEFT_PRINT_THRESHOLD {
@@ -732,7 +830,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
                 match self.state {
                     #(#state_print_cases),*
                 }
-        
+
                 const RIGHT_PRINT_THRESHOLD: usize = 200;
                 let r_th = RIGHT_PRINT_THRESHOLD / 2;
                 if self.right_tape.len() <= RIGHT_PRINT_THRESHOLD {
@@ -748,7 +846,7 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
                         write!(f, " {}", symb)?;
                     }
                 }
-        
+
                 Ok(())
             }
         }
@@ -775,12 +873,12 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
         impl fmt::Display for BlockSymbol {
             fn fmt (&self, f: &mut fmt::Formatter) -> fmt::Result {
                 use BlockSymbol::*;
-                
+
                 let s0 = match *self {
                     Run(t, _) => &format!("{:?}", t),
                     _ => &format!("{:?}", self),
                 };
-        
+
                 let s_exp = match *self {
                     Run(_, n) => {
                         if n == 1 { "" }
@@ -796,30 +894,42 @@ fn generate_simulator_code(tm_def: String, state_table: Vec<Rc<Metastate>>, symb
     let syntax_tree1 = syn::parse2(code1).unwrap();
     let formatted1 = prettyplease::unparse(&syntax_tree1).replace(r"///\", "//");
     let mut file1 = fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .truncate(true)
-                .open("higher_rule_generated_code_part1.txt").unwrap();
-    file1.write_all(format!("// Start of autogenerated code\n{formatted1}\n// End of autogenerated code").as_bytes()).unwrap();
+        .read(true)
+        .write(true)
+        .truncate(true)
+        .open("higher_rule_generated_code_part1.txt")
+        .unwrap();
+    file1
+        .write_all(
+            format!("// Start of autogenerated code\n{formatted1}\n// End of autogenerated code")
+                .as_bytes(),
+        )
+        .unwrap();
 
     let syntax_tree2 = syn::parse2(code2).unwrap();
     let formatted2 = prettyplease::unparse(&syntax_tree2);
     let mut file2 = fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .truncate(true)
-                .open("higher_rule_generated_code_part2.txt").unwrap();
-    file2.write_all(format!("// Start of customizable code\n{formatted2}\n// End of customizable code").as_bytes()).unwrap();
+        .read(true)
+        .write(true)
+        .truncate(true)
+        .open("higher_rule_generated_code_part2.txt")
+        .unwrap();
+    file2
+        .write_all(
+            format!("// Start of customizable code\n{formatted2}\n// End of customizable code")
+                .as_bytes(),
+        )
+        .unwrap();
 }
 
 fn main() {
     // let fname = "src/definitions/bb6_tm_4_counter.txt";
     // let fname = "src/definitions/bb6_sk1like_1.txt";
     // let fname = "src/definitions/bb6_sk1like_2.txt";
-    let fname = "src/definitions/bb6_sk1like_nice.txt";
-    // let fname = "src/definitions/skelet1/skelet1_reimpl.txt";
+    // let fname = "src/definitions/bb6_sk1like_nice.txt";
+    let fname = "src/definitions/skelet1/skelet1_reimpl.txt";
 
-    let (tm_def, tm, state_table, symbol_table, checked_rules) = 
+    let (tm_def, tm, state_table, symbol_table, checked_rules) =
         process_tm_rle_file(fname, CheckerVerbosity::All);
     generate_simulator_code(tm_def, state_table, symbol_table, checked_rules);
 }
