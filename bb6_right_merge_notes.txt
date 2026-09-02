@@ -186,3 +186,216 @@ The head still returns to the left after this:
 The head does not return to the left end after this?
 2355426 | 43873633: L 1154 T T > 1053 Q 6 T 6 T [...] T 6 R1
 1924
+
+Various longitudinal rules accumulated:
+h Q X -> X T a
+a 3 Q 2 -> 1 T 1 h b (53)
+a 3 Q 1 Q 1 -> 1 T 1 Q 1 T 1 Q  (84)
+a 3 Q 1 T -> 1 T 1 Q a 2
+a X T -> X T h^2
+a R1 -> 1 T 2 R1  (34)
+h^2 T 1 T 1 Q 2 T -> 2 h b a 1 h^2
+h^2 1 T 1 T -> 1 T 1 Q a h^2 (46)
+h^2 1 T 1 Q 1 -> 1 T 2 T  (38)
+h^2 1 T 2 T T 1 Q 1 -> 1 T 3 Q a 2 h^2
+h^2 T 2 Q 1 -> 1 b (11)
+h^2 1 T 3 Q 2 Q 1 T -> 3 h b a 3
+h^2 T 3 Q 2 T -> 2 Q a 1 h b a
+h^2 1 T 3 Q 2 -> 1 T 1 Q a 1 h b
+h^2 1 T 3 Q 1 Q 3 -> 1 T 2 Q 1 T 1 h b (203)
+h^2 T X -> X T a
+h^2 T T 1 Q 1 T -> 2 T 1 Q a h^2 (46)
+h^2 T T -> 1 h (6)
+h^2 Q 1 T 2 Q 1 T 3 Q 3 T -> 5 h b a 1 h^2 1 h b a h^2
+h^2 Q 1 T 2 Q 1 T 3 Q 3 -> 5 Q a 1 h b a^2 h b a
+h^2 Q 1 T 2 Q 1 T 3 Q 1 T 3 -> 4 T 2 T 1 Q 1 Q a h^2 1 h b a h^2
+h^2 Q 1 T 2 Q 1 T 3 -> 3 T 1 Q a h^2 1 h b a h^2
+h^2 Q 1 T 1 Q 4 T 1 Q 3 -> 2 T 1 Q 1 T 1 h b a^2 h b a (534)
+h^2 Q 1 T 1 Q 4 T 1 Q 1 T 1 Q 3 T -> 2 T 3 T a^2 h b a h^2 1 h b a^3 h b a h^2
+h^2 Q 1 T 1 Q 4 T -> 2 T 1 Q a 1 h^3 b a h^2
+h^2 Q 1 T 1 Q 3 T 2 Q 1 T 3 Q 2 T -> 4 Q 2 Q 1 T 1 Q a h^3 b a 1 h b a h^2
+h^2 1 Q 1 T 1 Q 3 T 2 Q 3 -> 1 Q 2 T 1 Q a 1 h^3 b a 1 h b a
+h^2 Q 1 T 1 Q 3 T 2 Q 1 T 3 -> 4 Q 1 Q a h^2 1 h b a 1 h b a h^2 (not implemented)
+h^2 Q 1 T 1 Q 3 T 1 Q 3 -> 4 Q a^2 h b a 1 h b a
+h^2 1 Q 1 T 1 Q 3 T 1 Q 1 T 4 Q 3 -> 1 Q 5 h b a 1 h^2 1 h b a 1 h b a
+h^2 1 Q 1 T 1 Q 3 T -> 1 Q 3 T a^2 h b a h^2 (261)
+h^2 Q 1 T 1 Q 3 -> 3 T a^2 h b a (137)
+h^2 Q 1 T 1 Q 2 T -> 2 h^2 b a 1 h^2
+h^2 1 Q 1 T 1 Q 1 T 3 Q 1 T 1 Q 1 T 1 -> 1 Q 2 Q 1 T 4 Q 1 T 3 Q a h^2 (450)
+h^2 1 Q 1 T 1 Q 1 T 3 Q 1 T 1 -> 1 Q 2 Q 1 T 3 Q 1 T 1 Q a h^2 (310)
+h^2 1 Q 1 T 1 Q 1 T 2 Q 3 T -> 1 Q 2 Q 1 T 4 Q a 2 h^2
+h^2 1 Q 1 T 1 Q 1 T 2 Q 3 -> 1 Q 2 Q 1 T 3 h b a (247)
+h^2 1 Q 1 T 1 Q 1 T 2 Q 2 T -> 1 Q 2 Q 1 T 3 Q a 2 h^2
+h^2 1 Q 1 T 1 Q 1 T 1 Q 3 T 2 Q 3 -> 1 Q 3 Q 1 T 1 h b a h^3 b a h b a (739)
+h^2 1 Q 1 T 1 Q 1 T 1 Q 3 T -> 1 Q 4 Q a 2 a^2 h b a h^2
+h^2 1 Q 1 T 1 Q 1 T 1 Q 3 -> 1 Q 1 Q 4 T h^2 a^2 h b a (217)
+h^2 1 Q 1 T 1 Q 1 T 1 Q 1 T 2 Q 3 -> 1 Q 3 Q 1 T 5 h b a
+h^2 1 Q 1 T 1 Q 1 T 1 Q 1 T 1 -> 1 Q 3 Q 1 T 3 Q a h^2
+h^2 1 Q 1 T 1 Q 1 T 1 -> 1 Q 2 Q 1 T 1 Q a h^2 (164)
+h^2 1 Q 1 T -> 1 Q 1 Q a h^2 (46)
+h^2 Q 2 Q 1 -> 1 h b (13)
+h^2 1 Q 1 Q 1 -> 1 Q 2 T  (38)
+h^2 Q X -> X Q a
+h^2 R1 -> 4 R1  (36)
+h b T -> 1 Q a 2
+h b Q 1 -> 1 Q 1 T 1 Q  (65)
+b T -> 1 T a 2
+b Q 1 -> 1 T 1 T 1 Q  (59)
+
+selected sets of rules:
+
+right end:
+a R1 -> 1 T 2 R1
+h^2 R1 -> 4 R1
+
+2: a 1 T 2 R1 -> 1 T h^2 2 R1 -> 1 T 6 R1
+3: a 1 T 6 R1 -> 1 T 10 R1
+
+right end with step counts:
+a m R1 -> m+1 T 2 R1 (4m + 34)
+<^-1 a> m R1
+<^-1 m a> R1 (2m)
+<^-1 m < 1 T 2 R1 (34)
+m+1 T 2 R1 (2m)
+
+a m T n R1 -> m T n+4 R1 (4m + 8n + 46) (m >= 1)
+<^-1 a> m T n R1
+<^-1 m a> T n R1 (2m)
+<^-1 m Q > n R1 (1)
+<^-1 m Q n > R1 (2n)
+<^-1 m Q n < 2 R1 (14)
+<^-1 m Q < n+2 R1 (2n)
+<^-1 m T > n+2 R1 (2)
+<^-1 m T n+2 > R1 (2n+4)
+<^-1 m T n+2 < 2 R1 (14)
+<^-1 m T < n+4 R1 (2n+4)
+<^-1 m-1 < 1 T n+4 R1 (9)
+m T n+4 R1 (2m-2)
+
+misc:
+h Q X -> X T a
+b T -> 1 T a 2
+hb Q 1 -> 1 Q 1 T 1 Q  (65)
+b Q 1 -> 1 T 1 T 1 Q  (59)
+
+most common?:
+a 3 Q 2 -> 1 T 1 hb
+a X T -> X T h^2
+h^2 T X -> X T a
+h^2 Q X -> X Q a
+hb T -> 1 Q a 2
+
+common combo:
+a m T n Q p -> m T n+1 Q a p-1 (4m + 8n + 28)
+a m T n T p -> m T n+1 T a p-1 (4m + 8n + 24)
+(m >= 1, n >= 0, p >= 1)
+
+a m Q n T p -> m-2 T n Q a p+2 (4m + 34n + 12)
+(m >= 3, n >= 1, p >= 0)
+
+a 3 Q 1 Q 1 -> 1 T 1 Q 1 T 1 Q  (84)
+
+count steps:
+shared start (2m + 2n + 1)
+a m T n (Q/T) p
+<^-1 a> m T n (Q/T) p
+<^-1 m a> T n (Q/T) p (2m)
+<^-1 m Q > n (Q/T) p (1)
+<^-1 m Q n > (Q/T) p (2n)
+case Q (2m + 6n + 27)
+<^-1 m Q n > Q p
+<^-1 m Q n+1 T a> p-1 (3)
+<^-1 m Q n+1 T < a p-1
+<^-1 m Q n < 1 T a p-1 (9)
+<^-1 m Q < n+1 T a p-1 (2n)
+<^-1 m T > n+1 T a p-1 (2)
+<^-1 m T n+1 > T a p-1 (2n+2)
+<^-1 m T n+1 < Q a p-1 (2)
+<^-1 m T < n+1 Q a p-1 (2n+2)
+<^-1 m-1 < 1 T n+1 Q a p-1 (9)
+m T n+1 Q a p-1 (2m-2)
+case T (2m + 6n + 23)
+<^-1 m Q n > T p
+<^-1 m Q n < Q p (2)
+<^-1 m Q < n Q p (2n)
+<^-1 m T > n Q p (2)
+<^-1 m T n > Q p (2n)
+<^-1 m T n+1 T a> p-1 (3)
+<^-1 m T n+1 T < a p-1
+<^-1 m T n < 1 T a p-1 (9)
+<^-1 m T < n+1 T a p-1 (2n)
+<^-1 m-1 < 1 T n+1 T a p-1 (9)
+<^-1 m T n+1 T a p-1 (2m-2)
+
+a m Q n T p (n >= 2)
+<^-1 a> m Q n T p
+<^-1 m a> Q n T p (2m)
+<^-1 m-2 Q 1 T a> 1 Q n-1 T p (26)
+<^-1 m-2 Q 1 T 1 a> Q n-1 T p (2)
+<^-1 m-2 Q 1 b> n-2 T p (2)
+<^-1 m-2 Q n-1 b> T p (28n-56)
+<^-1 m-2 Q n T a> p+2 (24)
+<^-1 m-2 Q n T < a p+2
+<^-1 m-2 Q n-1 < 1 T a p+2 (9)
+<^-1 m-2 Q < n T a p+2 (2n-2)
+<^-1 m-2 T > n T a p+2 (2)
+<^-1 m-2 T n > T a p+2 (2n)
+<^-1 m-2 T n < Q a p+2 (2)
+<^-1 m-2 T < n Q a p+2 (2n)
+<^-1 m-3 < 1 T n Q a p+2 (9)
+m-2 T n Q a p+2 (2m-6)
+
+a m Q 1 T p
+<^-1 a> m Q 1 T p
+<^-1 m a> Q 1 T p (2m)
+<^-1 m-2 Q 1 T a> 1 Q T p (26)
+<^-1 m-2 Q 1 T a> p+2
+<^-1 m-2 Q 1 T < a p+2
+<^-1 m-2 Q < 1 T a p+2 (9)
+<^-1 m-2 T > 1 T a p+2 (2)
+<^-1 m-2 T 1 > T a p+2 (2)
+<^-1 m-2 T 1 < Q a p+2 (2)
+<^-1 m-2 T < 1 Q a p+2 (2)
+<^-1 m-3 < 1 T 1 Q a p+2 (9)
+m-2 T 1 Q a p+2 (2m-6)
+(4m + 46)
+
+a m T n T p
+m T h^2 n T p (m >= 1)
+m T n+1 T a p-1
+
+a m T n Q p
+m T h^2 n Q p (m >= 1)
+m T n+1 Q a p-1 (p >= 1)
+m T n+1 Q p-1 a
+
+a m Q n T p
+m-2 T 1 hb n-2 T p (m >= 3, n >= 2)
+m-2 T n-1 hb T p
+m-2 T n Q a p+2
+m-2 T n Q p+2 a
+
+sequence of multiple heads?
+a h^2 m Q n T p
+a m h^2 Q n T p
+a m+1 Q a n-1 T p
+a m+1 Q n-1 T p a (n-1 >= 1)
+a m+1 Q n-1 T p a (m+1 >= 3, n-1 >= 2)
+m-1 T 1 hb n-2 T p a
+m-1 T n-1 hb T p a
+m-1 T n Q a p+2 a
+m-1 T n Q p+2 a^2
+
+a h^2 m T n Q p (n >= 1)
+a m+1 T a n-1 Q p (n-1 >= 3, p >= 2)
+a m+1 T n-3 T 1 hb p-2
+a m+1 T n-3 T p-1 hb
+m+1 T h^2 n-3 T p-1 hb (p-1 >= 1)
+m+1 T n-2 T a p-2 hb
+m+1 T n-2 T p-2 a hb
+
+
+In forward simulation, right tape length reaches a maximum of 5854 symbols? Running the simulation for a while after that, this maximum length does not get exceeded.
+
+207216539 | 1403405863 | 56571767402: L 1154 T T 1054 T 5 T 7 T < 1 T 29 T 4 T 13 T 4 T 14 T 2 T 20 Q 10 T 31 Q 8 T 8 T 9 T 9 T 4 T 13 T 13 T 15 Q 7 T 9  ...2580430 terms... 5 Q <^-1 9 Q 2 T Q 2 T < 8 T 2 Q 26 T 8 Q 17 T 7 Q 9 T 4 Q 10 T 4 Q 9 T 12 Q 11 T 16 Q 7 T 3 Q <^-1 12 Q 2 T Q 1 < 1 T 3
+ T 5 Q 7 T 4 Q 10 T 2 Q 4 T 4 Q 11 T 7 Q 8 T 4 Q 10 T 6 Q 10 T 10 Q 7 T 11 Q 14 T 7 Q 13 T 7 Q 24 T 6 Q ...5754 terms...  6 Q 4 T 2 Q 9 T 8 Q 6 T 10 Q 8 T 2 Q 11 T 3 Q 7 T 6 Q 11 T 9 Q 9 T 4 Q 13 T 1 Q 12 T 2 Q 14 T 4 Q 9 T 2 R1

@@ -1103,7 +1103,7 @@ fn generate_simulator_code(
 }
 
 fn main() {
-    let fname = "src/definitions/bb6_1DCA_like.txt";
+    let fname = "src/definitions/bb6_right_merge.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) =
         process_tm_block_file(fname, CheckerVerbosity::All);

@@ -515,7 +515,7 @@ impl fmt::Display for BlockSymbol {
             T => s0.blue().bold(),
             Q => s0.green().bold(),
             L | R => s0.dimmed(),
-            _ => s0.clone().into(),
+            _ => s0.into(),
         };
         let s_exp = match *self {
             Run(RunSymbolType::X, n) => &format!("{n}"),
@@ -768,7 +768,8 @@ fn forward_sim() {
     let mut sim = BlockSimulator::new();
 
     // let max_steps = 100000000000u64;
-    let max_steps = 2353800;
+    let max_steps = 10000000;
+    // let max_steps = 2353800;
     // let max_steps = 18810;
     // let max_steps = 8000;
 
@@ -781,11 +782,11 @@ fn forward_sim() {
         // min_pos = min_pos.min(sim.left_tape.len());
         if
         // sim.self_steps > t1 && sim.self_steps % print_period == 0
-        sim.left_tape.len() <= 6
+        // sim.left_tape.len() <= 6
         // || k % 100000000 == 0
-        {
+        k % 10000 == 0 {
             println!("{sim}");
-            println!("{}", sim.right_tape.len());
+            // println!("{}", sim.right_tape.len());
             // print!("{},", sim.left_tape.len());
             // print!("{},", min_pos);
             // min_pos = 1000000000;
@@ -1853,6 +1854,7 @@ fn main() {
 
     // check_right_long_rule("h^2", "1 Q 1 T 1 Q 3 T 2 Q 3");
     // check_right_long_rule("h^2", "1 Q 1 T 1 Q 1 T 2 Q 2 T");
+    check_right_long_rule("a", "3 Q 1 Q 1")
 
-    process_right(false);
+    // process_right(false);
 }
