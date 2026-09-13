@@ -293,7 +293,8 @@ a m T n T p -> m T n+1 T a p-1 (4m + 8n + 24)
 a m Q n T p -> m-2 T n Q a p+2 (4m + 34n + 12)
 (m >= 3, n >= 1, p >= 0)
 
-a 3 Q 1 Q 1 -> 1 T 1 Q 1 T 1 Q  (84)
+a m Q 1 Q p -> m-2 T 1 Q 1 T 1 Q p-1  (4m + 72)
+(m >= 3, p >= 1)
 
 count steps:
 shared start (2m + 2n + 1)
@@ -360,6 +361,22 @@ a m Q 1 T p
 m-2 T 1 Q a p+2 (2m-6)
 (4m + 46)
 
+a m Q 1 Q p
+<^-1 a> m Q 1 Q p
+<^-1 m a> Q 1 Q p (2m)
+<^-1 m-2 Q 1 T a> 1 Q Q p (26)
+<^-1 m-2 Q 1 T 1 a> Q Q p (2)
+<^-1 m-2 Q 1 T 1 <f 1 Q p-1 (16)
+<^-1 m-2 Q 1 T < 1 T 1 Q p-1 (8)
+<^-1 m-2 Q < 1 T 1 T 1 Q p-1 (9)
+<^-1 m-2 T > 1 T 1 T 1 Q p-1 (2)
+<^-1 m-2 T 1 > T 1 T 1 Q p-1 (2)
+<^-1 m-2 T 1 < Q 1 T 1 Q p-1 (2)
+<^-1 m-2 T < 1 Q 1 T 1 Q p-1 (2)
+<^-1 m-3 < 1 T 1 Q 1 T 1 Q p-1 (9)
+m-2 T 1 Q 1 T 1 Q p-1 (2m-6)
+(4m + 72)
+
 a m T n T p
 m T h^2 n T p (m >= 1)
 m T n+1 T a p-1
@@ -399,3 +416,41 @@ In forward simulation, right tape length reaches a maximum of 5854 symbols? Runn
 
 207216539 | 1403405863 | 56571767402: L 1154 T T 1054 T 5 T 7 T < 1 T 29 T 4 T 13 T 4 T 14 T 2 T 20 Q 10 T 31 Q 8 T 8 T 9 T 9 T 4 T 13 T 13 T 15 Q 7 T 9  ...2580430 terms... 5 Q <^-1 9 Q 2 T Q 2 T < 8 T 2 Q 26 T 8 Q 17 T 7 Q 9 T 4 Q 10 T 4 Q 9 T 12 Q 11 T 16 Q 7 T 3 Q <^-1 12 Q 2 T Q 1 < 1 T 3
  T 5 Q 7 T 4 Q 10 T 2 Q 4 T 4 Q 11 T 7 Q 8 T 4 Q 10 T 6 Q 10 T 10 Q 7 T 11 Q 14 T 7 Q 13 T 7 Q 24 T 6 Q ...5754 terms...  6 Q 4 T 2 Q 9 T 8 Q 6 T 10 Q 8 T 2 Q 11 T 3 Q 7 T 6 Q 11 T 9 Q 9 T 4 Q 13 T 1 Q 12 T 2 Q 14 T 4 Q 9 T 2 R1
+
+...right tape reaches 5954 symbols at approximately 807472442698 base steps (number inaccurate due to long. simulation).
+
+Recording some histograms of right tape length...
+
+Longer simulation:
+23934734508 | 232789217178 | 9714788651386: (439292364 discarded) T 5 Q 12 T 10 T 11 T 12 Q 18 T 6 Q 25 T 11 Q 12 T 11 Q 24 T 9 Q 14 T 9 Q 17 T 6 Q 9 T 4 Q 4 T 7 Q 10 T 12 Q 5 T 6  ...76935 terms... 9 Q 1 T < 8 T 2 Q 4 T 4 Q 6 T 4 Q 9 T 11 Q 10 T 6 Q 14 T 7 Q 7 T 6 Q 14 T 3 Q 5 T 4 Q 11 T 6 Q 8 T 3 T <^-1 a> 5 T 1 Q 1 T 1 Q 10 T 4 Q 16 T 5 Q 12 T 2 Q 11 T 9 Q 12 T 2 Q 11 T 3 Q 10 T 7 Q 10 T 4 Q 9 T 2 R1
+
+compared all the right tapes at least 5000 symbols long (with a> ...). all of them are unique; there are 6339 of them
+
+right tape length distribution:
+# Number of samples = 5000000001
+# Min = 1
+# Max = 8227
+#
+# Mean = 330.5476395798727
+# Standard deviation = 339.15220741542265
+# Variance = 115024.21979475385
+#
+# Each ∎ is a count of 81926921
+#
+   1 ..  549 [ 4096346075 ]: ∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎
+ 549 .. 1097 [  706610782 ]: ∎∎∎∎∎∎∎∎
+1097 .. 1645 [  151191248 ]: ∎
+1645 .. 2193 [   35012881 ]:
+2193 .. 2741 [    8259870 ]:
+2741 .. 3289 [    1965141 ]:
+3289 .. 3837 [     466150 ]:
+3837 .. 4385 [     113146 ]:
+4385 .. 4933 [      27004 ]:
+4933 .. 5481 [       6005 ]:
+5481 .. 6029 [       1326 ]:
+6029 .. 6577 [        233 ]:
+6577 .. 7125 [        115 ]:
+7125 .. 7673 [          4 ]:
+7673 .. 8221 [         21 ]:
+
+Resembles an exponential distribution with a mean of about 335?

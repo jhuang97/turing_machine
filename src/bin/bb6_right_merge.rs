@@ -2017,7 +2017,8 @@ fn main() {
 
     // check_right_long_rule("h^2", "1 Q 1 T 1 Q 3 T 2 Q 3");
     // check_right_long_rule("h^2", "1 Q 1 T 1 Q 1 T 2 Q 2 T");
-    // check_right_long_rule("a", "3 Q 1 Q 1")
+    check_right_long_rule("a", "3 Q 1 Q 1");
+    check_right_long_rule("a", "1 T 1 Q 1 T 1 Q 3");
 
-    process_right(false);
+    // process_right(false);
 }

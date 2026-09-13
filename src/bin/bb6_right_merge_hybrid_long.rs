@@ -454,6 +454,9 @@ impl fmt::Display for BlockSimulator {
         write!(f, " | ")?;
         self.self_steps.fmt(f)?;
         write!(f, " | {}: ", self.base_steps)?;
+        if self.n_truncated > 0 {
+            write!(f, "({} discarded) ", self.n_truncated)?;
+        }
         if self.left_tape.len() <= LEFT_PRINT_THRESHOLD {
             for symb in &self.left_tape {
                 write!(f, "{} ", symb)?;
@@ -515,6 +518,7 @@ struct BlockSimulator {
     pub self_steps: u64,
     pub notable_steps: u64,
     pub long_a: bool,
+    pub n_truncated: usize,
 }
 impl fmt::Display for BlockSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -603,12 +607,30 @@ impl BlockSimulator {
             self_steps: 0,
             notable_steps: 0,
             long_a,
+            n_truncated: 0,
+        }
+    }
+
+    fn try_truncate_left_tape(&mut self) -> bool {
+        const TRUNCATE_LEN: usize = 15000;
+        if self.left_tape.len() >= TRUNCATE_LEN * 10 {
+            let split_idx = self.left_tape.len() - TRUNCATE_LEN;
+            let (left, src_range) = self.left_tape.split_at_mut(split_idx);
+            let dest_range = &mut left[..TRUNCATE_LEN];
+            dest_range.copy_from_slice(src_range);
+            self.left_tape.truncate(TRUNCATE_LEN);
+            self.n_truncated += split_idx;
+            true
+        } else {
+            false
         }
     }
 
     pub fn step(&mut self) -> Result<StepType, SimError> {
         let t = self.inner_step()?;
         self.self_steps += 1;
+
+        self.try_truncate_left_tape();
 
         if !t.is_stride() {
             self.notable_steps += 1;
@@ -689,6 +711,44 @@ impl BlockSimulator {
                     self.right_tape.pop();
                     self.state = HigherState::LeftNull;
                     return Some((4 * m + 8 * n0 + 46, StepType::LongLeftCancel));
+                }
+                // a m Q 1 Q p -> m-2 T 1 Q 1 T 1 Q p-1  (4m + 72) (m >= 3, p >= 1)
+                [
+                    rest @ ..,
+                    Run(X, p @ 1..),
+                    Q,
+                    Run(X, 1),
+                    Q,
+                    Run(X, m0 @ 3..),
+                ] => {
+                    let m = *m0;
+                    let ext_full = [Q, Run(X, 1), T, Run(X, 1), Q, Run(X, 1), T];
+                    if *p == 1 {
+                        if matches!(rest, [.., T]) {
+                            // a m Q 1 Q 1 T -> m-2 T 1 Q 1 T (1 Q T)
+                            for _ in 0..6 {
+                                self.right_tape.pop();
+                            }
+                            add_or_merge_run(&mut self.right_tape, X, 2);
+                            self.right_tape
+                                .extend_from_slice(&[T, Run(X, 1), Q, Run(X, 1), T]);
+                        } else {
+                            println!("rare case: {}", self);
+                            for _ in 0..5 {
+                                self.right_tape.pop();
+                            }
+                            self.right_tape.extend_from_slice(&ext_full);
+                        }
+                    } else {
+                        *p -= 1;
+                        for _ in 0..4 {
+                            self.right_tape.pop();
+                        }
+                        self.right_tape.extend_from_slice(&ext_full);
+                    }
+                    add_or_merge_run(&mut self.left_tape, X, m - 2);
+                    self.state = HigherState::LeftNull;
+                    return Some((4 * m + 72, StepType::LongLeftCancel));
                 }
                 _ => (),
             }
@@ -833,6 +893,7 @@ fn compare_long_sim() {
     let mut sim = BlockSimulator::new(false);
     let mut long_sim = BlockSimulator::new(true);
     let max_steps = 2000000;
+    // let max_steps = 200000000;
 
     for _ in 1..=max_steps {
         long_sim.step().unwrap();
@@ -970,8 +1031,9 @@ fn forward_sim() {
     let mut sim = BlockSimulator::new(true);
 
     // let max_steps = 1000;
-    let max_steps = 8000;
+    // let max_steps = 12000;
     // let max_steps = 1013039;
+    let max_steps = 4000000;
     // let max_steps = 4_000_000_000u64;
     // let mut max_right_len: usize = 0;
 
@@ -979,6 +1041,7 @@ fn forward_sim() {
         let res = sim.step();
         if let Ok(step_type) = &res
             && !step_type.is_stride()
+            && sim.notable_steps > 200000
         // && sim.notable_steps % 10 == 0
         {
             let curr_len = sim.right_tape.len();
@@ -1107,10 +1170,131 @@ fn analyze_right_tapes() {
     println!();
 }
 
+fn analyze_right_tapes2() {
+    use histo::Histogram;
+
+    let mut sim = BlockSimulator::new(true);
+
+    let base_steps0: Exp = 56571767402;
+
+    let mut rcounts: Trie<EncodedHalfTape, u64> = Trie::new();
+    let mut n_counted = 0;
+    let mut length_hist = Histogram::with_buckets(15);
+    let mut length_hist_all = Histogram::with_buckets(15);
+
+    loop {
+        let res = sim.step();
+        if let Ok(step_type) = &res
+            && !step_type.is_stride()
+        {
+            let curr_len = sim.right_tape.len();
+            if curr_len >= 5854 {
+                println!("{sim}, right tape len {curr_len}");
+                println!("max right exp {}", max_x_exp(&sim.right_tape));
+            }
+
+            if sim.base_steps > base_steps0 && sim.state == HigherState::RightA {
+                length_hist.add(sim.right_tape.len() as u64);
+                length_hist_all.add(sim.right_tape.len() as u64);
+                if sim.right_tape.len() > 5000 {
+                    let rtape = EncodedHalfTape::from_tape(&sim.right_tape);
+                    if let Some(count) = rcounts.get_mut(&rtape) {
+                        *count += 1;
+                    } else {
+                        rcounts.insert(rtape, 1);
+                    }
+                }
+
+                n_counted += 1;
+                // if n_counted % 1000000 == 0 {
+                //     println!("{n_counted}");
+                // }
+                if n_counted % 10000000 == 0 {
+                    println!("{n_counted}");
+                    println!("{length_hist}");
+                    length_hist = Histogram::with_buckets(15);
+                }
+                if n_counted > 5000000000u64 {
+                    break;
+                }
+            }
+        }
+        if res.is_err() {
+            println!(
+                "{:?}, left tape {} terms, \n{sim}",
+                res,
+                sim.left_tape.len(),
+            );
+            break;
+        }
+    }
+
+    println!("{sim}");
+
+    struct TapeFreq {
+        tape: Vec<BlockSymbol>,
+        freq: u64,
+    }
+
+    let mut tape_freqs: Vec<TapeFreq> = Vec::new();
+
+    const HISTOGRAM_SIZE: usize = 10;
+    let mut n_small: [u32; HISTOGRAM_SIZE] = [0; HISTOGRAM_SIZE];
+    for (enc_rtape, count) in rcounts.iter() {
+        if *count as usize <= HISTOGRAM_SIZE && *count > 0 {
+            n_small[*count as usize - 1] += 1;
+        } else {
+            let rtape = enc_rtape.to_tape();
+            tape_freqs.push(TapeFreq {
+                tape: rtape,
+                freq: *count,
+            });
+            // print!("{} {}; ", rtape.len(), count);
+        }
+    }
+
+    tape_freqs.sort_by(|a, b| b.freq.cmp(&a.freq).then(b.tape.len().cmp(&a.tape.len())));
+    // for tf in tape_freqs {
+    //     print!("{} {}; ", tf.tape.len(), tf.freq);
+    // }
+    // println!();
+
+    for (freq, chunk) in tape_freqs
+        .into_iter()
+        .chunk_by(|tf| tf.freq)
+        .into_iter()
+        .take(25)
+    {
+        println!("freq: {freq}");
+        for c in chunk {
+            if c.tape.len() < 100 {
+                for s in c.tape {
+                    print!("{s} ");
+                }
+            } else {
+                for s in &c.tape[..90] {
+                    print!("{s} ");
+                }
+                print!("...");
+            }
+
+            println!();
+        }
+    }
+
+    for k in 0..HISTOGRAM_SIZE {
+        print!("#{}: {}, ", k + 1, n_small[k]);
+    }
+    println!();
+
+    println!("{length_hist_all}");
+}
+
 fn main() {
     forward_sim();
 
     // analyze_right_tapes();
+    // analyze_right_tapes2();
 
     // compare_long_sim();
 }

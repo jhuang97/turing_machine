@@ -28,6 +28,7 @@ arbitrary-int = "2.1.0"
 rayon = "1.12.0"
 radix_trie = "0.3.0"
 nibble_vec = "0.1"
+histo = "1.0.0"
 
 [profile.release]
 overflow-checks = true
