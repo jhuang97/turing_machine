@@ -1,0 +1,34 @@
+tm = 1RB------2LA_0RC2LB3LB1RB_1LA---2RB3RC
+
+[metastates]
+Left  < <B
+LeftA <A <A
+RightB B> B>
+RightC C> C>
+
+[blocks]
+L = ^
+R = $
+
+s2(exp) = 2
+s3(exp) = 3
+s1(exp) = 1
+
+[rules]
+L < -> L C>
+
+C> s3 -> s3 C>
+C> s2 -> s2 B>
+
+B> s3 -> s1 B>
+B> s2 -> < s3
+B> R -> < s2 s2 R
+
+s1 < -> < s2
+s2 < -> < s3
+s3 < -> s1 B>
+
+C> R -> <A s1 R
+s3 <A -> <A s2
+L <A -> L s1 B>
+B> s1 -> < s2

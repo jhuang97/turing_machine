@@ -1,0 +1,165 @@
+1RB------2LA_0RC2LB3LB1RB_1LA---2RB3RC
+
+Mentioned by @nickdrozd
+
+C> 1 -> ***HALT***
+
+Longitudinal analysis:
+b = <^-1 B>
+c = <^-1 C>
+
+b 3 -> 2 b
+c 3 -> 2 bc
+b 2 -> 3
+c 2 -> 3 b
+
+b R -> 22 R
+
+b^2 3 -> b 2 b -> 3 b
+b^2n 3 -> 3 b^n
+
+b^2 2 -> b 3 -> 2 b
+b^2n 2 -> 2 b^n
+
+(b^2m c b^2n)^inf 2 -> (b^m+1 c b^m+2n+1)^inf
+(b^2m c b^2n)^inf 3 -> (b^2m+n+2 c b^n)^inf
+
+(b^2m c b^2n)^2 2 -> 2 (b^m+1 c b^m+2n+1)
+(b^2m c b^2n)^2 3 -> 3 (b^2m+n+2 c b^n)
+
+Let x,y be shorthand for (b^x c b^y)^inf
+
+Start: c^inf 222$
+
+Sim:
+0,0 222$
+1,1 22$
+2,0 32$
+4,0 2$
+3,3 $
+4,2 22$
+3,5 2$
+4,4 3$
+8,2 $
+9,1 22$
+10,0 32$
+12,0 2$
+7,7 $
+8,6 22$
+5,11 2$
+6,10 3$
+13,5 $
+14,4 22$
+8,12 2$
+5,17 $
+6,16 22$
+4,20 2$
+3,23 $
+4,22 22$
+3,25 2$
+4,24 3$
+18,12 $
+19,11 22$
+20,10 32$
+27,5 2$
+28,4 3$
+32,2 $
+33,1 22$
+34,0 32$
+36,0 2$
+19,19 $
+...
+(b^20 c b^30)^inf 22$
+(b^20 c b^30)^inf b^20 c b^30 22$
+(b^20 c b^30)^inf b^20 c b^50 c 2 b^15 2$
+(b^20 c b^30)^inf b^20 c b^50 3 b^16 2$
+(b^20 c b^30)^inf b^20 c b^50 3 2 b^8 $
+(b^20 c b^30)^inf b^20 c b^50 3 2 b^7 2 2$
+(b^20 c b^30)^inf b^20 c b^50 3 2 b 2 b^3 2$
+(b^20 c b^30)^inf b^20 c b^50 3 2 b 2 b 2 b $
+(b^20 c b^30)^inf b^20 c b^50 3 2 3 3 2 2 $
+(b^20 c b^30)^inf b^20 c 3 b^25 2 3 3 2 2 $
+(b^20 c b^30)^inf b^20 c 3 b 2 b^12 3 3 2 2 $
+(b^20 c b^30)^inf b^20 c 3 b 2 3 3 b^3 2 2 $
+(b^20 c b^30)^inf b^20 c 3 b 2 3 3 b 2 b 2 $
+(b^20 c b^30)^inf b^20 c 3 3 3 3 3 3 $
+...
+(b^48 c b^8)^inf 3$
+(b^48 c b^8)^inf b^48 c b^8 3$
+(b^48 c b^8)^inf b^48 c 3 b^4 $
+(b^48 c b^8)^inf b^48 c 3 b^3 22$
+(b^48 c b^8)^inf b^48 c 3 b 2 b 2$
+(b^48 c b^8)^inf b^48 c 333$
+...
+(b^56 c b^2)^inf 32$
+(b^58 c)^inf b^58 c b^2 32$
+(b^58 c)^inf b^58 c 3 b 2$
+(b^58 c)^inf b^58 c 3 3$
+(b^58 c)^inf b^58 <^-1 C> 33$ too late
+
+
+proof of rules:
+c 3
+<^-1 C> 3
+<^-1 3 C>
+<^-1 3 < c
+<^-1 1 B> c
+<^-1 1 < bc
+2 bc
+
+c 2
+<^-1 C> 2
+<^-1 2 B>
+<^-1 2 < b
+3 b
+
+b 3
+<^-1 B> 3
+<^-1 1 B>
+<^-1 1 < b
+2 b
+
+b 2
+<^-1 B> 2
+3
+
+(b^2m c b^2n)^inf 2
+(2^-1 b^2m c b^2(m+n) c b^2n 2)^inf
+(2^-1 b^2m c b^2(m+n) c 2 b^n)^inf
+(2^-1 b^2m c b^2(m+n) 3 b^n+1)^inf
+(2^-1 b^2m c 3 b^m+2n+1)^inf
+(2^-1 b^2m 2 b c b^m+2n+1)^inf
+(b^m+1 c b^m+2n+1)^inf
+
+(b^2m c b^2n)^inf 3
+(3^-1 b^2m c b^2(m+n) c b^2n 3)^inf
+(3^-1 b^2m c b^2(m+n) c 3 b^n)^inf
+(3^-1 b^2m c b^2(m+n) 2 b c b^n)^inf
+(3^-1 b^2m c 2 b^m+n+1 c b^n)^inf
+(3^-1 b^2m 3 b^m+n+2 c b^n)^inf
+(b^2m+n+2 c b^n)^inf
+
+(b^2m c b^2n)^2 2
+b^2m c b^2(m+n) c b^2n 2
+...
+b^2m 2 b c b^m+2n+1
+2 (b^m+1 c b^m+2n+1)
+
+(b^x c b^y)^r
+(b^x c b^y) (b^x c b^y)^r-2 (b^x c b^y)
+(b^x c b^y-1) (b^x+1 c b^y-1)^r-2 (b^x+1 c b^y-1) b
+(b^x c b^y-1) (b^x+1 c b^y-1)^r-1 b
+OR
+b (b^x-1 c b^y+1)^r-1 (b^x-1 c b^y)
+
+c^inf 2333323...
+c^inf c 2333323...
+c^inf 3 b 333323...
+c^inf 3 2222 b 23...
+c^inf 3 2222 33...
+c^inf c 3 2222 33...
+c^inf 2 bc 2222 33...
+c^inf 2 b 3 b 222 33...
+c^inf 2 b 3322 33...
+c^inf 2 22 b 22 33...
+c^inf 2 22 32 33...
