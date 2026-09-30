@@ -1103,7 +1103,7 @@ fn generate_simulator_code(
 }
 
 fn main() {
-    let fname = "src/definitions/bb34_9inst.txt";
+    let fname = "src/definitions/bb25_mdcounter_1.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) =
         process_tm_block_file(fname, CheckerVerbosity::All);

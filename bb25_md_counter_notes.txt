@@ -30,7 +30,7 @@ F <
 F > (2)
 
      # heads sent, final symbol
-# < 
+# <
 recv |   U    |     W    |   F
 ----------------------------------
 1      0, W      1, U      3, F
@@ -69,7 +69,7 @@ W < (sent >)
 < V (2)
 
      # heads sent, final symbol
-# > 
+# >
 recv |   C    |    C1    |   C2    |   V
 -----------------------------------------
 1      0, C1     0, C2     1, C
@@ -114,8 +114,8 @@ F < C1 P X^n R
 when a new base 3 digit is generated it is as "C1 P".)
 
 Reset phase:
-After counter on left side overflows, it generates 
-a w> head that makes it all the way to almost the right side, eventually resulting in 
+After counter on left side overflows, it generates
+a w> head that makes it all the way to almost the right side, eventually resulting in
 one of these five cases:
 w> C1 P X^n R
 w> C2 P X^n R
@@ -236,7 +236,7 @@ C A
 
 A P
 <^-1 > P
-<^-1 w> 
+<^-1 w>
 s
 
 s V
@@ -318,7 +318,7 @@ s^inf V
 (V^-1 V A^2k A s)^inf
 (A^(2k+1) s)^inf
 
-Notes on 
+Notes on
 1RB2LA0RB1LA3LB_1LA3LB1RA4RA---
 ===============================
 see if I can remove the following from the block definition file...
@@ -333,3 +333,419 @@ These rules have not been encountered in the forward simulation, but it might he
 w> G -> < C Q
 w> P -> U >
 w> S -> D >
+
+longitudinal analysis:
+
+heads:
+A = [<^-1 >] = [<A^-1 A>]
+s = [<^-1 w>] = [<A^-1 0B>]
+
+rules:
+A R -> R2
+A S R -> R1
+A R1 -> P R
+A R2 -> C R
+
+s S R -> C R2
+s R1 -> C R
+s V R2 -> C G G R
+
+A V -> V A A
+A C -> C1
+A C1 -> C A
+A^2 C -> C A
+A^2 C1 -> C1 A
+A P -> s
+A Q -> P
+A S -> Q
+A G -> C
+
+s V -> V A s
+s C -> C S
+s C1 -> P V
+s P -> V A A
+s Q -> C
+s S -> C A
+s G -> C Q
+
+A s C1 -> A P V -> s V -> V A s
+A s C -> A C S -> C1 S
+A s C1 R2 -> A P V R2 -> s V R2 -> C G G R
+A^3 S -> A^2 Q -> A P -> s
+A^2 R -> A R2 -> C R
+
+proofs:
+A C1
+<^-1 > C1
+<^-1 D >
+<^-1 D < A
+C A
+
+s S
+<^-1 w> S
+<^-1 D >
+<^-1 D < A
+C A
+
+start:
+s^inf V C R
+
+sim:
+(A s)^inf C R
+(A s)^inf A s C R
+(A s)^inf A C S R
+(A s)^inf C1 S R
+(A s)^inf A s C1 S R
+(A s)^inf A P V S R
+(A s)^inf s V S R
+(A s)^inf V A s S R
+(A s)^inf V A C R2
+(A s)^inf V C1 R2
+(A^3 s)^inf C1 R2
+(A^3 s)^inf A^3 s C1 R2
+(A^3 s)^inf A^3 P V R2
+(A^3 s)^inf A^2 s V R2
+(A^3 s)^inf A^2 C G G R
+(A^3 s)^inf C A G G R
+(A^3 s)^inf C C G R
+(A^3 s)^inf A^3 s C C G R
+(A^3 s)^inf A^3 C S C G R
+(A^3 s)^inf A C A S C G R
+(A^3 s)^inf A C Q C G R
+(A^3 s)^inf C1 Q C G R
+(A^3 s)^inf A^3 s C1 Q C G R
+(A^3 s)^inf A^3 P V Q C G R
+(A^3 s)^inf A^2 s V Q C G R
+(A^3 s)^inf A^2 V A s Q C G R
+(A^3 s)^inf A^2 V A C C G R
+(A^3 s)^inf A^2 V C1 C G R
+(A^3 s)^inf V A^4 C1 C G R
+(A^3 s)^inf V C1 A^2 C G R
+(A^3 s)^inf V C1 C A G R
+(A^3 s)^inf V C1 C C R
+(A^7 s)^inf C1 C C R
+(A^7 s)^inf A^7 s C1 C C R
+(A^7 s)^inf A^6 V A s C C R
+(A^7 s)^inf A^6 V C1 S C R
+(A^7 s)^inf V A^12 C1 S C R
+(A^7 s)^inf V C1 A^6 S C R
+(A^7 s)^inf V C1 A^3 s C R
+(A^7 s)^inf V C1 A^2 C1 S R
+(A^7 s)^inf V C1 C1 A S R
+(A^7 s)^inf V C1 C1 Q R
+(A^15 s)^inf C1 C1 Q R
+(A^15 s)^inf A^15 s C1 C1 Q R
+(A^15 s)^inf A^14 V A s C1 Q R
+(A^15 s)^inf A^14 V V A s Q R
+(A^15 s)^inf A^14 V V A C R
+(A^15 s)^inf A^14 V V C1 R
+(A^15 s)^inf V V A^56 C1 R
+(A^15 s)^inf V V C1 A^28 R
+(A^15 s)^inf V V C1 A^27 R2
+(A^15 s)^inf V V C1 A^26 C R
+(A^15 s)^inf V V C1 C A^13 R
+(A^15 s)^inf V V C1 C A^11 C R
+(A^15 s)^inf V V C1 C A^10 C1 R
+(A^15 s)^inf V V C1 C C1 A^5 R
+(A^15 s)^inf V V C1 C C1 A^3 C R
+(A^15 s)^inf V V C1 C C1 A^2 C1 R
+(A^15 s)^inf V V C1 C C1 C1 A R
+(A^15 s)^inf V V C1 C C1 C1 R2
+(A^63 s)^inf C1 C C1 C1 R2
+(A^63 s)^inf A^63 s C1 C C1 C1 R2
+(A^63 s)^inf A^62 V A s C C1 C1 R2
+(A^63 s)^inf A^62 V C1 S C1 C1 R2
+(A^63 s)^inf V A^124 C1 S C1 C1 R2
+(A^63 s)^inf V C1 A^62 S C1 C1 R2
+(A^63 s)^inf V C1 A^59 s C1 C1 R2
+(A^63 s)^inf V C1 A^58 V A s C1 R2
+(A^63 s)^inf V C1 A^58 V A P V R2
+(A^63 s)^inf V C1 A^58 V s V R2
+(A^63 s)^inf V C1 A^58 V C G G R
+(A^63 s)^inf V C1 V C A^58 G G R
+(A^63 s)^inf V C1 V C A^57 C G R
+(A^63 s)^inf V C1 V C A^56 C1 G R
+(A^63 s)^inf V C1 V C C1 A^28 G R
+(A^63 s)^inf V C1 V C C1 A^27 C R
+(A^63 s)^inf V C1 V C C1 A^26 C1 R
+(A^63 s)^inf V C1 V C C1 C1 A^13 R
+(A^63 s)^inf V C1 V C C1 C1 A^11 C R
+(A^63 s)^inf V C1 V C C1 C1 A^10 C1 R
+(A^63 s)^inf V C1 V C C1 C1 C1 A^5 R
+(A^63 s)^inf V C1 V C C1 C1 C1 A^3 C R
+(A^63 s)^inf V C1 V C C1 C1 C1 A^2 C1 R
+(A^63 s)^inf V C1 V C C1 C1 C1 C1 A R
+(A^63 s)^inf V C1 V C C1 C1 C1 C1 R2
+(A^127 s)^inf C1 V C C1 C1 C1 C1 R2
+(A^127 s)^inf A^127 s C1 V C C1 C1 C1 C1 R2
+(A^127 s)^inf A^126 V A s V C C1 C1 C1 C1 R2
+(A^127 s)^inf A^126 V A V A s C C1 C1 C1 C1 R2
+(A^127 s)^inf A^126 V A V C1 S C1 C1 C1 C1 R2
+(A^127 s)^inf A^126 V V A^2 C1 S C1 C1 C1 C1 R2
+(A^127 s)^inf A^126 V V C1 A S C1 C1 C1 C1 R2
+(A^127 s)^inf A^126 V V C1 Q C1 C1 C1 C1 R2
+(A^127 s)^inf V A^252 V C1 Q C1 C1 C1 C1 R2
+(A^127 s)^inf V V C1 A^252 Q C1 C1 C1 C1 R2
+(A^127 s)^inf V V C1 A^250 s C1 C1 C1 C1 R2
+(A^127 s)^inf V V C1 A^249 V A s C1 C1 C1 R2
+(A^127 s)^inf V V C1 A^249 V V V A s C1 R2
+(A^127 s)^inf V V C1 A^249 V V V C G G R
+(A^127 s)^inf V V C1 V V V C A^996 G G R
+(A^127 s)^inf V V C1 V V V C A^995 C G R
+(A^127 s)^inf V V C1 V V V C A^994 C1 G R
+(A^127 s)^inf V V C1 V V V C C1 A^497 G R
+(A^127 s)^inf V V C1 V V V C C1 A^496 C R
+(A^127 s)^inf V V C1 V V V C C1 C A^248 R
+(A^127 s)^inf V V C1 V V V C C1 C A^246 C R
+(A^127 s)^inf V V C1 V V V C C1 C C A^123 R
+(A^127 s)^inf V V C1 V V V C C1 C C A^121 C R
+(A^127 s)^inf V V C1 V V V C C1 C C A^120 C1 R
+(A^127 s)^inf V V C1 V V V C C1 C C C1 A^60 R
+(A^127 s)^inf V V C1 V V V C C1 C C C1 A^58 C R
+(A^127 s)^inf V V C1 V V V C C1 C C C1 C A^29 R
+(A^127 s)^inf V V C1 V V V C C1 C C C1 C A^27 C R
+(A^127 s)^inf V V C1 V V V C C1 C C C1 C C1 A^13 R
+...
+(A^127 s)^inf V V C1 V V V C C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf C1 V V V C C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^511 s C1 V V V C C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A s V V V C C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A V A s V V C C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A V A V A s V C C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A V A V A V A s C C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A V A V A V A C S C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A V A V A V C1 S C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A V A V V C1 A S C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A V A V V C1 Q C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A V V V C1 A^2 Q C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A V V V C1 s C1 C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V A V V V C1 P V C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V V V V C1 A^4 P V C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V V V V C1 A^3 s V C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V V V V C1 A^3 V A s C C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V V V V C1 A^3 V C1 S C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V V V V C1 V C1 A^3 S C C1 C C1 C1 C1 R2
+(A^511 s)^inf A^510 V V V V C1 V C1 s C C1 C C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 A^4080 s C C1 C C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 A^4079 C1 S C1 C C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 A^4078 C A S C1 C C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 C A^2040 S C1 C C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 C A^2037 s C1 C C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 C A^2036 V A s C C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 C V A^4073 s C C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 C V A^4072 C1 S C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 C V C1 A^2036 S C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 C V C1 A^2033 s C1 C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 C V C1 A^2032 V A s C1 C1 R2
+(A^511 s)^inf V V V V C1 V C1 C V C1 A^2032 V V A s C1 R2
+(A^511 s)^inf V V V V C1 V C1 C V C1 A^2032 V V C G G R
+(A^511 s)^inf V V V V C1 V C1 C V C1 V V C A^4064 G G R
+(A^511 s)^inf V V V V C1 V C1 C V C1 V V C A^4063 C G R
+(A^511 s)^inf V V V V C1 V C1 C V C1 V V C A^4062 C1 G R
+(A^511 s)^inf V V V V C1 V C1 C V C1 V V C C1 A^2031 G R
+(A^511 s)^inf V V V V C1 V C1 C V C1 V V C C1 A^2030 C R
+(A^511 s)^inf V V V V C1 V C1 C V C1 V V C C1 C A^1015 R
+A^1015 R
+A^1013 C R
+C1 A^506 R
+C1 A^504 C R
+C1 C A^252 R
+C1 C A^250 C R
+C1 C C A^125 R
+C1 C C A^123 C R
+C1 C C C1 A^61 R
+C1 C C C1 A^59 C R
+C1 C C C1 C1 A^29 R
+(A^511 s)^inf V V V V C1 V C1 C V C1 V V C C1 C C1 C C C1 C1 C1 C1 C1 R2
+check:                C1 V C1 C V C1 V V C C1 C C1 C C C1 C1 C1 C1 C1 R2
+previously messed up the hand simulation by some mistake halfway through, but surprisingly only a few symbols were changed as a result
+(A^8191 s)^inf C1 V C1 C V C1 V V C C1 C C1 C C C1 C1 C1 C1 C1 R2
+
+group together more heads in the longitudinal rules:
+
+Let B(n) = A^n s
+Let A(n) = A^n
+
+B(n) V -> V B(2n+1)
+B(2k+6) C -> C B(k)
+B(2k+7) C -> C1 B(k)
+B(n+1) C1 -> V B(2n+1)
+B(n+7) C1 R2 -> A^n C C C R
+A^2k C -> C A^k
+A^2k+1 C -> C1 A^k
+A^2k C1 -> C1 A^k
+A^2k+1 C1 -> C A^k+1
+A^2k+2 R -> C A^k R
+A^2k+3 R -> C1 A^k R
+
+A^2 R -> C R
+A R -> R2
+
+Let B(a,b) = B(2^a - b)
+Let A(a,b) = A(2^a - b)
+
+B(a,b)    V  ->  V B(a+1,2b-1)
+B(a,2m)   C  ->  C B(a-1,m+3)
+B(a,2m+1) C  -> C1 B(a-1,m+4)
+B(a,b)    C1 ->  V B(a+1,2b+1)
+B(a,b) C1^4 R2 -> V^3 C C1 C A(a, b+2) R
+A(a,2m)    R ->  C A(a-1,m+1) R
+A(a,2m+1)  R -> C1 A(a-1,m+2) R
+A(a+2,3)   R -> C1^a R2
+
+B(a,b) C1 R2 ->    A(a,  b+7) C C C R
+A(a,2m)    C ->  C A(a-1,m)
+A(a,2m+1)  C -> C1 A(a-1,m+1)
+A(a,2m)   C1 -> C1 A(a-1,m)
+A(a,2m+1) C1 ->  C A(a-1,m)
+
+
+Let f: 2m -> m+1, 2m+1 -> m+2
+1 -> 2
+2 -> 2
+3 -> 3
+4 -> 3
+5 -> 4
+6 -> 4
+7 -> 5
+8 -> 5
+so f^n(x) -> 3 for large n if x >= 3
+
+proofs:
+A^n s V
+A^n V A s
+V A^2n+1 s
+
+A^2k+6 s C
+A^2k+6 C S
+C A^k+3 S
+C A^k s
+
+A^2k+7 s C
+A^2k+7 C S
+A C A^k+3 S
+C1 A^k s
+
+A^n+1 s C1
+A^n+1 P V
+A^n s V
+A^n V A s
+V A^2n+1 s
+
+A^n+7 s C1 R2
+A^n+7 P V R2
+A^n+6 s V R2
+A^n+6 C G G R
+A^n+4 C A G G R
+A^n+4 C C G R
+A^n C C A G R
+A^n C C C R
+
+B(a,b) C1 C1 C1 C1 R2
+V B(a+1, 2b+1) C1 C1 C1 R2
+V V B(a+2, 4b+3) C1 C1 R2
+V V V B(a+3, 8b+7) C1 R2
+V V V A(a+3, 8b+14) C C C R
+V V V C A(a+2, 4b+7) C C R
+V V V C C1 A(a+1, 2b+4) C R
+V V V C C1 C A(a, b+2) R
+
+retry sim:
+(A^63 s)^inf C1 C C1 C1 R2 =
+B(63)^inf C1 C C1 C1 R2
+B(63)^inf B(63) C1 C C1 C1 R2
+B(63)^inf V B(125) C C1 C1 R2
+B(63)^inf V C1 B(59) C1 C1 R2
+B(63)^inf V C1 V B(117) C1 R2
+B(63)^inf V C1 V A^110 C C C R
+B(63)^inf V C1 V C A^55 C C R
+B(63)^inf V C1 V C C1 A^27 C R
+B(63)^inf V C1 V C C1 C1 A^13 R
+B(63)^inf V C1 V C C1 C1 A^11 C R
+B(63)^inf V C1 V C C1 C1 C1 A^5 R
+B(63)^inf V C1 V C C1 C1 C1 A^3 C R
+B(63)^inf V C1 V C C1 C1 C1 C1 A R
+B(63)^inf V C1 V C C1 C1 C1 C1 R2
+B(127)^inf C1 V C C1 C1 C1 C1 R2
+B(127)^inf B(127) C1 V C C1 C1 C1 C1 R2
+B(127)^inf V B(253) V C C1 C1 C1 C1 R2
+B(127)^inf V V B(507) C C1 C1 C1 C1 R2
+B(127)^inf V V C1 B(250) C1 C1 C1 C1 R2
+B(127)^inf V V C1 V B(499) C1 C1 C1 R2
+B(127)^inf V V C1 V V B(997) C1 C1 R2
+B(127)^inf V V C1 V V V B(1993) C1 R2
+B(127)^inf V V C1 V V V A^1986 C C C R
+B(127)^inf V V C1 V V V C A^993 C C R
+B(127)^inf V V C1 V V V C C1 A^496 C R
+B(127)^inf V V C1 V V V C C1 C A^248 R
+B(127)^inf V V C1 V V V C C1 C A^246 C R
+B(127)^inf V V C1 V V V C C1 C C A^123 R
+B(127)^inf V V C1 V V V C C1 C C A^121 C R
+B(127)^inf V V C1 V V V C C1 C C C1 A^60 R
+B(127)^inf V V C1 V V V C C1 C C C1 A^58 C R
+B(127)^inf V V C1 V V V C C1 C C C1 C A^29 R
+B(127)^inf V V C1 V V V C C1 C C C1 C A^27 C R
+B(127)^inf V V C1 V V V C C1 C C C1 C C1 A^13 R
+B(127)^inf V V C1 V V V C C1 C C C1 C C1 C1 C1 R2
+B(511)^inf C1 V V V C C1 C C C1 C C1 C1 C1 R2
+
+retry sim again:
+(A^63 s)^inf C1 C C1 C1 R2 =
+B(63)^inf C1 C C1 C1 R2 =
+B(6,1)^inf C1 C C1 C1 R2
+B(6,1)^inf B(6,1) C1 C C1 C1 R2
+B(6,1)^inf V B(7,3) C C1 C1 R2
+B(6,1)^inf V C1 B(6,5) C1 C1 R2
+B(6,1)^inf V C1 V B(7,11) C1 R2
+B(6,1)^inf V C1 V A(7,18) C C C R
+B(6,1)^inf V C1 V C A(6,9) C C R
+B(6,1)^inf V C1 V C C1 A(5,5) C R
+B(6,1)^inf V C1 V C C1 C1 A(4,3) R
+B(6,1)^inf V C1 V C C1 C1 C1 A(3,3) R
+B(6,1)^inf V C1 V C C1 C1 C1 A(5) R
+B(6,1)^inf V C1 V C C1 C1 C1 A^5 R
+B(6,1)^inf V C1 V C C1 C1 C1 A^3 C R
+B(6,1)^inf V C1 V C C1 C1 C1 C1 A R
+B(6,1)^inf V C1 V C C1 C1 C1 C1 R2
+B(7,1)^inf C1 V C C1 C1 C1 C1 R2
+B(7,1)^inf B(7,1) C1 V C C1 C1 C1 C1 R2
+B(7,1)^inf V B(8,3) V C C1 C1 C1 C1 R2
+B(7,1)^inf V V B(9,5) C C1 C1 C1 C1 R2
+B(7,1)^inf V V C1 B(8,6) C1 C1 C1 C1 R2
+B(7,1)^inf V V C1 V B(9,13) C1 C1 C1 R2
+B(7,1)^inf V V C1 V V B(10,27) C1 C1 R2
+B(7,1)^inf V V C1 V V V B(11,55) C1 R2
+B(7,1)^inf V V C1 V V V A(11,62) C C C R
+B(7,1)^inf V V C1 V V V C A(10,31) C C R
+B(7,1)^inf V V C1 V V V C C1 A(9,16) C R
+B(7,1)^inf V V C1 V V V C C1 C A(8,8) R
+B(7,1)^inf V V C1 V V V C C1 C C A(7,5) R
+B(7,1)^inf V V C1 V V V C C1 C C C1 A(6,4) R
+B(7,1)^inf V V C1 V V V C C1 C C C1 C A(5,3) R
+B(7,1)^inf V V C1 V V V C C1 C C C1 C C1 A(4,3) R
+B(7,1)^inf V V C1 V V V C C1 C C C1 C C1 C1 C1 R2
+B(9,1)^inf C1 V V V C C1 C C C1 C C1 C1 C1 R2
+B(9,1)^inf B(9,1) C1 V V V C C1 C C C1 C C1 C1 C1 R2
+B(9,1)^inf V B(10,3) V V V C C1 C C C1 C C1 C1 C1 R2
+B(9,1)^inf V V B(11,5) V V C C1 C C C1 C C1 C1 C1 R2
+B(9,1)^inf V V V B(12,9) V C C1 C C C1 C C1 C1 C1 R2
+B(9,1)^inf V V V V B(13,17) C C1 C C C1 C C1 C1 C1 R2
+B(9,1)^inf V V V V C1 B(12,12) C1 C C C1 C C1 C1 C1 R2
+B(9,1)^inf V V V V C1 V B(13,25) C C C1 C C1 C1 C1 R2
+B(9,1)^inf V V V V C1 V C1 B(12,16) C C1 C C1 C1 C1 R2
+B(9,1)^inf V V V V C1 V C1 C B(11,11) C1 C C1 C1 C1 R2
+B(9,1)^inf V V V V C1 V C1 C V B(12,23) C C1 C1 C1 R2
+B(9,1)^inf V V V V C1 V C1 C V C1 B(11,15) C1 C1 C1 R2
+B(9,1)^inf V V V V C1 V C1 C V C1 V B(12,31) C1 C1 R2
+B(9,1)^inf V V V V C1 V C1 C V C1 V V B(13,63) C1 R2
+B(9,1)^inf V V V V C1 V C1 C V C1 V V A(13,70) C C C R
+B(9,1)^inf V V V V C1 V C1 C V C1 V V C A(12,35) C C R
+B(9,1)^inf V V V V C1 V C1 C V C1 V V C C1 A(11,18) C R
+B(9,1)^inf V V V V C1 V C1 C V C1 V V C C1 C A(10,9) R
+B(9,1)^inf V V V V C1 V C1 C V C1 V V C C1 C C1 A(9,6) R
+B(9,1)^inf V V V V C1 V C1 C V C1 V V C C1 C C1 C A(8,4) R
+B(9,1)^inf V V V V C1 V C1 C V C1 V V C C1 C C1 C C A(7,3) R
+B(9,1)^inf V V V V C1 V C1 C V C1 V V C C1 C C1 C C C1 A(6,3) R
+B(9,1)^inf V V V V C1 V C1 C V C1 V V C C1 C C1 C C C1 C1 A(5,3) R
+B(9,1)^inf V V V V C1 V C1 C V C1 V V C C1 C C1 C C C1 C1 C1 C1 C1 R2
+B(13,1)^inf C1 V C1 C V C1 V V C C1 C C1 C C C1 C1 C1 C1 C1 R2
