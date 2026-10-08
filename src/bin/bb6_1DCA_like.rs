@@ -643,11 +643,13 @@ impl BlockSimulator {
         use BlockSymbol::*;
         use RunSymbolType::*;
         Self {
-            // L X^3 S0 D1 c> 1001
-            left_tape: vec![L, Run(X, 3), S0, D1],
-            right_tape: vec![R, J, K],
+            // 42: L X c> D0 111
+            // 50: L X S0 e> 111
+            // 116: L X^3 S0 D1 c> 1001
+            left_tape: vec![L, Run(X, 1)],
+            right_tape: vec![R, K, M, D0],
             state: HigherState::RightC,
-            base_steps: 116,
+            base_steps: 42,
             self_steps: 0,
         }
     }
@@ -690,6 +692,21 @@ impl BlockSimulator {
 enum LongHead {
     H0,
     H1,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Digit {
+    D0,
+    D1,
+}
+
+impl Digit {
+    fn to_symbol(&self) -> BlockSymbol {
+        match self {
+            Digit::D0 => BlockSymbol::D0,
+            Digit::D1 => BlockSymbol::D1,
+        }
+    }
 }
 
 const N_BITS_PACKED: usize = 64;
@@ -961,28 +978,59 @@ impl fmt::Display for BitLongSim {
 
 #[derive(PartialEq, Eq, Clone)]
 enum RightResult {
-    Tape(Vec<BlockSymbol>),
+    /// symbols in rtape start from the right, going towards the left
+    /// digits in new_digits start from the left, going towards the right
+    Continue {
+        rtape: Vec<BlockSymbol>,
+        new_digits: Vec<Digit>,
+    },
+    Halt,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+enum IndexedRightResult {
+    Continue { r_i: usize, new_digits: Vec<Digit> },
     Halt,
 }
 
 impl fmt::Display for RightResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Tape(rtape) => {
+            Self::Continue { rtape, new_digits } => {
+                if !new_digits.is_empty() {
+                    for d in new_digits {
+                        write!(f, "{:?} ", d)?;
+                    }
+                }
+
                 write!(f, "[")?;
                 for s in rtape.iter().rev() {
                     write!(f, "{:?}", s)?;
                 }
                 write!(f, "]")
             }
-            Self::Halt => {
-                write!(f, "Halt")
-            }
+            Self::Halt => write!(f, "Halt"),
         }
     }
 }
 
-fn apply_head(h: LongHead, rtape: Vec<BlockSymbol>) -> RightResult {
+impl fmt::Display for IndexedRightResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Continue { r_i, new_digits } => {
+                if !new_digits.is_empty() {
+                    for d in new_digits {
+                        write!(f, "{:?} ", d)?;
+                    }
+                }
+                write!(f, "[{}]", r_i)
+            }
+            Self::Halt => write!(f, "Halt"),
+        }
+    }
+}
+
+fn apply_head_right_end(h: LongHead, rtape: Vec<BlockSymbol>) -> RightResult {
     let mut sim = BlockSimulator {
         left_tape: Vec::new(),
         right_tape: rtape,
@@ -1001,6 +1049,12 @@ fn apply_head(h: LongHead, rtape: Vec<BlockSymbol>) -> RightResult {
                 _ => unimplemented!(),
             }
         }
+
+        // D1 <  -> < D1
+        // D1 <a -> < D1
+        // Most of the time we are expecting the head returning left to be <.
+        // If the input head was LongHead::H0 then there must be a D1 to the left of the tape,
+        // which would be able to absorb <a.
         if sim.left_tape.is_empty()
             && (sim.state == HigherState::Left
                 || (sim.state == HigherState::LeftA && h == LongHead::H0))
@@ -1008,28 +1062,32 @@ fn apply_head(h: LongHead, rtape: Vec<BlockSymbol>) -> RightResult {
             break;
         }
     }
-    let mut out: Vec<BlockSymbol> = Vec::new();
+    let mut new_rtape: Vec<BlockSymbol> = Vec::new();
+    let mut new_digits: Vec<Digit> = Vec::new();
 
     {
-        use BlockSymbol::*;
+        use BlockSymbol as B;
+        use BlockSymbol::{J, K, M, R, U};
         for s in sim.right_tape {
             match s {
-                R | M | U | J | K => out.push(s),
-                D1 => out.extend_from_slice(&[M, M]),
-                D0 => out.extend_from_slice(&[U, M]),
+                R | M | U | J | K => new_rtape.push(s),
+                B::D1 => new_rtape.extend_from_slice(&[M, M]),
+                B::D0 => new_rtape.extend_from_slice(&[U, M]),
                 _ => unreachable!(),
             }
         }
 
         loop {
-            match out.as_slice() {
+            match new_rtape.as_slice() {
                 [.., M, M] => {
-                    out.pop();
-                    out.pop();
+                    new_rtape.pop();
+                    new_rtape.pop();
+                    new_digits.push(Digit::D1);
                 }
                 [.., U, M] => {
-                    out.pop();
-                    out.pop();
+                    new_rtape.pop();
+                    new_rtape.pop();
+                    new_digits.push(Digit::D0);
                 }
                 _ => {
                     break;
@@ -1038,7 +1096,655 @@ fn apply_head(h: LongHead, rtape: Vec<BlockSymbol>) -> RightResult {
         }
     }
 
-    RightResult::Tape(out)
+    RightResult::Continue {
+        rtape: new_rtape,
+        new_digits,
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RightRuleCache {
+    r_list: Vec<Vec<BlockSymbol>>,
+    index_lookup: HashMap<Vec<BlockSymbol>, usize>,
+    h0_results: Vec<Option<IndexedRightResult>>,
+    h1_results: Vec<Option<IndexedRightResult>>,
+}
+
+impl RightRuleCache {
+    fn new(start: &Vec<BlockSymbol>) -> Self {
+        Self {
+            r_list: vec![start.clone()],
+            index_lookup: HashMap::from([(start.clone(), 0)]),
+            h0_results: vec![None],
+            h1_results: vec![None],
+        }
+    }
+
+    fn get_or_insert_index(&mut self, r: Vec<BlockSymbol>) -> usize {
+        if let Some(i) = self.index_lookup.get(&r) {
+            *i
+        } else {
+            let idx = self.r_list.len();
+            self.r_list.push(r.clone());
+            self.index_lookup.insert(r, idx);
+            self.h0_results.push(None);
+            self.h1_results.push(None);
+            idx
+        }
+    }
+
+    fn fill_rule(&mut self, i: usize, head: LongHead) {
+        let r_new = match apply_head_right_end(head, self.r_list[i].clone()) {
+            RightResult::Continue { rtape, new_digits } => {
+                let i_new = self.get_or_insert_index(rtape);
+                IndexedRightResult::Continue {
+                    r_i: i_new,
+                    new_digits,
+                }
+            }
+            RightResult::Halt => IndexedRightResult::Halt,
+        };
+
+        match head {
+            LongHead::H0 => self.h0_results[i] = Some(r_new),
+            LongHead::H1 => self.h1_results[i] = Some(r_new),
+        }
+    }
+
+    fn get_result_by_index(&mut self, i: usize, head: LongHead) -> &IndexedRightResult {
+        match head {
+            LongHead::H0 => {
+                if self.h0_results[i].is_none() {
+                    self.fill_rule(i, head);
+                }
+                self.h0_results[i].as_ref().unwrap()
+            }
+            LongHead::H1 => {
+                if self.h1_results[i].is_none() {
+                    self.fill_rule(i, head);
+                }
+                self.h1_results[i].as_ref().unwrap()
+            }
+        }
+    }
+}
+
+impl fmt::Display for RightRuleCache {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (i, rtape) in self.r_list.iter().enumerate() {
+            write!(f, "[{i}] ")?;
+            write!(f, "[")?;
+            for s in rtape.iter().rev() {
+                write!(f, "{:?}", s)?;
+            }
+            write!(f, "] => (h0) ")?;
+            match &self.h0_results[i] {
+                Some(r) => write!(f, "{r}")?,
+                None => write!(f, "??")?,
+            }
+            write!(f, ", (h1) ")?;
+            match &self.h1_results[i] {
+                Some(r) => write!(f, "{r}")?,
+                None => write!(f, "??")?,
+            }
+            write!(f, "\n")?;
+        }
+
+        Ok(())
+    }
+}
+
+/// Simulate this the slow way, using BlockSimulator. Can try to compare accelerated approaches
+/// against this.
+///
+/// The input and output heads and digits are ordered left to right.
+fn propagate_heads(mut heads: Vec<LongHead>, digits: &Vec<Digit>) -> (Vec<Digit>, Vec<LongHead>) {
+    let mut out_heads: Vec<LongHead> = Vec::new();
+
+    let rtape = digits.iter().rev().map(Digit::to_symbol).collect();
+
+    let mut sim = BlockSimulator {
+        left_tape: Vec::new(),
+        right_tape: rtape,
+        state: HigherState::Left,
+        base_steps: 0,
+        self_steps: 0,
+    };
+
+    loop {
+        if sim.left_tape.is_empty() && sim.state == HigherState::Left {
+            if let Some(h) = heads.pop() {
+                sim.state = match h {
+                    LongHead::H0 => HigherState::RightC,
+                    LongHead::H1 => HigherState::RightE,
+                };
+            } else {
+                break;
+            }
+        } else if sim.right_tape.is_empty() && sim.state != HigherState::Left {
+            match sim.state {
+                HigherState::RightC => out_heads.push(LongHead::H0),
+                HigherState::RightE => out_heads.push(LongHead::H1),
+                _ => unreachable!(),
+            };
+            sim.state = HigherState::Left;
+        } else {
+            sim.step().unwrap();
+            // println!("{sim}");
+        }
+    }
+
+    let out_digits: Vec<Digit> = sim
+        .right_tape
+        .iter()
+        .rev()
+        .map(|s| match s {
+            BlockSymbol::D0 => Digit::D0,
+            BlockSymbol::D1 => Digit::D1,
+            _ => unreachable!(),
+        })
+        .collect();
+
+    out_heads.reverse();
+
+    (out_digits, out_heads)
+}
+
+use std::sync::LazyLock;
+
+/// transformation matrix for 8 heads
+static S3: LazyLock<[[bool; 8]; 8]> = LazyLock::new(|| {
+    let mut s3 = [[false; 8]; 8];
+    let mut curr_points: Vec<(usize, usize)> = vec![(0, 0)];
+    let mut next_points: Vec<(usize, usize)> = Vec::new();
+    let mut size = 8;
+    while size > 1 {
+        for &(r, c) in &curr_points {
+            let half = size / 2;
+            next_points.push((r, c));
+            next_points.push((r + half, c));
+            next_points.push((r, c + half));
+        }
+        curr_points.clone_from(&next_points);
+        next_points.clear();
+        size /= 2;
+    }
+    for &(r, c) in &curr_points {
+        s3[r][c] = true;
+    }
+    s3
+});
+
+/// transformation matrix for 8 digits
+static T3: LazyLock<[[bool; 8]; 8]> = LazyLock::new(|| {
+    let mut t3 = [[false; 8]; 8];
+    let mut curr_points: Vec<(usize, usize)> = vec![(0, 0)];
+    let mut next_points: Vec<(usize, usize)> = Vec::new();
+    let mut size = 8;
+    while size > 1 {
+        for &(r, c) in &curr_points {
+            let half = size / 2;
+            next_points.push((r + half, c + half));
+            next_points.push((r + half, c));
+            next_points.push((r, c + half));
+        }
+        curr_points.clone_from(&next_points);
+        next_points.clear();
+        size /= 2;
+    }
+    for &(r, c) in &curr_points {
+        t3[r][c] = true;
+    }
+    t3
+});
+
+fn precompute_byte_transform(t: &[[bool; 8]; 8]) -> [u8; 256] {
+    let mut out = [0; 256];
+
+    for x in 0u8..=255u8 {
+        let mut bits_in = [false; 8];
+        for n in 0..8 {
+            bits_in[n] = (x >> (8 - 1 - n)) & 1 == 1;
+        }
+
+        let mut bits_out = [false; 8];
+        for r in 0..8 {
+            for c in 0..8 {
+                if t[r][c] {
+                    bits_out[r] ^= bits_in[c];
+                }
+            }
+        }
+
+        for n in 0..8 {
+            if bits_out[n] {
+                out[x as usize] |= 1 << (8 - 1 - n);
+            }
+        }
+    }
+
+    out
+}
+
+static S3_BYTES: LazyLock<[u8; 256]> = LazyLock::new(|| precompute_byte_transform(&*S3));
+static T3_BYTES: LazyLock<[u8; 256]> = LazyLock::new(|| precompute_byte_transform(&*T3));
+
+fn byte_to_digits(b: u8) -> Vec<Digit> {
+    (0..8)
+        .rev()
+        .map(|n| {
+            if (b >> n) & 1 == 1 {
+                Digit::D1
+            } else {
+                Digit::D0
+            }
+        })
+        .collect()
+}
+
+fn bytes_to_digits(digits_u8: &[u8]) -> Vec<Digit> {
+    let mut out = Vec::new();
+    for b in digits_u8 {
+        out.extend(byte_to_digits(*b));
+    }
+    out
+}
+
+fn byte_to_heads(h: u8) -> Vec<LongHead> {
+    (0..8)
+        .rev()
+        .map(|n| {
+            if (h >> n) & 1 == 1 {
+                LongHead::H1
+            } else {
+                LongHead::H0
+            }
+        })
+        .collect()
+}
+
+fn bytes_to_heads(heads_u8: &[u8]) -> Vec<LongHead> {
+    let mut out = Vec::new();
+    for h in heads_u8 {
+        out.extend(byte_to_heads(*h));
+    }
+    out
+}
+
+fn propagate_heads_byte(heads: Vec<LongHead>, digits: &Vec<Digit>) -> (Vec<Digit>, Vec<LongHead>) {
+    assert!(heads.len() == 8);
+    assert!(digits.len() == 8);
+
+    let mut h = 0u8;
+    for n in 0..8 {
+        if heads[n] == LongHead::H1 {
+            h |= 1 << (8 - 1 - n);
+        }
+    }
+
+    let mut b = 0u8;
+    for n in 0..8 {
+        if digits[n] == Digit::D1 {
+            b |= 1 << (8 - 1 - n);
+        }
+    }
+
+    let b_out = b ^ S3_BYTES[h as usize];
+    let h_out = h ^ T3_BYTES[b as usize] ^ (1 << 7);
+    (byte_to_digits(b_out), byte_to_heads(h_out))
+}
+
+fn propagate_heads_pow2_bytes(
+    heads: Vec<LongHead>,
+    digits: &Vec<Digit>,
+) -> (Vec<Digit>, Vec<LongHead>) {
+    assert!(heads.len() == digits.len());
+    assert!(heads.len() % 8 == 0);
+    let n_bytes = heads.len() / 8;
+    assert!(n_bytes.is_power_of_two());
+
+    let mut heads_u8: Vec<u8> = heads
+        .chunks(8)
+        .map(|c| {
+            let mut h = 0u8;
+            for n in 0..8 {
+                if c[n] == LongHead::H1 {
+                    h |= 1 << (8 - 1 - n);
+                }
+            }
+            h
+        })
+        .collect();
+    let mut digits_u8: Vec<u8> = digits
+        .chunks(8)
+        .map(|c| {
+            let mut b = 0u8;
+            for n in 0..8 {
+                if c[n] == Digit::D1 {
+                    b |= 1 << (8 - 1 - n);
+                }
+            }
+            b
+        })
+        .collect();
+
+    let mut a = Vec::new();
+    let mut b = Vec::new();
+    propagate_heads_pow2_slices(&mut heads_u8, &mut digits_u8, &mut a, &mut b);
+    (bytes_to_digits(&digits_u8), bytes_to_heads(&heads_u8))
+}
+
+fn check_propagate_heads_pow2(h_in: &[u8], b_in: &[u8]) {
+    let (b1, h1) = propagate_heads(bytes_to_heads(h_in), &bytes_to_digits(b_in));
+    let (b2, h2) = propagate_heads_pow2_bytes(bytes_to_heads(h_in), &bytes_to_digits(b_in));
+    assert_eq!(b1, b2);
+    assert_eq!(h1, h2);
+}
+
+/// length of h must be a power of 2
+fn head_transform_bytes(h: &mut [u8]) {
+    if h.len() == 1 {
+        h[0] = S3_BYTES[h[0] as usize];
+    } else if h.len() % 2 == 0 {
+        assert!(h.len() > 0);
+        let (h1, h2) = h.split_at_mut(h.len() / 2);
+        for (x1, x2) in h1.iter_mut().zip(h2.iter_mut()) {
+            let tmp = *x1;
+            *x1 ^= *x2;
+            *x2 = tmp;
+        }
+        head_transform_bytes(h1);
+        head_transform_bytes(h2);
+    } else {
+        unimplemented!()
+    }
+}
+
+/// length of b must be a power of 2
+fn digit_transform_bytes(b: &mut [u8]) {
+    if b.len() == 1 {
+        b[0] = T3_BYTES[b[0] as usize];
+    } else if b.len() % 2 == 0 {
+        assert!(b.len() > 0);
+        let (b1, b2) = b.split_at_mut(b.len() / 2);
+        for (x1, x2) in b1.iter_mut().zip(b2.iter_mut()) {
+            let tmp = *x2;
+            *x2 ^= *x1;
+            *x1 = tmp;
+        }
+        digit_transform_bytes(b1);
+        digit_transform_bytes(b2);
+    } else {
+        unimplemented!()
+    }
+}
+
+fn propagate_heads_pow2_slices(
+    h: &mut [u8],
+    b: &mut [u8],
+    h_scratch: &mut Vec<u8>,
+    b_scratch: &mut Vec<u8>,
+) {
+    assert!(h.len() == b.len());
+
+    h_scratch.clear();
+    h_scratch.extend_from_slice(h);
+    b_scratch.clear();
+    b_scratch.extend_from_slice(b);
+    head_transform_bytes(h_scratch);
+    digit_transform_bytes(b_scratch);
+
+    for (curr_b, curr_h) in b.iter_mut().zip(h_scratch.iter()) {
+        *curr_b ^= curr_h;
+    }
+
+    for (curr_h, curr_b) in h.iter_mut().zip(b_scratch.iter()) {
+        *curr_h ^= curr_b;
+    }
+    h[0] ^= 1 << 7;
+}
+
+#[derive(Clone, Copy)]
+struct HeadPosition {
+    tape_pos: usize,
+    head_idx: usize,
+    n_bytes: usize,
+}
+
+/// [digits, with heads interspersed] [loose_heads] [loose_digits] [right_head] [right_state]
+struct FastLongSim {
+    heads: Vec<u8>,
+    digits: Vec<u8>,
+    head_positions: Vec<HeadPosition>,
+    h_scratch: Vec<u8>,
+    b_scratch: Vec<u8>,
+    loose_heads: Vec<LongHead>,
+    loose_digits: VecDeque<Digit>,
+    right_head: Option<LongHead>,
+    right_cache: RightRuleCache,
+    right_state: usize,
+    self_steps: u64,
+    /// number of heads to reach the irregular right part of the tape
+    n_heads: u64,
+    halted: bool,
+}
+
+impl FastLongSim {
+    fn new() -> Self {
+        use BlockSymbol::*;
+        Self {
+            heads: Vec::new(),
+            digits: Vec::new(),
+            head_positions: Vec::new(),
+            h_scratch: Vec::new(),
+            b_scratch: Vec::new(),
+            loose_heads: Vec::new(),
+            loose_digits: VecDeque::from([Digit::D0]),
+            right_head: None,
+            right_cache: RightRuleCache::new(&vec![R, K, M]),
+            right_state: 0,
+            self_steps: 0,
+            n_heads: 0,
+            halted: false,
+        }
+    }
+
+    fn step(&mut self) -> bool {
+        if self.halted {
+            return false;
+        }
+        let made_progress = if let Some(h) = self.right_head {
+            let res = self.right_cache.get_result_by_index(self.right_state, h);
+            self.right_head = None;
+            match res {
+                IndexedRightResult::Continue { r_i, new_digits } => {
+                    self.right_state = *r_i;
+                    for d in new_digits {
+                        self.loose_digits.push_back(*d);
+                    }
+                }
+                IndexedRightResult::Halt => self.halted = true,
+            }
+            self.n_heads += 1;
+            true
+        } else if let Some(mut h) = self.loose_heads.pop() {
+            if self.loose_digits.is_empty() {
+                self.right_head = Some(h);
+                false
+            } else {
+                use Digit::*;
+                use LongHead::*;
+                for d in self.loose_digits.iter_mut() {
+                    let di = *d;
+                    (*d, h) = match (h, di) {
+                        (H0, D0) => (D0, H1),
+                        (H1, D0) => (D1, H0),
+                        (H0, D1) => (D1, H0),
+                        (H1, D1) => (D0, H1),
+                    };
+                }
+                self.right_head = Some(h);
+                true
+            }
+        } else if self.loose_digits.len() >= 8 {
+            assert!(self.right_head.is_none());
+            assert!(self.loose_heads.is_empty());
+            while self.loose_digits.len() >= 8 {
+                let mut b = 0u8;
+                for n in 0..8 {
+                    if self.loose_digits.pop_front().unwrap() == Digit::D1 {
+                        b |= 1 << (8 - 1 - n);
+                    }
+                }
+                self.digits.push(b);
+            }
+            true
+        } else if let Some(hpos) = self.head_positions.last_mut() {
+            // number of digit bytes to the right of the rightmost packed heads
+            let n_digit_bytes = self.digits.len() - hpos.tape_pos;
+
+            if n_digit_bytes == 0 {
+                self.loose_heads = byte_to_heads(self.heads.pop().unwrap());
+                if hpos.n_bytes > 1 {
+                    hpos.n_bytes -= 1;
+                } else {
+                    self.head_positions.pop();
+                }
+                false
+            } else {
+                let n_pow = hpos.n_bytes.ilog2().min(n_digit_bytes.ilog2());
+                let n: usize = 1 << n_pow;
+                if hpos.n_bytes == n {
+                    propagate_heads_pow2_slices(
+                        &mut self.heads[hpos.head_idx..hpos.head_idx + n],
+                        &mut self.digits[hpos.tape_pos..hpos.tape_pos + n],
+                        &mut self.h_scratch,
+                        &mut self.b_scratch,
+                    );
+                    hpos.tape_pos += n;
+                } else {
+                    let n_excess = hpos.n_bytes - n;
+                    //    (n_excess + n) heads, n digits
+                    // -> n_excess heads, n digits, n heads
+                    let ih = hpos.head_idx + n_excess;
+                    propagate_heads_pow2_slices(
+                        &mut self.heads[ih..ih + n],
+                        &mut self.digits[hpos.tape_pos..hpos.tape_pos + n],
+                        &mut self.h_scratch,
+                        &mut self.b_scratch,
+                    );
+                    hpos.n_bytes = n_excess;
+                    let new_tape_pos = hpos.tape_pos + n;
+                    self.head_positions.push(HeadPosition {
+                        tape_pos: new_tape_pos,
+                        head_idx: ih,
+                        n_bytes: n,
+                    });
+                }
+                true
+            }
+        } else {
+            assert!(self.heads.is_empty());
+            assert!(self.head_positions.is_empty());
+            assert!(self.loose_heads.is_empty());
+            if self.digits.is_empty() {
+                if self.loose_digits.is_empty() {
+                    self.right_head = Some(LongHead::H0);
+                } else {
+                    self.loose_heads.push(LongHead::H0);
+                }
+            } else {
+                let n: usize = 1 << self.digits.len().ilog2();
+                for _ in 0..n {
+                    self.heads.push(0); // h0 ^ (8n)
+                }
+                self.head_positions.push(HeadPosition {
+                    tape_pos: 0,
+                    head_idx: 0,
+                    n_bytes: n,
+                });
+            }
+            true
+        };
+
+        self.self_steps += 1;
+        made_progress
+    }
+}
+
+impl fmt::Display for FastLongSim {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}, {}: ", self.self_steps, self.n_heads)?;
+
+        let mut write_bytes = |prefix: char, bytes: &[u8]| -> fmt::Result {
+            use colored::Colorize;
+            let mut s = String::new();
+            for (i, h) in bytes.iter().enumerate() {
+                if i == 0 {
+                    s.push_str(&format!("{prefix}{h:08b}"));
+                } else {
+                    s.push_str(&format!("_{h:08b}"));
+                }
+            }
+            if prefix == 'h' {
+                write!(f, "{} ", s.red().bold())
+            } else {
+                write!(f, "{s} ")
+            }
+        };
+
+        for p in self.head_positions.windows(2) {
+            assert!(p[0].tape_pos < p[1].tape_pos);
+            assert!(p[0].head_idx + p[0].n_bytes == p[1].head_idx);
+        }
+        if self.head_positions.is_empty() {
+            write_bytes('d', &self.digits)?;
+        } else {
+            let mut iprev = 0;
+            for (ip, hpos) in self.head_positions.iter().enumerate() {
+                if iprev < hpos.tape_pos {
+                    write_bytes('d', &self.digits[iprev..hpos.tape_pos])?;
+                }
+                write_bytes(
+                    'h',
+                    &self.heads[hpos.head_idx..hpos.head_idx + hpos.n_bytes],
+                )?;
+                if ip + 1 == self.head_positions.len() && hpos.tape_pos < self.digits.len() {
+                    write_bytes('d', &self.digits[hpos.tape_pos..])?;
+                }
+                iprev = hpos.tape_pos;
+            }
+        }
+        if !self.loose_heads.is_empty() {
+            write!(f, "| h")?;
+            for h in &self.loose_heads {
+                match h {
+                    LongHead::H0 => write!(f, "0")?,
+                    LongHead::H1 => write!(f, "1")?,
+                }
+            }
+            write!(f, " ")?;
+        }
+        if !self.loose_digits.is_empty() {
+            write!(f, "| d")?;
+            for d in &self.loose_digits {
+                match d {
+                    Digit::D0 => write!(f, "0")?,
+                    Digit::D1 => write!(f, "1")?,
+                }
+            }
+            write!(f, " ")?;
+        }
+        write!(f, "| ")?;
+        if let Some(h) = self.right_head {
+            write!(f, "{h:?} ")?;
+        }
+        let rtape = &self.right_cache.r_list[self.right_state];
+        for s in rtape.iter().rev() {
+            write!(f, "{s}")?;
+        }
+        write!(f, " [{}]", self.right_state)
+    }
 }
 
 fn run_block_sim() {
@@ -1047,14 +1753,14 @@ fn run_block_sim() {
     println!("{sim}");
 
     // let max_steps = 10000000000u64;
-    // let max_steps = 1000;
-    let max_steps = 10000;
+    let max_steps = 1000;
+    // let max_steps = 10000;
     for k in 1..=max_steps {
         let res = sim.step();
         // if k % 10000000 == 0 {
-        if sim.at_transition() {
-            println!("{sim}");
-        }
+        // if sim.at_transition() {
+        println!("{sim}");
+        // }
 
         if res.is_err() {
             println!("{:?}", res);
@@ -1083,7 +1789,7 @@ use std::collections::{HashMap, HashSet};
 
 type Tape = Vec<BlockSymbol>;
 
-fn build_graph_to_halting() -> (HashSet<Tape>, HashMap<(LongHead, Tape), Tape>) {
+fn build_graph_to_halting() -> (HashSet<Tape>, HashMap<(LongHead, Tape), RightResult>) {
     let rtape = {
         use BlockSymbol::*;
         // vec![R, M, J, K]
@@ -1094,7 +1800,7 @@ fn build_graph_to_halting() -> (HashSet<Tape>, HashMap<(LongHead, Tape), Tape>) 
 
     let mut visited: HashSet<Tape> = HashSet::new();
     let mut halters: HashSet<Tape> = HashSet::new();
-    let mut graph: HashMap<(LongHead, Tape), Tape> = HashMap::new();
+    let mut graph: HashMap<(LongHead, Tape), RightResult> = HashMap::new();
 
     while visited.len() < 1000000
         && halters.len() < 3
@@ -1103,23 +1809,34 @@ fn build_graph_to_halting() -> (HashSet<Tape>, HashMap<(LongHead, Tape), Tape>) 
         // println!("{}", RightResult::Tape(next.clone()));
         visited.insert(next.clone());
         for h in [LongHead::H0, LongHead::H1] {
-            match apply_head(h, next.clone()) {
+            let res = apply_head_right_end(h, next.clone());
+            match &res {
                 RightResult::Halt => {
-                    println!("{:?} {} halts", h, RightResult::Tape(next.clone()));
+                    println!(
+                        "{:?} {} halts",
+                        h,
+                        RightResult::Continue {
+                            rtape: next.clone(),
+                            new_digits: Vec::new()
+                        }
+                    );
                     halters.insert(next.clone());
                     println!("{}", visited.len());
                 }
-                RightResult::Tape(rtape) => {
-                    // store the fact that (h, next) => rtape
-                    graph.insert((h, next.clone()), rtape.clone());
-                    if !visited.contains(&rtape)
-                        && !frontier.contains(&rtape)
-                        && !halters.contains(&rtape)
+                RightResult::Continue {
+                    rtape,
+                    new_digits: _,
+                } => {
+                    if !visited.contains(rtape)
+                        && !frontier.contains(rtape)
+                        && !halters.contains(rtape)
                     {
-                        frontier.push_back(rtape);
+                        frontier.push_back(rtape.clone());
                     }
                 }
             }
+            // store the fact that (h, next) => (new digits, rtape) or halt
+            graph.insert((h, next.clone()), res);
         }
     }
     (halters, graph)
@@ -1130,7 +1847,7 @@ enum PartialFormat {
     Run1(usize),
 }
 
-fn format_rtape(rtape: &Tape) -> String {
+fn run_length_format_rtape(rtape: &Tape) -> String {
     let mut out = String::new();
     for s in rtape.iter().rev() {
         use BlockSymbol::*;
@@ -1187,7 +1904,7 @@ fn format_rtape(rtape: &Tape) -> String {
     out2
 }
 
-fn bfs(graph: &HashMap<(LongHead, Tape), Tape>, start: Tape, dest: Tape) {
+fn bfs(graph: &HashMap<(LongHead, Tape), RightResult>, start: Tape, dest: Tape) {
     let mut frontier: VecDeque<Tape> = VecDeque::new();
     frontier.push_back(start.clone());
 
@@ -1198,7 +1915,10 @@ fn bfs(graph: &HashMap<(LongHead, Tape), Tape>, start: Tape, dest: Tape) {
             break;
         }
         for h in [LongHead::H0, LongHead::H1] {
-            if let Some(w) = graph.get(&(h, v.clone()))
+            if let Some(RightResult::Continue {
+                rtape: w,
+                new_digits: _,
+            }) = graph.get(&(h, v.clone()))
                 && !parents.contains_key(w)
             {
                 parents.insert(w.clone(), v.clone());
@@ -1216,16 +1936,40 @@ fn bfs(graph: &HashMap<(LongHead, Tape), Tape>, start: Tape, dest: Tape) {
             break;
         }
     }
-    let path_s: Vec<String> = path.iter().map(|t| format_rtape(t)).collect();
+    let path_s: Vec<String> = path.iter().map(|t| run_length_format_rtape(t)).collect();
     println!("{}", path_s.join(" -> "));
     println!("{}", path.len());
 }
 
-fn main() {
-    // run_block_sim();
-    // run_long_sim();
-
+fn bfs_to_halting() {
     let (halters, graph) = build_graph_to_halting();
+
+    // print some of the graph
+    let n_print = 50;
+    let mut count = 0;
+    for ((h, rtape0), res) in &graph {
+        if rtape0.len() < 6
+            && let RightResult::Continue {
+                rtape: rtape_new,
+                new_digits: _,
+            } = res
+            && rtape_new.len() < 6
+        {
+            println!(
+                "{:?} {} -> {}",
+                h,
+                RightResult::Continue {
+                    rtape: rtape0.clone(),
+                    new_digits: Vec::new()
+                },
+                res
+            );
+            count += 1;
+            if count >= n_print {
+                break;
+            }
+        }
+    }
 
     for halter in halters {
         let rtape = {
@@ -1234,5 +1978,122 @@ fn main() {
             vec![R]
         };
         bfs(&graph, rtape, halter);
+    }
+}
+
+fn try_prop_heads() {
+    use Digit::*;
+    use LongHead::*;
+
+    let heads_in = vec![H0, H1, H0, H1];
+    let digits0 = vec![D0, D1, D1, D0];
+    let (digits1, heads_out) = propagate_heads(heads_in.clone(), &digits0);
+
+    for h in heads_in {
+        print!("{:?} ", h);
+    }
+    for d in digits0 {
+        print!("{:?} ", d);
+    }
+    print!("-> ");
+    for d in digits1 {
+        print!("{:?} ", d);
+    }
+    for h in heads_out {
+        print!("{:?} ", h);
+    }
+    println!();
+}
+
+fn print_matrices() {
+    let s3 = &*S3;
+    for r in 0..8 {
+        for c in 0..8 {
+            if s3[r][c] {
+                print!("1");
+            } else {
+                print!("_");
+            }
+        }
+        println!();
+    }
+    println!();
+
+    let t3 = &*T3;
+    for r in 0..8 {
+        for c in 0..8 {
+            if t3[r][c] {
+                print!("1");
+            } else {
+                print!("_");
+            }
+        }
+        println!();
+    }
+
+    for (i, n) in (&*S3_BYTES).iter().enumerate() {
+        println!("{:08b} {:08b}", i as u8, n);
+    }
+    println!();
+    for (i, n) in (&*T3_BYTES).iter().enumerate() {
+        println!("{:08b} {:08b}", i as u8, n);
+    }
+}
+
+fn main() {
+    // run_block_sim();
+    // run_long_sim();
+    // bfs_to_halting();
+    // try_prop_heads();
+    // print_matrices();
+
+    let mut sim = FastLongSim::new();
+    println!("{sim}");
+
+    let max_steps = 10000;
+    for k in 0..=max_steps {
+        if sim.step() {
+            println!("{sim}");
+        }
+        if sim.halted {
+            println!("halted");
+            break;
+        }
+    }
+
+    println!("{}", sim.right_cache);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_propagate_heads_byte() {
+        for h_in in 0..=255u8 {
+            for b_in in 0..=255u8 {
+                let (b1, h1) = propagate_heads(byte_to_heads(h_in), &byte_to_digits(b_in));
+                let (b2, h2) = propagate_heads_byte(byte_to_heads(h_in), &byte_to_digits(b_in));
+                assert_eq!(b1, b2);
+                assert_eq!(h1, h2);
+            }
+        }
+    }
+
+    #[test]
+    fn test_propagate_heads_pow2() {
+        check_propagate_heads_pow2(&[1], &[105]);
+        check_propagate_heads_pow2(&[1, 10], &[105, 22]);
+        check_propagate_heads_pow2(&[1, 10, 192, 191], &[105, 22, 33, 77]);
+        check_propagate_heads_pow2(
+            &[1, 10, 192, 191, 14, 22, 255, 0],
+            &[105, 22, 33, 77, 8, 38, 1, 29],
+        );
+        check_propagate_heads_pow2(
+            &[
+                1, 10, 192, 191, 14, 22, 255, 0, 15, 16, 17, 18, 19, 12, 1, 2,
+            ],
+            &[105, 22, 33, 77, 8, 38, 1, 29, 3, 4, 5, 6, 100, 99, 98, 97],
+        );
     }
 }

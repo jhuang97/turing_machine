@@ -103,3 +103,155 @@ E> M -> K F>
 B> U -> J D>
 E> U -> <C K
 K <C -> M D>
+
+
+Tried a different block analysis but gave up after it also got messy.
+
+Verifying simulation of right end of tape:
+H0 [JMMKR] -> D0 D1 [KJMR]
+c> J M M K R
+K K F> M M K R
+K K e> M K R
+K K M K F> K R
+K K M K M B> R
+K K M K M <C K J R
+K K M K < K J R
+K K M <a U K J R
+K K < M U K J R
+K <a U M U K J R
+M c> U M U K J R
+M K e> M U K J R
+M K M K F> U K J R
+M K M K <a K J R
+M K M M c> K J R
+M K M M M J D> J R
+M K M M M J M D> R
+M K M M M J M <a R
+M K M M M J < M R
+M K M M M <C K J M R
+M K M M < K J M R
+M K < M M K J M R
+M <a U M M K J M R
+< M U M M K J M R
+< D0 D1 K J M R
+Ok
+
+
+Analyze the effect of heads on digits as addition modulo 2.
+h0 -> 0
+h1 -> 1
+D0 -> 0
+D1 -> 1
+
+Refer to D0 and D1 as bits.
+
+Notation:
+H B -> H(B) B(H)
+where H and B(H) are the head(s) before and after the heads propagate through the bits,
+and B and H(B) are the bits before and after.
+
+Then for the case of one head and one bit we should have
+H = h
+B = b
+H(B) = b + h
+B(H) = h + b + 1         (1)
+where + is addition modulo 2. So +1 just flips a bit.
+
+Consider if H and B are multiple bits and can be divided in to halves:
+H = H1 H2
+B = B1 B2
+
+H1 H2 B1 B2
+H1 H2(B1) B1(H2) B2
+H1(H2(B1)) [H2(B1)](H1) [B1(H2)](B2) B2(B1(H2))
+H1(H2(B1)) H3 B3 B2(B1(H2)) (where we define H3 and B3 for the sake of conciseness)
+H1(H2(B1)) H3(B3) B3(H3) B2(B1(H2))
+so
+H(B) = H1(H2(B1)) H3(B3)
+B(H) = B3(H3) B2(B1(H2))
+
+To try to intuit the pattern, consider the case of two heads and two bits.
+Let H1 = h1, H2 = h2, B1 = b1, B2 = b2
+B1(H2) = h2 + b1 + 1
+H2(B1) = b1 + h2
+B2(B1(H2)) = h2 + b1 + b2 + 1 + 1 = h2 + b1 + b2
+H1(H2(B1)) = b1 + h2 + h1
+H3 = [H2(B1)](H1) = h1 + (b1 + h2) + 1 = h1 + h2 + b1 + 1
+B3 = [B1(H2)](B2) = b2 + (h2 + b1 + 1) = h2 + b1 + b2 + 1
+H3(B3) = h2 + b1 + b2 + 1 + h1 + h2 + b1 + 1 = h1 + b2
+B3(H3) = h1 + h2 + b1 + 1 + (h2 + b1 + b2 + 1) + 1 = h1 + b2 + 1
+
+H(B) = [h1 + h2 + b1
+        h1 +      b2]
+B(H) = [h1 +      b2 + 1
+        h2 + b1 + b2     ]
+
+It turns out that we will need some matrices.
+Let S_n, T_n be 2^n x 2^n matrices whose elements are in Z_2 (addition and multiplication modulo 2), defined as follows:
+S_0 = T_0 = [1].
+S_n = S_n-1 S_n-1
+      S_n-1   0
+T_n =   0   T_n-1
+      T_n-1 T_n-1
+
+Then,
+S_n T_n = T_n S_n = I_(2^n) (identity matrix)
+
+This is trivial for n=0.  For larger n, can inductively prove. Quick sketch:
+[[S S]  [[0 T]   = [[ST 2ST]  = [[ST 0]  = [[I 0]  = I
+ [S 0]]  [T T]]     [0   ST]]    [0 ST]]    [0 I]]
+
+
+Claims, for H and B being 2^n heads and 2^n symbols:
+H(B) = B + S_n H
+B(H) = H + T_n B + e0,n
+
+Here, B, H are re-written as column vectors.
+e0,n is a vector of length 2^n where the first element is 1 and the rest are 0.
+Addition is modulo 2.
+
+For n = 0, this follows after we interpret the h and b in (1) as vectors of length 1.
+
+For larger n, we can prove by induction.
+Assume the inductive hypothesis for n; we seek to prove it for n+1.
+As before, split H and B in half:
+H = [[H1]   B = [[B1]
+     [H2]]       [B2]]
+
+Like before, we compute
+H(B) = [[H1(H2(B1))]
+        [  H3(B3)  ]]
+B(H) = [[  B3(H3)  ]
+        [B2(B1(H2))]]
+where H3 = [H2(B1)](H1), B3 = [B1(H2)](B2).
+
+H2(B1) = B1 + S_n H2
+B1(H2) = H2 + T_n B1 + e0,n
+H1(H2(B1)) = B1 + S_n H2 + S_n H1 = B1 + S_n (H1 + H2)
+B2(B1(H2)) = H2 + T_n B1 + e0,n + T_n B2 + e0,n = H2 + T_n (B1 + B2)
+H3 = H1 + T_n (B1 + S_n H2) + e0,n = H1 + H2 + T_n B1 + e0,n
+B3 = B2 + S_n (H2 + T_n B1 + e0,n) = B1 + B2 + S_n (H2 + e0,n)
+H3(B3) = B1 + B2 + S_n (H2 + e0,n) + S_n (H1 + H2 + T_n B1 + e0,n)
+       = B1 + B2 + B1 + S_n (H2 + e0,n + H1 + H2 + e0,n)
+       = B2 + S_n H1
+B3(H3) = H1 + H2 + T_n B1 + e0,n + T_n (B1 + B2 + S_n (H2 + e0,n)) + e0,n
+       = H1 + H2 + H2 + T_n (B1 + B1 + B2) + T_n S_n e0,n
+       = H1 + T_n B_2 + e0,n
+H(B) = [[B1 + S_n (H1 + H2)]  = [[B1]  + [[S_n S_n]  [[H1]
+        [B2 + S_n H1       ]]    [B2]]    [S_n  0 ]]  [H2]]
+     = B + S_n+1 H
+B(H) = [[H1 + T_n B_2 + e0,n] = [[H1]  + [[ 0  T_n]  [[B1]  + [[e0,n]
+        [H2 + T_n (B1 + B2) ]]   [H2]]    [T_n T_n]]  [B2]]    [ 0  ]]
+     = H + T_n+1 B + e0,n+1
+
+For actually calculating the matrix multiplications, probably want to recursively divide like so:
+S_n H = [[S_n-1 (H1 + H2)]
+         [S_n-1 H1       ]]
+T_n B = [[T_n-1 B2       ]
+         [T_n-1 (B1 + B2)]]
+Can pack the bits and heads in u8 and do bitwise XOR.
+
+---
+Setting up faster accelerated simulation.
+42: L X c> D0 M K R
+-> h0^(a lot) D0 (M K R)
