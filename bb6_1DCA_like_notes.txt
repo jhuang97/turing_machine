@@ -255,3 +255,16 @@ Can pack the bits and heads in u8 and do bitwise XOR.
 Setting up faster accelerated simulation.
 42: L X c> D0 M K R
 -> h0^(a lot) D0 (M K R)
+
+Simulated to halting:
+6431143048, 2687979999: d<2^27> h<39845888> d<2^25> h<23068672> d<2^22> h<3670016> d<2^19> h<57344> d<2^15> h<11264> d<2^13> h<512> d<2^11> h<2^10> d<2^10> h<960> d<120> h00110001_00001011_10011100_11000101 d11101110_11010011_00011011_10100100_00001000_01000101_10001111_01001110 h11110100 | h1111110 | d0 | H1 MKKR [39546]
+6431143049, 2687980000: d<2^27> h<39845888> d<2^25> h<23068672> d<2^22> h<3670016> d<2^19> h<57344> d<2^15> h<11264> d<2^13> h<512> d<2^11> h<2^10> d<2^10> h<960> d<120> h00110001_00001011_10011100_11000101 d11101110_11010011_00011011_10100100_00001000_01000101_10001111_01001110 h11110100 | h1111110 | d0 | MKKR [39546] halted
+packed digit bytes: length 172534912, capacity 268435456
+total digits: 1380279297
+right cache length: 39547
+
+H1 MKKR -> e> MKKR -> ... 11E> 11101 0^inf
+
+According to /usr/bin/time, it took 126 seconds to simulate to halting, and use as much as 658632 kbytes of RAM.
+
+Need to double check against a simpler simulator to make sure the head sequence is right...

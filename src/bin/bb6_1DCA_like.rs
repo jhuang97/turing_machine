@@ -1674,16 +1674,26 @@ impl FastLongSim {
 
 impl fmt::Display for FastLongSim {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use colored::Colorize;
+
         write!(f, "{}, {}: ", self.self_steps, self.n_heads)?;
 
         let mut write_bytes = |prefix: char, bytes: &[u8]| -> fmt::Result {
-            use colored::Colorize;
             let mut s = String::new();
-            for (i, h) in bytes.iter().enumerate() {
-                if i == 0 {
-                    s.push_str(&format!("{prefix}{h:08b}"));
+            if bytes.len() > 8 {
+                let n = bytes.len();
+                if n > 1000 && n.is_power_of_two() {
+                    s.push_str(&format!("{prefix}<2^{}>", n.ilog2()));
                 } else {
-                    s.push_str(&format!("_{h:08b}"));
+                    s.push_str(&format!("{prefix}<{}>", n));
+                }
+            } else {
+                for (i, h) in bytes.iter().enumerate() {
+                    if i == 0 {
+                        s.push_str(&format!("{prefix}{h:08b}"));
+                    } else {
+                        s.push_str(&format!("_{h:08b}"));
+                    }
                 }
             }
             if prefix == 'h' {
@@ -1716,12 +1726,14 @@ impl fmt::Display for FastLongSim {
             }
         }
         if !self.loose_heads.is_empty() {
-            write!(f, "| h")?;
+            write!(f, "| ")?;
+            write!(f, "{}", "h".red().bold())?;
             for h in &self.loose_heads {
-                match h {
-                    LongHead::H0 => write!(f, "0")?,
-                    LongHead::H1 => write!(f, "1")?,
-                }
+                let s0 = match h {
+                    LongHead::H0 => "0",
+                    LongHead::H1 => "1",
+                };
+                write!(f, "{}", s0.red().bold())?;
             }
             write!(f, " ")?;
         }
@@ -1737,7 +1749,97 @@ impl fmt::Display for FastLongSim {
         }
         write!(f, "| ")?;
         if let Some(h) = self.right_head {
-            write!(f, "{h:?} ")?;
+            let s0 = format!("{h:?} ");
+            write!(f, "{}", s0.red().bold())?;
+        }
+        let rtape = &self.right_cache.r_list[self.right_state];
+        for s in rtape.iter().rev() {
+            write!(f, "{s}")?;
+        }
+        write!(f, " [{}]", self.right_state)?;
+        if self.halted {
+            write!(f, " halted")?;
+        }
+        Ok(())
+    }
+}
+
+/// The head sequence of FastLongSim should match this
+struct LBlockRCacheSim {
+    block_sim: BlockSimulator,
+    right_head: Option<LongHead>,
+    right_cache: RightRuleCache,
+    right_state: usize,
+    self_steps: u64,
+    /// number of heads to reach the irregular right part of the tape
+    n_heads: u64,
+}
+
+impl LBlockRCacheSim {
+    fn new() -> Self {
+        use BlockSymbol::*;
+        use RunSymbolType::X;
+        let block_sim = BlockSimulator {
+            left_tape: vec![L, Run(X, 1)],
+            right_tape: vec![D0],
+            state: HigherState::RightC,
+            base_steps: 0,
+            self_steps: 0,
+        };
+        Self {
+            block_sim,
+            right_head: None,
+            right_cache: RightRuleCache::new(&vec![R, K, M]),
+            right_state: 0,
+            self_steps: 0,
+            n_heads: 0,
+        }
+    }
+
+    fn step(&mut self) {
+        if let Some(h) = self.right_head {
+            let res = self.right_cache.get_result_by_index(self.right_state, h);
+            self.right_head = None;
+            match res {
+                IndexedRightResult::Continue { r_i, new_digits } => {
+                    self.right_state = *r_i;
+                    assert!(self.block_sim.right_tape.is_empty());
+                    self.block_sim.state = HigherState::Left;
+                    for d in new_digits.iter().rev() {
+                        self.block_sim.right_tape.push(d.to_symbol());
+                    }
+                }
+                IndexedRightResult::Halt => unimplemented!(),
+            }
+            self.n_heads += 1;
+        } else {
+            while self.block_sim.state == HigherState::Left || !self.block_sim.right_tape.is_empty()
+            {
+                self.block_sim.step().unwrap();
+            }
+            match self.block_sim.state {
+                HigherState::RightC => self.right_head = Some(LongHead::H0),
+                HigherState::RightE => self.right_head = Some(LongHead::H1),
+                _ => unimplemented!(),
+            }
+        }
+        self.self_steps += 1;
+    }
+}
+
+impl fmt::Display for LBlockRCacheSim {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use colored::Colorize;
+
+        write!(
+            f,
+            "{}, {}: {} ",
+            self.self_steps, self.n_heads, self.block_sim
+        )?;
+        write!(f, "| ")?;
+        if let Some(h) = self.right_head {
+            let s0 = format!("{h:?} ");
+            write!(f, "{}", s0.red().bold())?;
         }
         let rtape = &self.right_cache.r_list[self.right_state];
         for s in rtape.iter().rev() {
@@ -2040,28 +2142,71 @@ fn print_matrices() {
     }
 }
 
+fn fast_long_sim_to_halting(save_cache: bool) {
+    let mut sim = FastLongSim::new();
+    println!("{sim}");
+
+    let max_steps = 10000000000u64;
+    for k in 0..=max_steps {
+        if sim.step() && (k % 10000000 == 0 || sim.n_heads > 2687979941) {
+            println!("{sim}");
+        }
+        if sim.halted {
+            break;
+        }
+    }
+
+    // println!("{}", sim.right_cache);
+    println!(
+        "packed digit bytes: length {}, capacity {}",
+        sim.digits.len(),
+        sim.digits.capacity()
+    );
+    println!(
+        "total digits: {}",
+        sim.digits.len() * 8 + sim.loose_digits.len()
+    );
+    println!("right cache length: {}", sim.right_cache.r_list.len());
+
+    if save_cache {
+        use std::fs;
+        fs::write(
+            "bb6_1DCA_like_right_cache.txt",
+            format!("{}", sim.right_cache),
+        )
+        .unwrap();
+    }
+}
+
+fn check_fast_long_sim() {
+    let mut sim = LBlockRCacheSim::new();
+    let mut fast_sim = FastLongSim::new();
+
+    for n in 0..=15006 {
+        while sim.n_heads < n || sim.right_head.is_none() {
+            sim.step();
+        }
+        while fast_sim.n_heads < n || fast_sim.right_head.is_none() {
+            fast_sim.step();
+        }
+        assert!(sim.right_head == fast_sim.right_head);
+        assert!(
+            sim.right_cache.r_list[sim.right_state]
+                == fast_sim.right_cache.r_list[fast_sim.right_state]
+        );
+    }
+    println!("{sim}");
+    println!("{fast_sim}");
+}
+
 fn main() {
     // run_block_sim();
     // run_long_sim();
     // bfs_to_halting();
     // try_prop_heads();
     // print_matrices();
-
-    let mut sim = FastLongSim::new();
-    println!("{sim}");
-
-    let max_steps = 10000;
-    for k in 0..=max_steps {
-        if sim.step() {
-            println!("{sim}");
-        }
-        if sim.halted {
-            println!("halted");
-            break;
-        }
-    }
-
-    println!("{}", sim.right_cache);
+    fast_long_sim_to_halting(true);
+    // check_fast_long_sim();
 }
 
 #[cfg(test)]
