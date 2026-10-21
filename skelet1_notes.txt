@@ -221,13 +221,18 @@ So I would like to revise my estimate of the preperiod to 5418883027667422764169
 
 
 How well does longitudinal analysis work on Skelet 1?
-Let y = <^-1 >
+Let
+y = <^-1 >
+z = < >^-1
 
-Can derive some rightward longitudinal rules:
+Can derive some longitudinal rules:
+C0 z^3 -> C X^2
+C1 z^2 -> C X
+C2 z -> C X
+
 y X C -> C y X y^2 X y -> C X^2 y^4
 y P C X -> P D P
 y P D P -> C X D y^3
-y X C C -> P D X^2 y^4
 y P D X -> C X D y^3 P
 y P X^n -> X^n y P
 y P R -> C X R
@@ -235,6 +240,13 @@ y R -> R
 y P D C X -> P D X D y^3 P
 y P D D X -> C C X^3 D y^7
 y P D R -> C C X^3 R
+y X C C -> P D X^2 y^4
+y X^2 C X C -> P C X D X^6 y^15
+y X C X^2 C -> C C X^8 y^16
+y X C X^3 C -> C X C X^8 y^16
+in general
+y X C X^k+2 C -> C X^k C X^8 y^16
+
 
 y X C
 <^-1 > X C
@@ -312,6 +324,21 @@ y P D D X
 <^-1 C2 C1 D >
 <^-1 C2 C1 D < y
 <^-1 C2 C1 < D y
+<^-1 C2 C1 z > D y
+<^-1 C2 C1 z < y D y
+<^-1 C2 C1 z^2 > y D y
+<^-1 C2 C1 z^2 < y^2 D y
+<^-1 C2 C1 z^2 < D y^3
+<^-1 C2 C X < D y^3
+<^-1 C2 < C X D y^3
+<^-1 C X > C X D y^3
+<^-1 C C0 > X D y^3
+<^-1 C C0 < X D y^4
+<^-1 C C0 z^3 < y^3 X D y^4
+<^-1 C C0 z^3 < X D y^7
+<^-1 C C X^2 < X D y^7
+C C X^3 D y^7
+
 <^-1 C2 C2 > D y
 <^-1 C2 C2 < D y^2
 <^-1 C2 C X > D y^2
@@ -323,6 +350,59 @@ y P D D X
 <^-1 C < C X^3 y^4 D y^3
 <^-1 C < C X^3 D y^7
 C C X^3 D y^7
+
+y X^2 C X C
+<^-1 > X^2 C X C
+<^-1 X X > C X C
+<^-1 X C0 > X C
+<^-1 X C0 X > C
+<^-1 X C0 C0 >
+<^-1 X C0 C0 < y
+<^-1 X C0 C0 z^3 < y^4
+<^-1 X C0 C X^2 < y^4
+<^-1 X C0 < C X^2 y^4
+<^-1 X C1 X > C X^2 y^4
+<^-1 X C1 C0 > X^2 y^4
+<^-1 X C1 C0 < X^2 y^5
+<^-1 X C1 C0 z^3 < y^3 X^2 y^5
+<^-1 X C1 C0 z^3 < X^2 y^8
+<^-1 X C1 C X^2 < X^2 y^8
+<^-1 X C1 C < X^4 y^8
+<^-1 X C1 < C X^4 y^8
+<^-1 X C2 > C X^4 y^8
+<^-1 X F0 > X^4 y^8
+<^-1 X F0 < X^4 y^9
+<^-1 X F1 X > X^4 y^9
+<^-1 X F1 < X^5 y^10
+<^-1 X F2 > X^5 y^10
+<^-1 X F2 < X^5 y^11
+<^-1 X F3 X > X^5 y^11
+<^-1 X F3 < X^6 y^12
+<^-1 P C1 D > X^6 y^12
+<^-1 P C1 D < X^6 y^13
+<^-1 P C1 < D X^6 y^13
+<^-1 P C1 z^2 < y^2 D X^6 y^13
+<^-1 P C1 z^2 < D X^6 y^15
+<^-1 P C X < D X^6 y^15
+<^-1 P C X < D X^6 y^15
+P C X D X^6 y^15
+
+y X C X^2 C
+C y X y^2 X y X^2 C
+C y X y^2 X^2 y X C
+C y X y^2 X^2 C X^2 y^4
+C y X y X y X C X^2 y^4
+C y X y X C X^2 y^4 X^2 y^4
+C y X y X C X^4 y^8
+C y X C X^2 y^4 X^4 y^8
+C y X C X^6 y^12
+C C X^2 y^4 X^6 y^12
+C C X^8 y^16
+
+y X C X^3 C
+C y X y^2 X y X^3 C
+C X y X y^2 X y X^2 C
+C X C X^8 y^16
 
 However, rightward long. analysis alone does not seem to be enough, as it cannot express the uni-cycle...?
 

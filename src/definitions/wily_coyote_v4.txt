@@ -1,0 +1,37 @@
+tm = 1RB2LA1LA_2LA0RA2RC_---0LC2RA
+
+[metastates]
+RightA A> A>
+RightB B> B>
+RightC c> 2C>
+Left < <A
+LeftOne <I <A1
+
+[blocks]
+R = $
+I = 1
+J = 2
+O = 0
+Dummy(exp) = 1
+
+[rules]
+A> I -> < J
+A> J -> < I
+
+B> J -> c>
+
+B> I -> O A>
+O < -> I B>
+I < -> < J
+
+c> I -> J I B>
+J < -> < I
+J < -> <I
+
+c> J -> J J A>
+
+I <I -> < J I
+J <I -> < I I
+
+A> R -> < J J R
+B> R -> < J R

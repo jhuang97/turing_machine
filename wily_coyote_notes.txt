@@ -280,3 +280,53 @@ common rules:
 >P D F R => < D C F R
 >P D C^n F R => < D C^n+1 F R
 s> D C^n F R => Q X^n+1 < D F R
+
+Longitudinal analysis (dyuan):
+BA1 -> 1 C
+A 1 -> 2
+B 1 -> 2 BA
+C 1 -> 2 B
+
+BA2 -> 2 BA
+A 2 -> 1
+B 2 -> 1 C
+C 2 -> 1 A
+
+BA 1 -> B 2 -> 1 C
+BA 2 -> B 1 -> 2 BA
+C 21 -> 1 A 1 -> 12
+C 22 -> 1 A 2 -> 11
+
+C 11 -> 2 B 1 -> 22 BA
+C 12 -> 2 B 2 -> 21 C
+
+can we eliminate the A head entirely? probably not?
+B 11 -> 2 BA 1 -> 21 C
+B 12 -> 2 BA 2 -> 22 BA
+B 21 -> 1 C 1 -> 12 B
+B 22 -> 1 C 2 -> 11 A (oh no)
+
+BA 11 -> 1 C1 -> 12 B
+BA 12 -> 1 C2 -> 11 A (aargh)
+BA 21 -> 2 BA 1 -> 21 C
+BA 22 -> 2 BA 2 -> 22 BA
+
+Let null head: e, BA = d
+
+Suppose we have two sets of symbols with the following rules.
+M = {a, b, c, d, e}
+N = {T, F}
+
+f: M x N -> M
+(a, T) -> e
+(a, F) -> e
+(e, T) -> e
+(e, F) -> e
+(b, T) -> d
+(b, F) -> c
+(c, T) -> b
+(c, F) -> a
+(d, T) -> c
+(d, F) -> d
+
+Is there anything in abstract algebra that is isomorphic to this system?
