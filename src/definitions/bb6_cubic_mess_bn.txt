@@ -1,0 +1,71 @@
+tm = 1RB0LF_1RC1RA_0RD0RB_1LE---_0LA1LE_1RD1LA
+
+[metastates]
+RightA A> A>
+RightC c> 1C>
+RightWide w> 01A>
+LeftE <E <E
+LeftF <f <F0
+LeftWide <w <F0011
+
+[blocks]
+L = ^
+R = $
+R1 = 1$
+N(exp) = 11
+K(exp) = 10
+W(exp) = 1011
+P = 1
+Q = 0
+
+[rules]
+A> Q K -> N A> Q
+A> N -> <f P
+A> Q Q N -> N w>
+A> Q P -> N A>
+A> Q N -> N A> P
+A> P -> <f
+A> Q R -> P <f Q R1
+A> Q R1 -> N P <f Q R1
+A> Q Q R1 -> N P <E K R1
+A> K -> <f Q
+K P A> K N -> P w> W
+
+L <E -> L P c>
+L P <E -> L P c> P
+
+P P <E -> N <E
+N <E -> <E N
+N P <E -> P <E N
+K K K <E -> <w K
+K K <E -> N <E K
+P K <E -> P <f Q
+
+P P <f -> N <f
+N P <f -> P <f K
+N <f -> <f K
+L <f -> L N w>
+L P <f -> L N A> Q
+K K <f Q -> <w K
+K K <f -> <w P
+K P <f P -> P N N A>
+K P <f -> P N A> Q
+P K <f -> N <E N
+
+c> N -> K P A>
+c> P N -> P N A> Q
+c> P Q -> c> K
+c> K -> K c>
+c> R1 -> N <E K R1
+
+K K <w -> <w W
+N P <w -> P N <w
+N <w -> <f K Q N
+K <w -> <E N K N
+
+w> W -> N N w>
+w> K R1 -> N N P <E K R1
+w> K -> N P c>
+w> P -> N A> Q
+w> N -> N N A>
+w> Q R1 -> <E N K K Q R1

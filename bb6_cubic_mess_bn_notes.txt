@@ -1,0 +1,132 @@
+1RB0LF_1RC1RA_0RD0RB_1LE---_0LA1LE_1RD1LA
+
+Analysis by @big_numbers
+Rules:
+A(a,b) = 0^inf 1^a A> 1 1^b 01 0^inf
+A(a,b)->A(2a+6, b-a-3)
+If (b-a-3)<0:
++++ additions mine
+    If a mod 4 is 0:
+        A(a, 3) -> A(a + 8, 2)
+        A(a, 1) -> A(22, a - 2)
+    If a mod 4 is 2:
++++
+        A(a, 3)->A(6, a+13)
+        A(a, 1)->A(6, a+7)
+    If b mod 2 is 1:
+        If (a-b+1)/2 mod 2 is 1:
+        A(a, b)->A(a-b+11, 2b-4)
+        If (a-b+1)/2 mod 2 is 0:
+            If (a-b)>0:
+            A(a, b)->A(a-b+19, 2b-8)
+            If (a-b)<0:
+            A(a, b)->A(6, a+b+2)
+    If b mod 2 is 0:
+        If (a-b)/2 mod 2 is 1:
+        A(a, b)->A(6, a+b+7)
+        If (a-b)/2 mod 2 is 0:
+        A(a, b)->A(22, a+b-2)
+
+A(a, a+3)->halt
+A(4n+2, 8n+22)->nonhalt for n>1 (gets stuck in a loop)
+Starts at A(6, 1)
+---
+b < a + 3 (b odd)
+b <= a + 1
+-b >= -a -1
+a - b + 11 >= a + 11 - a - 1 = 10
+---
+G(c, b) = A(2*c + 6, b)
+G(c, b) = 0^inf 1^6 11^c A> 1 1^b 01 0^inf
+a = 2*c + 6
+c = a/2 - 3
+
+G(c, b) -> G(2c + 6, b - 2c - 9) (b >= 2c + 9)
+If b < 2c+9:
+    If c mod 2 is 1:
+        G(c, 3) -> G(c + 4, 2)
+        G(c, 1) -> G(8, 2c + 4)
+    If c mod 2 is 0:
+        G(c, 3) -> G(0, 2c + 19)
+        G(c, 1) -> G(0, 2c + 13)
+    If b mod 2 is 1:
+        If c - (b-1)/2 mod 2 is 0:
+            G(c, b) -> G(c - (b-1)/2 + 5, 2b - 4)
+        If c - (b-1)/2 mod 2 is 1:
+            If b <= 2c + 5:
+                G(c, b) -> G(c - (b-1)/2 + 9, 2b - 8)
+            If b == 2c + 7:
+                G(c, b) -> G(0, 2c + b + 8)
+    If b mod 2 is 0:
+        If c - b/2 mod 2 is 0:
+            G(c, b) -> G(0, 2c + b + 13)
+        If c - b/2 mod 2 is 1:
+            G(c, b) -> G(8, 2c + b + 4)
+
+G(c, b) ->
+(a) Halt                       b = 0
+(b) G(0, 2c+13)                b = 1, c ≡ 0 mod 2
+(c) G(8, 2c+4)                 b = 1, c ≡ 1 mod 2
+(d) G(0, 2c+19)                b = 3, c ≡ 0 mod 2
+(e) G(c+4, 2)                  b = 3, c ≡ 1 mod 2
+(f) G(0, 2c+b+13)              2 <= b < 2c+9,  b ≡ 0, c + b/2 ≡ 0 mod 2
+(g) G(8, 2c+b+4)               2 <= b < 2c+9,  b ≡ 0, c + b/2 ≡ 1 mod 2
+(h) G(c - (b-1)/2 + 5, 2b-4)   5 <= b < 2c+9,  b ≡ 1, c + (b-1)/2 ≡ 0 mod 2
+(i) G(c - (b-1)/2 + 9, 2b-8)   5 <= b <= 2c+5, b ≡ 1, c + (b-1)/2 ≡ 1 mod 2
+(j) G(0, 2c+b+8)               b = 2c+7,       b ≡ 1, c + (b-1)/2 ≡ 1 mod 2
+(k) G(2c+6, b-2c-9)            b >= 2c+9
+
+A(4n+2, 8n+22) = G(2n-2, 8n+22)
+n = n'+1
+G(2n, 8n+30)
+
+A(a0, b0) -> A(2a0 + 6, b0 - a0 - 3)
+c0 = a0/2 - 3
+a0 = 2c0 + 6
+a1 = 2 * (2*c0 + 6) + 6 = 4c0 + 18
+c1 = a1/2 - 3 = 2c0 + 9 - 3 = 2c0 + 6
+b1 = b0 - (2c0 + 6) - 3 = b0 - 2c0 - 9
+G(c, b) -> G(2c + 6, b - 2c - 9)
+b >= a+3 = 2c + 6 + 3 = 2c + 9
+b - 2c - 9 >= 2c + 9 - 2c - 9 = 0
+
+A(a0, 3)->A(6, a0+13)
+c1 = 0
+a0 = 2*c0 + 6
+b1 = 2c0 + 19
+G(c, 3) -> G(0, 2c + 19)
+
+a = 0 mod 4 => 2c + 6 = 0 mod 4 => c + 3 = 0 mod 2 => c = 1 mod 2
+a = 2 mod 4 => 2c + 6 = 2 mod 4 => 2c = 0 mod 4 => c = 0 mod 2
+
+A(a0, 3) -> A(a0 + 8, 2)
+a1 = 2c0 + 14
+c1 = c0 + 7 - 3 = c0 + 4
+G(c, 3) -> G(c + 4, 2)
+
+
+(a-b+1)/2 mod 2 = (2c + 6 - (b-1))/2 mod 2
+= c + 3 - (b-1)/2 mod 2
+= c + 1 - (b-1)/2 mod 2
+c + 1 - (b-1)/2 mod 2 = 1 => c - (b-1)/2 mod 2 = 0
+
+A(a0, b)->A(a0-b+11, 2b-4)
+a1 = (2c0 + 6) - b + 11 = 2c0 - b + 17 = 2c0 - (b - 1) + 16
+c1 = a1/2 - 3 = c0 - (b-1)/2 + 8 - 3 = c0 - (b-1)/2 + 5
+G(c, b) -> G(c - (b-1)/2 + 5, 2b - 4)
+
+A(a, b)->A(a-b+19, 2b-8)
+a1 = (2c0 + 6) - b + 19 = 2c0 - b + 25 = 2c0 - (b - 1) + 24
+c1 = a1/2 - 3 = c0 - (b-1)/2 + 12 - 3 = c0 - (b-1)/2 + 9
+G(c, b) -> G(c - (b-1)/2 + 9, 2b - 8)
+
+(a-b)/2 = (2c + 6 - b)/2 = c + 3 - b/2 = c + 1 - b/2
+c + 1 - b/2 mod 2 = 1 => c - b/2 mod 2 = 0
+
+
+Simulation to 1e13:
+9997000000000: A(13194139533306, 20734837660189)
+9998000000000: A(51539607546, 33880675681189)
+9999000000000: A(201326586, 33935252057389)
+10000000000000: A(786426, 33938690692789)
+Lots of patterns.
