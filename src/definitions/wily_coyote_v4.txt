@@ -12,7 +12,8 @@ R = $
 I = 1
 J = 2
 O = 0
-Dummy(exp) = 1
+L1 = ^1
+X(exp) = 21
 
 [rules]
 A> I -> < J
@@ -35,3 +36,8 @@ J <I -> < I I
 
 A> R -> < J J R
 B> R -> < J R
+
+L1 < -> L1 c>
+L1 <I -> L1 X B>
+X <I -> <I X
+B> X -> X B>

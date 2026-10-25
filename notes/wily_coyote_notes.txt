@@ -1,3 +1,5 @@
+1RB2LA1LA_2LA0RA2RC_---0LC2RA
+
 left accelerations
 ==================
 L X^n < -> L X^n >
@@ -281,24 +283,53 @@ common rules:
 >P D C^n F R => < D C^n+1 F R
 s> D C^n F R => Q X^n+1 < D F R
 
-Longitudinal analysis (dyuan):
-BA1 -> 1 C
-A 1 -> 2
-B 1 -> 2 BA
-C 1 -> 2 B
+Longitudinal analysis (based on dyuan's):
+Let d = BA
 
-BA2 -> 2 BA
+A 1 -> 2
+B 1 -> 2 d
+C 1 -> 2 B
+d 1 -> 1 C
+
 A 2 -> 1
 B 2 -> 1 C
 C 2 -> 1 A
+d 2 -> 2 d
 
 BA 1 -> B 2 -> 1 C
 BA 2 -> B 1 -> 2 BA
-C 21 -> 1 A 1 -> 12
-C 22 -> 1 A 2 -> 11
+CA 1 -> C 2 -> 1 A
+CA 2 -> C 1 -> 2 B
+dA 1 -> d 2 -> 2 d
+dA 2 -> d 1 -> 1 C
 
-C 11 -> 2 B 1 -> 22 BA
+A $ -> 22$
+B $ -> 2$
+C $ -> ***HALT***
+d $ -> B 22 $ -> 1 C 2 $ -> 11 A $ -> 1122$
+
+start: (CB)^inf
+
+CC 2 -> C 1 A -> 2 BA = 2 d
+C 21 -> 1 A 1 -> 12
 C 12 -> 2 B 2 -> 21 C
+C 22 -> 1 A 2 -> 11
+C 11 -> 2 B 1 -> 22 BA
+
+B 21 -> 1 C 1 -> 12 B
+B 12 -> 2 d 2 -> 22 d
+B 22 -> 1 C 2 -> 11 A
+B 11 -> 2 d 1 -> 11 C
+
+d 21 -> 2 d 1 -> 21 C
+d 12 -> 1 C 2 -> 11 A
+d 22 ->          22 d
+d 11 -> 1 C 1 -> 12 B
+
+A 21 -> 11
+A 12 -> 22
+A 22 -> 12
+A 11 -> 21
 
 can we eliminate the A head entirely? probably not?
 B 11 -> 2 BA 1 -> 21 C
@@ -330,3 +361,210 @@ f: M x N -> M
 (d, F) -> d
 
 Is there anything in abstract algebra that is isomorphic to this system?
+Probably nothing convenient. Problem is that most heads become nothing eventually so the number of heads decreases exponentially as you propagate them to the right.
+
+Proof of rules
+A = <^-1 A>
+B = <^-1 B>
+
+B 1
+<^-1 B> 1
+<^-1 0 A>
+<^-1 0 < A
+<^-1 1 B> A
+<^-1 1 < BA
+2 BA
+
+B 2
+<^-1 B> 2
+<^-1 c>
+<^-1 <A1 <A1^-1 c>
+<^-1 <A1 C
+1 C
+
+C 1
+<A1^-1 c> 1
+<A1^-1 2 1 B>
+<A1^-1 2 1 < B
+<A1^-1 2 < 2 B
+<A1^-1 < 1 2 B
+2 B
+
+C 2
+<A1^-1 c> 2
+<A1^-1 2 2 A>
+<A1^-1 2 2 < A
+<A1^-1 2 <A1 A
+<A1^-1 <A 1 1 A
+1 A
+
+Proof of start: (CB)^inf $
+
+Let c = < c>^-1
+Let b = <I B>^-1
+
+After 1 step, TM is at
+$ 1 B> $
+$ 1 < B $
+$ 1 < c>^-1 c> B $
+$ 1 c c> B $
+$ 1 c <I <I^-1 c> B $
+$ 1 c <I CB $
+$ 1 c <I B>^-1 B> CB $
+$ 1 c b B> CB $
+...
+$ 1 (cb)^inf B> (CB)^inf $
+
+L1 c -> L1
+L1 b -> L1 x
+x c -> b
+x b -> b x
+
+L1 (cb)^inf
+L1 (bc)^inf
+L1 bc (bc)^inf
+L1 x c (bc)^inf
+L1 b (bc)^inf
+L1 x (bc)^inf
+
+x bc -> b x c -> bb
+L1 bb -> L1 x b -> L1 b x -> L1 x^2
+
+L1 x^n+1 (bc)^inf
+L1 x^n+1 bc (bc)^inf
+L1 x^n bb (bc)^inf
+L1 bb x^n (bc)^inf
+L1 x^2 x^n (bc)^inf
+L1 x^n+2 (bc)^inf
+loop!
+
+L 1 c
+1 < c>^-1
+L < 2 c>^-1
+L 1 B> 2 c>^-1
+L 1 c> c>^-1
+L 1
+
+L 1 b
+L 1 <I B>^-1
+L < 2 1 B>^-1
+L 1 B> 2 1 B>^-1
+L 1 c> 1 B>^-1
+L 1 21 B> B>^-1
+L 1 21
+
+21 c
+21 < c>^-1
+2 < 2 c>^-1
+<I 2 c>^-1
+b B> 2 c>^-1
+b c> c>^-1
+b
+
+21 b
+21 <I B>^-1
+2 < 21 B>^-1
+<I 21 B>^-1
+b B> 21 B>^-1
+b c> 1 B>^-1
+b 21 B> B>^-1
+b 21
+
+...
+sim:
+
+(CB)^inf $
+(BC)^inf B $
+(BC)^inf 2$
+(2^-1 BC 2)^inf $
+(2^-1 B 1 A)^inf $
+(2^-1 2 dA)^inf $
+(dA)^inf $
+(Ad)^inf 22$
+(2^-1 AdAd 2)^inf 2$
+(2^-1 Ad 1 d)^inf 2$
+(2^-1 A 1 Cd)^inf 2$
+(2^-1 2 Cd)^inf 2$
+(Cd)^inf 2$
+(2^-1 CdCd 2)^inf $
+(2^-1 CdC 2 d)^inf $
+(2^-1 Cd 1 Ad)^inf $
+(2^-1 C 1 CAd)^inf $
+(2^-1 2 BCAd)^inf $
+(BCAd)^inf $
+(dBCA)^inf 1122$
+(1^-1 dBCAdBCA 1)^inf 122$
+(1^-1 dBCAdBC 2)^inf 122$
+(1^-1 dBCAdB 1 A)^inf 122$
+(1^-1 dBCAd 2 dA)^inf 122$
+(1^-1 dBCA 2 ddA)^inf 122$
+(1^-1 dBC 1 ddA)^inf 122$
+(1^-1 dB 2 BddA)^inf 122$
+(1^-1 d 1 CBddA)^inf 122$
+(1^-1 1 CCBddA)^inf 122$
+(CCBddA)^inf 122$
+(1^-1 CCBddA 1)^inf 22$
+(1^-1 CCBdd 2)^inf 22$
+(1^-1 CCBd 2 d)^inf 22$
+(1^-1 CCB 2 dd)^inf 22$
+(1^-1 CC 1 Cdd)^inf 22$
+(1^-1 C 2 BCdd)^inf 22$
+(1^-1 1 ABCdd)^inf 22$
+(ABCdd)^inf 22$
+(2^-1 ABCddABCdd 2)^inf 2$
+(2^-1 ABCddABC 2 dd)^inf 2$
+(2^-1 ABCddAB 1 Add)^inf 2$
+(2^-1 ABCddA 2 dAdd)^inf 2$
+(2^-1 ABCdd 1 dAdd)^inf 2$
+(2^-1 ABCd 1 CdAdd)^inf 2$
+(2^-1 ABC 1 CCdAdd)^inf 2$
+(2^-1 AB 2 BCCdAdd)^inf 2$
+(2^-1 A 1 CBCCdAdd)^inf 2$
+(2^-1 2 CBCCdAdd)^inf 2$
+(CBCCdAdd)^inf 2$
+(2^-1 CBCCdAddCBCCdAdd 2)^inf $
+(2^-1 CBCCdAddCBCCdA 2 dd)^inf $
+(2^-1 CBCCdAddCBCCd 1 dd)^inf $
+(2^-1 CBCCdAddCBC 2 BCdd)^inf $
+(2^-1 CBCCdAddCB 1 ABCdd)^inf $
+(2^-1 CBCCdAddC 2 dABCdd)^inf $
+(2^-1 CBCCdAdd 1 AdABCdd)^inf $
+(2^-1 CBCCdAd 1 CAdABCdd)^inf $
+(2^-1 CBCCdA 1 CCAdABCdd)^inf $
+(2^-1 CBCCd 2 CCAdABCdd)^inf $
+(2^-1 CBCC 2 dCCAdABCdd)^inf $
+(2^-1 CBC 1 AdCCAdABCdd)^inf $
+(2^-1 CB 2 BAdCCAdABCdd)^inf $
+(2^-1 C 1 CBAdCCAdABCdd)^inf $
+(2^-1 2 BCBAdCCAdABCdd)^inf $
+(BCBAdCCAdABCdd)^inf $
+(BCddCCAdABCdd)^inf $
+(dBCddCCAdABCd)^inf 1122$
+(1^-1 dBCddCCAdABCd 1)^inf 122$
+(1^-1 dBCddCCAdABC 1 C)^inf 122$
+(1^-1 dBCddCCAdAB 2 BC)^inf 122$
+(1^-1 dBCddCCAdA 1 CBC)^inf 122$
+(1^-1 dBCddCCAd 2 CBC)^inf 122$
+(1^-1 dBCddCCA 2 dCBC)^inf 122$
+(1^-1 dBCddCC 1 dCBC)^inf 122$
+(1^-1 dBCddC 2 BdCBC)^inf 122$
+(1^-1 dBCdd 1 ABdCBC)^inf 122$
+(1^-1 dBCd 1 CABdCBC)^inf 122$
+(1^-1 dBC 1 CCABdCBC)^inf 122$
+(1^-1 dB 2 BCCABdCBC)^inf 122$
+(1^-1 d 1 CBCCABdCBC)^inf 122$
+(1^-1 1 CCBCCABdCBC)^inf 122$
+(CCBCCABdCBC)^inf 122$
+(1^-1 CCBCCABdCBC 1)^inf 22$
+(1^-1 CCBCCABdCB 2 B)^inf 22$
+(1^-1 CCBCCABdC 1 CB)^inf 22$
+(1^-1 CCBCCABd 2 BCB)^inf 22$
+(1^-1 CCBCCAB 2 dBCB)^inf 22$
+(1^-1 CCBCCA 1 CdBCB)^inf 22$
+(1^-1 CCBCC 2 CdBCB)^inf 22$
+(1^-1 CCBC 1 ACdBCB)^inf 22$
+(1^-1 CCB 2 BACdBCB)^inf 22$
+(1^-1 CC 1 CBACdBCB)^inf 22$
+(1^-1 C 2 BCBACdBCB)^inf 22$
+(1^-1 1 ABCBACdBCB)^inf 22$
+(ABCBACdBCB)^inf 22$
