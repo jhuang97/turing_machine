@@ -1,0 +1,33 @@
+tm = 1RB---------_0RC2RB3LB1LB_2LA1RC---3RB
+
+[metastates]
+RightC C> C>
+RightB B> B>
+Left < <B
+LeftA <A <A
+
+[blocks]
+L = ^
+s1 = 1
+s3 = 3
+s2 = 2
+R = $
+Dummy(exp) = 0
+
+[rules]
+L < -> L C>
+
+B> s1 -> s2 B>
+s2 < -> < s3
+
+B> s3 -> < s1
+
+C> s1 -> s1 C>
+s1 < -> s2 B>
+s2 < -> < s3
+
+C> s3 -> s3 B>
+s3 < -> < s1
+
+B> R -> < s3 s1 R
+C> R -> <A s2 R

@@ -127,8 +127,8 @@ impl fmt::Display for Sim {
 }
 
 fn main() {
-    let mut sim = Sim::new();
-    // let mut sim = Sim::new2();
+    // let mut sim = Sim::new();
+    let mut sim = Sim::new2();
     println!("{sim}");
     for k in 0..1000000 {
         sim.step();

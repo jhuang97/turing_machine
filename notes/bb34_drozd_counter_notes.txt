@@ -1,0 +1,101 @@
+c = <B^-1 C>
+b = <B^-1 B>
+
+b 1 -> 3 b
+b 3 -> 1
+c 1 -> 3 bc
+c 3 -> 1 b
+b $ -> 31$
+c $ -> heck
+
+b^2k 1 -> 1 b^k
+b^2k 3 -> 3 b^k
+
+Start: c^inf 311$
+
+c^inf 311$
+(3^-1 cc 3)^inf 11$
+(3^-1 c 1 b)^inf 11$
+(3^-1 3 bcb)^inf 11$
+(bcb)^inf 11$
+(1^-1 bcbbcb 1)^inf 1$
+(1^-1 bcbbc 3 b)^inf 1$
+(1^-1 bcbb 1 bb)^inf 1$
+(1^-1 bcb 3 bbb)^inf 1$
+(1^-1 bc 1 bbb)^inf 1$
+(1^-1 b 3 bcbbb)^inf 1$
+(1^-1 1 bcbbb)^inf 1$
+(bcbbb)^inf 1$
+(1^-1 bcbbbbcbbb 1)^inf $
+(1^-1 bcbbbbcb 1 b)^inf $
+(1^-1 bcbbbbc 3 bb)^inf $
+(1^-1 bcbbbb 1 bbb)^inf $
+(1^-1 bc 1 bbbbb)^inf $
+(1^-1 b 3 bcbbbbb)^inf $
+(1^-1 1 bcbbbbb)^inf $
+(bcbbbbb)^inf $
+(b^2 c b^4)^inf 31$
+(3^-1 b^2 c b^6 c b^4 3)^inf 1$
+(3^-1 b^2 c b^6 c 3 b^2)^inf 1$
+(3^-1 b^2 c b^6 1 b^3)^inf 1$
+(3^-1 b^2 c 1 b^6)^inf 1$
+(3^-1 b^2 3 bc b^6)^inf 1$
+(3^-1 3 b^2 c b^6)^inf 1$
+(b^2 c b^6)^inf 1$
+(1^-1 b^2 c b^8 c b^6 1)^inf $
+(1^-1 b^2 c b^8 c 1 b^3)^inf $
+(1^-1 b^2 c b^8 3 bc b^3)^inf $
+(1^-1 b^2 c 3 b^5 c b^3)^inf $
+(1^-1 b^2 1 b^6 c b^3)^inf $
+(1^-1 1 b^7 c b^3)^inf $
+(b^7 c b^3)^inf $
+(b^8 c b^2)^inf 31$
+
+Let (x, y) = (b^x c b^y)
+
+(2r, 2s)^2N 3 -> 3 (r+1, r+2s+1)^N
+(2r, 2s)^2N 1 -> 1 (2r+s+2, s)^N
+(2r+1, 2s+1)^2N 3 -> 3 (2r+s+4, s)^N
+(2r+1, 2s+1)^2N 1 -> 1 (r+1, r+2s+3)^N
+(x, y)^N $ -> (x, y-1) (x+1, y-1)^N-1 31$
+(x, 0) $ -> heck
+
+(b^2r c b^2s)^2N 3
+3 (3^-1 b^2r c b^2(r+s) c b^2s 3)^N
+3 (3^-1 b^2r c b^2(r+s) c 3 b^s)^N
+3 (3^-1 b^2r c b^2(r+s) 1 b^s+1)^N
+3 (3^-1 b^2r c 1 b^r+2s+1)^N
+3 (3^-1 b^2r 3 b c b^r+2s+1)^N
+3 (3^-1 3 b^r+1 c b^r+2s+1)^N
+3 (b^r+1 c b^r+2s+1)^N
+
+(b^2r c b^2s)^2N 1
+1 (1^-1 b^2r c b^2(r+s) c b^2s 1)^N
+1 (1^-1 b^2r c b^2(r+s) c 1 b^s)^N
+1 (1^-1 b^2r c b^2(r+s) 3 b c b^s)^N
+1 (1^-1 b^2r c 3 b^r+s+1 c b^s)^N
+1 (1^-1 b^2r 1 b^r+s+2 c b^s)^N
+1 (1^-1 1 b^2r+s+2 c b^s)^N
+1 (b^2r+s+2 c b^s)^N
+
+(b^2r+1 c b^2s+1)^2N 3
+3 (3^-1 b^2r+1 c b^2(r+s+1) c b^2s+1 3)^N
+3 (3^-1 b^2r+1 c b^2(r+s+1) c b 3 b^s)^N
+3 (3^-1 b^2r+1 c b^2(r+s+1) c 1 b^s)^N
+3 (3^-1 b^2r+1 c b^2(r+s+1) 3 b c b^s)^N
+3 (3^-1 b^2r+1 c 3 b^r+s+2 c b^s)^N
+3 (3^-1 b^2r+1 1 b^r+s+3 c b^s)^N
+3 (3^-1 b 1 b^2r+s+3 c b^s)^N
+3 (3^-1 3 b^2r+s+4 c b^s)^N
+3 (b^2r+s+4 c b^s)^N
+
+(b^2r+1 c b^2s+1)^2N 1
+1 (1^-1 b^2r+1 c b^2(r+s+1) c b^2s+1 1)^N
+1 (1^-1 b^2r+1 c b^2(r+s+1) c b 1 b^s)^N
+1 (1^-1 b^2r+1 c b^2(r+s+1) c 3 b^s+1)^N
+1 (1^-1 b^2r+1 c b^2(r+s+1) 1 b^s+2)^N
+1 (1^-1 b^2r+1 c 1 b^r+2s+3)^N
+1 (1^-1 b^2r+1 3 b c b^r+2s+3)^N
+1 (1^-1 b 3 b^r+1 c b^r+2s+3)^N
+1 (1^-1 1 b^r+1 c b^r+2s+3)^N
+1 (b^r+1 c b^r+2s+3)^N
