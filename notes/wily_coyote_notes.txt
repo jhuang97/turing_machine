@@ -326,6 +326,12 @@ d 12 -> 1 C 2 -> 11 A
 d 22 ->          22 d
 d 11 -> 1 C 1 -> 12 B
 
+C^2n+2 1 -> C^2n+1 2 B -> C 2 d^n B -> 1 A d^n B
+C^2n+1 1 -> C^2n 2 B -> 2 d^n B
+C^2n 2 -> 2 d^n
+d^n 1 -> 1 C^n
+d^n 2 -> 2 d^n
+
 A 21 -> 11
 A 12 -> 22
 A 22 -> 12
@@ -568,3 +574,132 @@ sim:
 (1^-1 C 2 BCBACdBCB)^inf 22$
 (1^-1 1 ABCBACdBCB)^inf 22$
 (ABCBACdBCB)^inf 22$
+(BABCBACdBC)^inf B 22$
+(BABCBACdBC)^inf 1 C 2$
+(BABCBACdBC)^inf 11 A$
+(BABCBACdBC)^inf 1122$
+(dBCdCdBC)^inf 1122$
+(1^-1 dBCdCdBCdBCdCdBC 1)^inf 122$
+(1^-1 dBCdCdBCdBCdCdB 2 B)^inf 122$
+(1^-1 dBCdCdBCdBCdCd 1 CB)^inf 122$
+(1^-1 dBCdCdBCdBCdC 1 CCB)^inf 122$
+(1^-1 dBCdCdBCdBCd 2 BCCB)^inf 122$
+(1^-1 dBCdCdBCdBC 2 dBCCB)^inf 122$
+(1^-1 dBCdCdBCdB 1 AdBCCB)^inf 122$
+(1^-1 dBCdCdBCd 2 dAdBCCB)^inf 122$
+(1^-1 dBCdCdBC 2 ddAdBCCB)^inf 122$
+(1^-1 dBCdCdB 1 AddAdBCCB)^inf 122$
+(1^-1 dBCdCd 2 dAddAdBCCB)^inf 122$
+(1^-1 dBCdC 2 ddAddAdBCCB)^inf 122$
+(1^-1 dBCd 1 AddAddAdBCCB)^inf 122$
+(1^-1 dBC 1 CAddAddAdBCCB)^inf 122$
+(1^-1 dB 2 BCAddAddAdBCCB)^inf 122$
+(1^-1 d 1 CBCAddAddAdBCCB)^inf 122$
+(1^-1 1 CCBCAddAddAdBCCB)^inf 122$
+(CCBCAddAddAdBCCB)^inf 122$
+
+
+Effect of heads on 1 (12)^n 2$ ?
+
+A 1 (12)^n 2$ -> 2 (12)^n 2$ ...
+
+B 1 (12)^n 2$
+2 d (12)^n 2$
+2 d 12 (12)^n-1 2$
+21 C 2 (12)^n-1 2$
+211 A (12)^n-1 2$
+211 A (12)^n-1 2$
+211 A 12 (12)^n-2 2$
+21122 (12)^n-2 2$
+
+C 1 12^n 2$
+2 B 12^n 2$
+2 B 12 12^n-1 2$
+2 2 d 2 12^n-1 2$
+2 22 d 12^n-1 2$
+2 221122 12^n-3 2$
+
+d 1 12^n 2$
+1 C 12^n 2$
+1 C 12 12^n-1 2$
+1 2 B2 12^n-1 2$
+1 2 1 C 12^n-1 2$
+1 21^n C 2$
+1 21^n 1 A $
+1 21^n 1 22$
+
+Effect of heads on 21 (12)^n 2$ ?
+
+B 21 12^n 2$
+1 C 1 12^n 2$
+12 B 12^n 2$
+12 B 121212 12^n-3 2$
+12 2 d21212 12^n-3 2$
+12 22 d1212 12^n-3 2$
+12 22 1 C212 12^n-3 2$
+12 22 1 1 A12 12^n-3 2$
+12 221 12 2 12^n-3 2$
+
+C 21 12^n 2$
+1 A1 12^n 2$
+12 12^n 2$
+12^n+1 2$
+
+d 21 12^n 2$
+2 d1 12^n 2$
+21 C 12^n 2$
+21 21^n C 2$
+21 21^n 122$
+
+Effect of heads on 22 11 21^n 22$ = 221 12^n 2$
+
+B 221 12^n 2$
+1 C21 12^n 2$
+1 1 A1 12^n 2$
+1 12 12^n 2$
+1 12^n+1 2$
+
+C 221 12^n 2$
+1 A21 12^n 2$
+111 12^n 2$
+
+d 221 12^n 2$
+22 d1 12^n 2$
+221 C 12^n 2$
+221 21^n C 2$
+221 21^n 1 A$
+221 21^n 1 22$
+2 21^n+1 12 2$
+
+
+Effect of heads on 21^m 12^n 2$ ?
+
+B 21^m 12^n 2$
+12^m B 12^n 2$
+12^m 22 d 12^n-1 2$
+12^m 2211 A 12^n-2 2$
+12^m 221122 12^n-3 2$
+
+C 21^m 12^n 2$
+12 21^m-1 12^n 2$
+
+C^2^m 21^m 12^n 2$
+21^m C 12^n 2$
+21^m+n C 2$
+21^m+n 1 A$
+21^m+n 1 22$
+21^m+n 12 2$
+
+C^2^(m+n) 21^m 12^n 2$
+21^m 12^n C 2$
+21^m 12^n 1 A$
+21^m 12^n 1 22$
+21^m 12^n+1 2$
+
+d 21^m 12^n 2$
+21 C 21^m-1 12^n 2$
+21 12 21^m-2 12^n 2$
+
+Getting very long runs of C's and d's...
+
+1 12 21 21 12 21 12 2$
