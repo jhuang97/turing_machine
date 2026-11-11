@@ -3,10 +3,10 @@ pub mod skelet1_basic;
 pub mod wily_coyote;
 
 use core::str;
+use itertools::Itertools;
+use std::collections::VecDeque;
 use std::fmt;
 use std::str::FromStr;
-use std::collections::VecDeque;
-use itertools::Itertools;
 use strum_macros::EnumString;
 
 #[derive(Debug, Clone)]
@@ -21,24 +21,29 @@ impl TuringMachine {
         let n_char = parts[0].len();
         assert!(n_char % 3 == 0);
         let n_symbols = (n_char / 3) as u8;
-    
+
         for part in &parts {
             assert!(part.len() == n_symbols as usize * 3);
         }
 
-        let transitions = parts.iter()
-            .map(|&row| row.as_bytes().chunks(3).map(str::from_utf8)
-                .map(|s| {
-                    let s1 = s.unwrap();
-                    if s1.chars().next().unwrap() == '-' {
-                        None
-                    } else {
-                        Some(TMTransition::from_str(s1).unwrap())
-                    }
-                })
-                .collect::<Vec<_>>())
+        let transitions = parts
+            .iter()
+            .map(|&row| {
+                row.as_bytes()
+                    .chunks(3)
+                    .map(str::from_utf8)
+                    .map(|s| {
+                        let s1 = s.unwrap();
+                        if s1.chars().next().unwrap() == '-' {
+                            None
+                        } else {
+                            Some(TMTransition::from_str(s1).unwrap())
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            })
             .collect::<Vec<_>>();
-    
+
         assert_eq!(transitions.len(), n_states);
         assert_eq!(transitions[0].len(), n_symbols as usize);
 
@@ -61,7 +66,7 @@ pub struct Symbol(pub u8);
 pub struct TMTransition {
     new_symbol: Symbol,
     direction: TMDirection,
-    new_state: State
+    new_state: State,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -72,15 +77,20 @@ impl FromStr for TMTransition {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut c = s.chars();
-        let symbol_idx = c.next().unwrap().to_string().parse::<u8>().map_err(|_| ParseTMTransitionError)?;
+        let symbol_idx = c
+            .next()
+            .unwrap()
+            .to_string()
+            .parse::<u8>()
+            .map_err(|_| ParseTMTransitionError)?;
         let direction = TMDirection::from_str(&c.next().unwrap().to_string())
             .map_err(|_| ParseTMTransitionError)?;
-        let new_state = State::from_str(&c.next().unwrap().to_string())
-            .map_err(|_| ParseTMTransitionError)?;
+        let new_state =
+            State::from_str(&c.next().unwrap().to_string()).map_err(|_| ParseTMTransitionError)?;
         Ok(Self {
             new_symbol: Symbol(symbol_idx),
             direction,
-            new_state
+            new_state,
         })
     }
 }
@@ -90,7 +100,7 @@ pub enum TMDirection {
     #[strum(serialize = "L")]
     Left,
     #[strum(serialize = "R")]
-    Right
+    Right,
 }
 
 #[derive(Debug, PartialEq, Eq, EnumString, Copy, Clone)]
@@ -104,7 +114,15 @@ pub enum State {
     G = 6,
 }
 
-const STATES: [State; 7] = [State::A, State::B, State::C, State::D, State::E, State::F, State::G];
+const STATES: [State; 7] = [
+    State::A,
+    State::B,
+    State::C,
+    State::D,
+    State::E,
+    State::F,
+    State::G,
+];
 
 pub struct BasicStepInfo {
     pub halted: bool,
@@ -137,7 +155,13 @@ impl BasicSimulator {
         }
     }
 
-    pub fn from_tape(tm: TuringMachine, tape: &[u8], state: State, position: usize, prev_dir: Option<TMDirection>) -> Self {
+    pub fn from_tape(
+        tm: TuringMachine,
+        tape: &[u8],
+        state: State,
+        position: usize,
+        prev_dir: Option<TMDirection>,
+    ) -> Self {
         Self {
             tm,
             tape: tape.iter().map(|&x| Symbol(x)).collect(),
@@ -146,13 +170,16 @@ impl BasicSimulator {
             time: 0,
             halted: false,
             prev_dir,
-            start_position: position
+            start_position: position,
         }
     }
 
     pub fn step(&mut self) -> BasicStepInfo {
         if self.halted {
-            return BasicStepInfo { halted: true, record: None };
+            return BasicStepInfo {
+                halted: true,
+                record: None,
+            };
         }
 
         self.time += 1;
@@ -173,9 +200,9 @@ impl BasicSimulator {
                     } else {
                         self.position -= 1;
                     }
-                },
+                }
                 TMDirection::Right => {
-                    if self.position == self.tape.len()-1 {
+                    if self.position == self.tape.len() - 1 {
                         self.tape.push_back(Symbol(0));
                         record = Some(TMDirection::Right);
                     }
@@ -184,15 +211,25 @@ impl BasicSimulator {
             }
             self.prev_dir = Some(transition.direction);
 
-            BasicStepInfo { halted: false, record }
+            BasicStepInfo {
+                halted: false,
+                record,
+            }
         } else {
             self.halted = true;
-            BasicStepInfo { halted: true, record: None }
+            BasicStepInfo {
+                halted: true,
+                record: None,
+            }
         }
     }
 
     pub fn display_directed_head(&self) -> impl fmt::Display + '_ {
         DirectedHead(self)
+    }
+
+    pub fn display_compressed(&self) -> impl fmt::Display + '_ {
+        CompressedView(self)
     }
 
     pub fn absolute_position(&self) -> i64 {
@@ -207,8 +244,14 @@ impl fmt::Display for BasicSimulator {
         if self.halted {
             left_width = left_width.max(5);
         }
-        write!(f, "{:<left_width$}{:>width$}\n", t_s, format!("{:?}", self.state), width=self.position + 1)?;
-        write!(f, "{:<left_width$}", if self.halted { "HALT" } else {""})?;
+        write!(
+            f,
+            "{:<left_width$}{:>width$}\n",
+            t_s,
+            format!("{:?}", self.state),
+            width = self.position + 1
+        )?;
+        write!(f, "{:<left_width$}", if self.halted { "HALT" } else { "" })?;
         for symb in &self.tape {
             write!(f, "{}", symb.0)?;
         }
@@ -240,8 +283,13 @@ impl fmt::Display for DirectedHead<'_> {
             for i in 0..self.0.position {
                 write!(f, "{}", self.0.tape.get(i).unwrap().0)?;
             }
-            write!(f, "({:?}{})", self.0.state, self.0.tape.get(self.0.position).unwrap().0)?;
-            for i in self.0.position+1..self.0.tape.len() {
+            write!(
+                f,
+                "({:?}{})",
+                self.0.state,
+                self.0.tape.get(self.0.position).unwrap().0
+            )?;
+            for i in self.0.position + 1..self.0.tape.len() {
                 write!(f, "{}", self.0.tape.get(i).unwrap().0)?;
             }
         }
@@ -254,11 +302,158 @@ impl fmt::Display for DirectedHead<'_> {
     }
 }
 
+struct CompressedView<'a>(&'a BasicSimulator);
+
+impl fmt::Display for CompressedView<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const K: usize = 16;
+
+        let write_compressed = |f: &mut fmt::Formatter, s: &[Symbol], flip: bool| {
+            if !s.is_empty() {
+                let mut seq = compress_symbol_sequence(s, K);
+                if flip {
+                    seq.reverse();
+                }
+                write!(f, "{seq}")
+            } else {
+                Ok(())
+            }
+        };
+
+        write!(f, "{}: ", self.0.time)?;
+        if let Some(d) = self.0.prev_dir {
+            let split_pos = match d {
+                TMDirection::Left => self.0.position + 1,
+                TMDirection::Right => self.0.position,
+            };
+            let left: Vec<Symbol> = self.0.tape.range(..split_pos).cloned().collect();
+            write_compressed(f, left.as_slice(), false)?;
+
+            let head_str = match d {
+                TMDirection::Left => format!(" <{:?} ", self.0.state),
+                TMDirection::Right => format!(" {:?}> ", self.0.state),
+            };
+            use colored::Colorize;
+            match self.0.state {
+                State::A => write!(f, "{}", head_str.bold().red())?,
+                State::B => write!(f, "{}", head_str.bold().yellow())?,
+                State::C => write!(f, "{}", head_str.bold().blue())?,
+                State::D => write!(f, "{}", head_str.bold().green())?,
+                State::E => write!(f, "{}", head_str.bold().purple())?,
+                State::F => write!(f, "{}", head_str.bold().cyan())?,
+                _ => write!(f, "{head_str}")?,
+            }
+
+            let right: Vec<Symbol> = self.0.tape.range(split_pos..).cloned().rev().collect();
+            write_compressed(f, right.as_slice(), true)?;
+        } else {
+            let left: Vec<Symbol> = self.0.tape.range(..self.0.position).cloned().collect();
+            write_compressed(f, left.as_slice(), false)?;
+            write!(
+                f,
+                " ({:?}{}) ",
+                self.0.state,
+                self.0.tape.get(self.0.position).unwrap().0
+            )?;
+            let right: Vec<Symbol> = self
+                .0
+                .tape
+                .range(self.0.position + 1..)
+                .cloned()
+                .rev()
+                .collect();
+            write_compressed(f, right.as_slice(), true)?;
+        }
+
+        if self.0.halted {
+            write!(f, " HALT")?;
+        }
+
+        Ok(())
+    }
+}
+
+fn simplicity_score(b: &[Symbol], n: usize) -> f64 {
+    n as f64 / (b.len() as f64)
+}
+
+fn best_block(s: &[Symbol], k: usize) -> (Vec<Symbol>, usize) {
+    assert!(!s.is_empty());
+    assert!(k >= 2);
+    let mut best_block = (&s[0..1], 1);
+    let mut best_score = 0.0;
+    let max_len = s.len().min(k) / 2;
+    for block_len in 1..=max_len {
+        let b = &s[0..block_len];
+        let mut n = 1;
+        while (n + 1) * block_len <= s.len() && &s[n * block_len..(n + 1) * block_len] == b {
+            n += 1;
+        }
+        let score = simplicity_score(b, n);
+        if n >= 2 && score > best_score {
+            best_block = (b, n);
+            best_score = score;
+        }
+    }
+    (Vec::from(best_block.0), best_block.1)
+}
+
+struct CompressedSequence(Vec<(Vec<Symbol>, usize)>);
+
+/// from Marco Dos Santos paper
+fn compress_symbol_sequence(s0: &[Symbol], k: usize) -> CompressedSequence {
+    let mut compressed = Vec::new();
+    let mut s = s0;
+    while s.len() > 0 {
+        let (b, mut n) = best_block(s, k);
+        let full_len = n * b.len();
+        if n >= 2 && full_len < s.len() {
+            let short_len = full_len - b.len();
+            let (b_next, n_next) = best_block(&s[full_len..], k);
+            let full_coverage = full_len + n_next * b_next.len();
+            let (b_next, n_next) = best_block(&s[short_len..], k);
+            let short_coverage = short_len + n_next * b_next.len();
+            if short_coverage > full_coverage {
+                n -= 1;
+            }
+        }
+        s = &s[n * b.len()..];
+        compressed.push((b, n));
+    }
+    CompressedSequence(compressed)
+}
+
+impl CompressedSequence {
+    fn reverse(&mut self) {
+        self.0.reverse();
+        for (b, _n) in self.0.iter_mut() {
+            b.reverse();
+        }
+    }
+}
+
+impl fmt::Display for CompressedSequence {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for (i, (block, n)) in self.0.iter().enumerate() {
+            if i > 0 {
+                write!(f, " ")?;
+            }
+            for s in block {
+                write!(f, "{}", s.0)?;
+            }
+            if *n > 1 {
+                write!(f, "^{n}")?;
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum GeneralSymbol {
     Basic(Symbol),
     Wildcard,
-    End
+    End,
 }
 
 impl fmt::Display for GeneralSymbol {
@@ -292,7 +487,7 @@ impl DirectedHeadConfig {
 #[derive(Clone)]
 pub struct ConfigTransitionRule {
     pub before: DirectedHeadConfig,
-    pub after: DirectedHeadConfig
+    pub after: DirectedHeadConfig,
 }
 
 impl ConfigTransitionRule {
@@ -306,7 +501,9 @@ impl FromStr for ConfigTransitionRule {
     type Err = ParseConfigError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (s1, s2) = s.split_once(" -> ").ok_or(ParseConfigError::NoArrowDelimiter)?;
+        let (s1, s2) = s
+            .split_once(" -> ")
+            .ok_or(ParseConfigError::NoArrowDelimiter)?;
         let before = DirectedHeadConfig::from_str(s1)?;
         let after = DirectedHeadConfig::from_str(s2)?;
         Ok(Self { before, after })
@@ -319,30 +516,37 @@ pub enum ParseConfigError {
     NoHead,
     NoState,
     BadState,
-    BadSymbol
+    BadSymbol,
 }
 
 impl DirectedHeadConfig {
     pub fn parse_str(s: &str, enforce_end_wildcards: bool) -> Result<Self, ParseConfigError> {
         let cs = s.chars().filter(|&c| c != ' ').collect_vec();
 
-        let head_idx = cs.iter().position(|&c| c == '<' || c == '>').ok_or(ParseConfigError::NoHead)?;
+        let head_idx = cs
+            .iter()
+            .position(|&c| c == '<' || c == '>')
+            .ok_or(ParseConfigError::NoHead)?;
         let (dir, i1, i2, state_idx) = if cs[head_idx] == '<' {
-            (TMDirection::Left, head_idx, head_idx+1, head_idx+1)
+            (TMDirection::Left, head_idx, head_idx + 1, head_idx + 1)
         } else {
-            (TMDirection::Right, head_idx-1, head_idx, head_idx-1)
+            (TMDirection::Right, head_idx - 1, head_idx, head_idx - 1)
         };
 
-        let state = State::from_str(&cs.get(state_idx)
+        let state = State::from_str(
+            &cs.get(state_idx)
                 .ok_or(ParseConfigError::NoState)?
-                .to_string())
-            .map_err(|_| ParseConfigError::BadState)?;
+                .to_string(),
+        )
+        .map_err(|_| ParseConfigError::BadState)?;
 
         fn parse_symbol(c: &char) -> Result<GeneralSymbol, ParseConfigError> {
             if c.is_numeric() {
                 Ok(GeneralSymbol::Basic(Symbol(
-                    c.to_string().parse::<u8>().map_err(|_| ParseConfigError::BadSymbol)?)
-                ))
+                    c.to_string()
+                        .parse::<u8>()
+                        .map_err(|_| ParseConfigError::BadSymbol)?,
+                )))
             } else if *c == '^' || *c == '$' {
                 Ok(GeneralSymbol::End)
             } else {
@@ -350,14 +554,21 @@ impl DirectedHeadConfig {
             }
         }
 
-        let mut ltape = cs[..i1].iter().map(parse_symbol).collect::<Result<Vec<_>,_>>()?;
-        let mut rtape = cs[i2+1..].iter().map(parse_symbol).rev().collect::<Result<Vec<_>,_>>()?;
+        let mut ltape = cs[..i1]
+            .iter()
+            .map(parse_symbol)
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut rtape = cs[i2 + 1..]
+            .iter()
+            .map(parse_symbol)
+            .rev()
+            .collect::<Result<Vec<_>, _>>()?;
 
         if enforce_end_wildcards {
             if ltape.len() == 0 || ltape[0] != GeneralSymbol::End {
                 ltape.insert(0, GeneralSymbol::Wildcard);
             }
-    
+
             if rtape.len() == 0 || rtape[0] != GeneralSymbol::End {
                 rtape.insert(0, GeneralSymbol::Wildcard);
             }
@@ -367,7 +578,7 @@ impl DirectedHeadConfig {
             left_tape: ltape,
             right_tape: rtape,
             dir,
-            state
+            state,
         })
     }
 }
@@ -384,7 +595,7 @@ impl fmt::Display for DirectedHeadConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for s in &self.left_tape {
             write!(f, "{}", s)?;
-        }        
+        }
 
         match self.dir {
             TMDirection::Left => write!(f, " <{:?} ", self.state)?,
@@ -412,7 +623,7 @@ pub enum DirectedHeadStepResult {
     Success,
     Undefined,
     RanOffTape,
-    OutOfTime
+    OutOfTime,
 }
 
 impl<'a> DirectedHeadSimulator<'a> {
@@ -426,7 +637,11 @@ impl<'a> DirectedHeadSimulator<'a> {
         }
     }
 
-    pub fn new_with_time(config: &DirectedHeadConfig, tm: &'a TuringMachine, time_limit: usize) -> Self {
+    pub fn new_with_time(
+        config: &DirectedHeadConfig,
+        tm: &'a TuringMachine,
+        time_limit: usize,
+    ) -> Self {
         DirectedHeadSimulator {
             config: config.clone(),
             tm,
@@ -454,13 +669,15 @@ impl<'a> DirectedHeadSimulator<'a> {
                 Some(GeneralSymbol::End) => {
                     tape.push(GeneralSymbol::End);
                     Symbol(0)
-                },
+                }
                 Some(GeneralSymbol::Basic(s)) => s,
                 None => return DirectedHeadStepResult::RanOffTape,
             }
         };
 
-        if let Some(transition) = &self.tm.transitions[self.config.state as usize][curr_symbol.0 as usize] {
+        if let Some(transition) =
+            &self.tm.transitions[self.config.state as usize][curr_symbol.0 as usize]
+        {
             self.config.state = transition.new_state;
             self.config.dir = transition.direction;
             let tape = match transition.direction {
@@ -478,7 +695,7 @@ impl<'a> DirectedHeadSimulator<'a> {
             self.undefined = true;
             // technically the tape state here is inaccurate; would need to put that popped symbol back in
             DirectedHeadStepResult::Undefined
-        }        
+        }
     }
 }
 
@@ -490,11 +707,15 @@ pub fn reduce_config(config: &DirectedHeadConfig) -> DirectedHeadConfig {
                 tape.remove(1);
             }
         }
-    }    
+    }
     config
 }
 
-pub fn run_to_undefined(starting_config: DirectedHeadConfig, tm: &TuringMachine, verbose: CheckerVerbosity) -> Result<usize, DirectedHeadStepResult> {
+pub fn run_to_undefined(
+    starting_config: DirectedHeadConfig,
+    tm: &TuringMachine,
+    verbose: CheckerVerbosity,
+) -> Result<usize, DirectedHeadStepResult> {
     let mut sim = DirectedHeadSimulator::new(&starting_config, tm);
 
     if verbose as isize >= 2 {
@@ -509,11 +730,11 @@ pub fn run_to_undefined(starting_config: DirectedHeadConfig, tm: &TuringMachine,
 
     loop {
         let res = sim.step();
-        
+
         if verbose as isize >= 2 {
             println!("{}: {} ", &sim.time, &sim.config);
         }
-        
+
         if res == DirectedHeadStepResult::Undefined {
             if verbose as isize == 1 {
                 println!("--> {}: {} Undefined", &sim.time, &sim.config);
@@ -535,10 +756,14 @@ pub fn run_to_undefined(starting_config: DirectedHeadConfig, tm: &TuringMachine,
 pub enum CheckerVerbosity {
     Off = 0,
     Some = 1,
-    All = 2
+    All = 2,
 }
 
-pub fn check_transition_rule(rule: ConfigTransitionRule, tm: &TuringMachine, verbose: CheckerVerbosity) -> Result<usize, DirectedHeadStepResult> {
+pub fn check_transition_rule(
+    rule: ConfigTransitionRule,
+    tm: &TuringMachine,
+    verbose: CheckerVerbosity,
+) -> Result<usize, DirectedHeadStepResult> {
     let mut sim = DirectedHeadSimulator::new(&rule.before, tm);
     if verbose as isize >= 2 {
         println!();
@@ -561,13 +786,13 @@ pub fn check_transition_rule(rule: ConfigTransitionRule, tm: &TuringMachine, ver
         }
         return Ok(sim.time);
     }
-    
+
     loop {
         let res = sim.step();
         if verbose as isize >= 2 {
             println!("{}: {} ", &sim.time, &sim.config);
         }
-        
+
         if res == DirectedHeadStepResult::Success {
             if sim.config == rule.after {
                 if verbose as isize == 1 {
@@ -595,7 +820,7 @@ pub fn check_transition_rule(rule: ConfigTransitionRule, tm: &TuringMachine, ver
 #[derive(Debug)]
 pub struct RLEDefinitionSymbol {
     pub symbol: Symbol,
-    pub repeat: bool
+    pub repeat: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -606,11 +831,13 @@ impl FromStr for RLEDefinitionSymbol {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let repeat = s.ends_with("^n");
-        let num_s = if repeat { &s[..s.len()-2] } else { s };
-        let num = num_s.parse::<u8>().map_err(|_| ParseRLEDefinitionSymbolError)?;
+        let num_s = if repeat { &s[..s.len() - 2] } else { s };
+        let num = num_s
+            .parse::<u8>()
+            .map_err(|_| ParseRLEDefinitionSymbolError)?;
         Ok(Self {
             symbol: Symbol(num),
-            repeat
+            repeat,
         })
     }
 }
@@ -618,7 +845,7 @@ impl FromStr for RLEDefinitionSymbol {
 #[derive(Debug)]
 pub struct RLEDefinition {
     pub left: Vec<RLEDefinitionSymbol>,
-    pub right: Vec<RLEDefinitionSymbol>
+    pub right: Vec<RLEDefinitionSymbol>,
 }
 
 impl RLEDefinition {
@@ -630,8 +857,6 @@ impl RLEDefinition {
     }
 
     fn parse_symbols(s: &str) -> Result<Vec<RLEDefinitionSymbol>, ParseRLEDefinitionSymbolError> {
-        s.split_whitespace()
-            .map(|s2| s2.parse())
-            .collect()
+        s.split_whitespace().map(|s2| s2.parse()).collect()
     }
 }

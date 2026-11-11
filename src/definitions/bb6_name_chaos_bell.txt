@@ -1,0 +1,74 @@
+tm = 1RB1RF_1LC1LB_1RD1LD_1RE0RA_---0LB_0LF0RC
+
+[metastates]
+Left  < <D1
+LeftWide <w <C1110101
+LeftChange <c <C1110101110
+Right > 1D>
+
+[blocks]
+L = ^
+U(exp) = 100
+V(exp) = 10
+T = 1
+
+R = 1$
+R0 = $
+X(exp) = 110
+Y(exp) = 1110
+J(exp) = 111010
+F(exp) = 1
+Q = 0
+W = 11110
+K = 111110
+S = 10
+
+[rules]
+< F F F Q -> < Y
+> F F F Q -> > Y
+< J Y F Q -> < J J
+<c J Y F Q -> <c J J
+
+> X -> U >
+> Y -> V V >
+
+U < -> < X
+V V < -> < Y
+
+> R -> V < R
+
+L < -> L > X
+L V < -> L > Y
+L T < Y -> L > J
+U V < -> T > Y
+L T V < -> L > X Y Q
+V T V < -> < W
+U U T V < Y -> < Y Y W
+T < Y Y -> <w F F Q
+
+V <w -> <w F F
+T <w F -> < J F F
+U U <w F F Q -> <c J
+U U <w F -> <c Y
+U U <c -> <c J
+L U <c -> L V > J Y
+L <c -> L > J Y
+
+> W -> < Y Q
+> K -> < J
+
+> J Y -> < Y K
+> J X -> < Y W
+> J J -> < Y K S
+> J F -> V V < F F F
+> J S -> V V < Y
+> J Q Y -> V V V < W
+> J Q W -> V V V < K
+> J R -> < Y Y R0
+
+U > Q Y -> T V V U >
+V > Q Y -> < Y X
+V > Q W -> < Y Y
+
+> F F F F -> V V <
+> F Q Y -> < K

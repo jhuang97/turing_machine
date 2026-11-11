@@ -708,11 +708,20 @@ fn get_half_tape_tokens(
     let match_tokens = half_tape_match(half_tape0);
 
     let mut change_start_idx = 0;
-    while half_tape0.len() > change_start_idx
-        && half_tape_new.len() > change_start_idx
-        && half_tape0[change_start_idx].name == half_tape_new[change_start_idx].name
+    if let Some(s0) = half_tape0.first()
+        && let Some(s1) = half_tape_new.first()
+        && s0.name == s1.name
+        && s0.repeat
     {
-        change_start_idx += 1;
+        // don't trim the list of blocks since we don't know the exponent
+        // of the run-length-encoded block at half_tape0[0]
+    } else {
+        while half_tape0.len() > change_start_idx
+            && half_tape_new.len() > change_start_idx
+            && half_tape0[change_start_idx].name == half_tape_new[change_start_idx].name
+        {
+            change_start_idx += 1;
+        }
     }
 
     // remove old symbols from half tape
@@ -768,6 +777,7 @@ fn process_rule_general(rule: &CheckedRule) -> Vec<RuleImpl> {
     }
 
     left_tokens.push(get_half_tape_tokens(lhs0, lhs1, format_ident!("left_tape")));
+
     right_tokens.push(get_half_tape_tokens(
         &rtape0,
         &rtape1,
@@ -1103,7 +1113,7 @@ fn generate_simulator_code(
 }
 
 fn main() {
-    let fname = "src/definitions/bb34_drozd_counter.txt";
+    let fname = "src/definitions/bb6_name_chaos_bell.txt";
 
     let (tm_def, tm, state_table, symbol_table, checked_rules) =
         process_tm_block_file(fname, CheckerVerbosity::All);

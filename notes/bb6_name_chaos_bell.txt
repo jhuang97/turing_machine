@@ -1,0 +1,170 @@
+1RB1RF_1LC1LB_1RD1LD_1RE0RA_---0LB_0LF0RC
+
+Previously analyzed by Discord user name.
+
+Potential blocks:
+left: 100, 10
+right: 110, 1110, 11110, 1$
+
+Potential heads:
+1D>
+<D1
+
+I'm putting together a block simulation but the step count is wrong?
+Block simulation prints
+87464 | 874599: L U^205 V^410 > F^7 Q Y^113 X Y^19 Q Y^4 R
+Never mind, this seems to still match the simulation.
+
+Double-checking simulation at
+1093462 | 11831971: L U^448 T V^3036 > W Y^18 W Y^4 R
+Still matches.
+
+Try removing this rule:
+U T < Y Y -> V V V < K
+
+Longitudinal analysis:
+z = < >^-1
+y = <^-1 >
+
+L z -> L U (10)
+U z -> z U (10)
+
+y Y -> Y y (10)
+y^3 J^2 -> Y^3 (62)
+y F^4 -> Y (10)
+y^2 J Y -> Y J (36)
+therefore
+y^3n J^2n -> Y^3n
+y^n F^4n -> Y^n
+y^2n J Y^n -> Y^n J
+
+y X -> X y (10) (not needed?)
+
+L z
+L < >^-1
+L > X >^-1 (5)
+L U > >^-1 (5)
+L U
+(10)
+
+U z
+U < >^-1
+< X >^-1 (5)
+z > X >^-1
+z U > >^-1 (5)
+z U
+(10)
+
+y X
+<^-1 > X
+<^-1 U > (5)
+<^-1 U < y
+<^-1 < X y (5)
+X y
+(10)
+
+y Y
+<^-1 > Y
+<^-1 V V > (4)
+<^-1 V V < y
+<^-1 < Y y (6)
+Y y
+(10)
+
+y y y J J
+y y Y K V (16)
+y Y y K V (10)
+y Y J V (10)
+Y y J V (10)
+Y <^-1 > J V
+Y <^-1 V V < Y (10)
+Y <^-1 < Y Y (6)
+Y Y Y
+Y^3
+(62)
+
+y F^4
+<^-1 > F^4
+<^-1 V V < (4)
+<^-1 < Y (6)
+Y
+(10)
+
+y^2 J Y
+y Y K (16)
+Y y K (10)
+Y J (10)
+(36)
+
+L U^k z
+L z U^k (10k)
+L U^k+1 (10)
+(10k + 10)
+
+L U^k z^m -> L U^k+m
+sum i=k to k+m-1 (10i + 10)
+= sum i=0 to m-1 (10(k + i) + 10)
+= 10m(k + 1) + 10 sum i=0 to m-1 (i)
+= 10m(k + 1) + 5 * m * (m-1)
+= m(10k + 5) + 5 * m * m
+= m(10k + 5m + 5)
+= 5m(2k + m + 1)
+
+y^3 Y^k J^2
+Y^k y^3 J^2 (30k)
+Y^k+3 (62)
+(30k + 62)
+
+y^3n Y^k J^2n -> Y^k+3n
+sum i=0 to n-1 (30(k+3i) + 62)
+= n(30k + 62) + 90 sum i=0 to n-1 (i)
+= n(30k + 62) + 45 * n * (n-1)
+= n(30k + 62 + 45n - 45)
+= n(30k + 45n + 17)
+
+y Y^k F^4
+Y^k y F^4 (10k)
+Y^k+1 (10)
+(10k + 10)
+
+y^n Y^k F^4n -> Y^k+n
+sum i=0 to n-1 (10(k + i) + 10)
+= 10n(k + 1) + 5 * n * (n-1)
+= 5n(2k + n + 1)
+
+y^2 Y^k J Y
+Y^k y^2 J Y (20k)
+Y^k+1 J (36)
+(20k + 36)
+
+y^2n Y^k J Y^n -> Y^k+n J
+sum i=0 to n-1 (20(k + i) + 36)
+= n(20k + 36) + 20 sum i=0 to n-1 (i)
+= n(20k + 36) + 10 * n * (n-1)
+= n(20k + 36 + 10n - 10)
+= n(20k + 10n + 26)
+= n(10(2k + n) + 26)
+
+Symbols on left:
+L, U, V, T
+
+Symbols on right:
+R, X, Y, J, F, Q, W, K, S
+
+Let R0 = $. R0 is possible if I edit some of the exponents in the forward simulation.
+
+> Q Q -> ***HALT***
+> R0 -> ***HALT***
+
+
+I do see Q Y^N Q in the simulation, with N going down a little.  But N is large and I think the first Q will probably get destroyed long before this pattern becomes Q Q ?
+
+Try manually intervening and changing N to a smaller value?
+
+1924 | 471782759086961196862427: L < X^131245843098 Y^3 Q Y^131245843096 W Y^103352228710 R
+
+If I change the 131245843096 to any one of the following: {4, 7, 10}, it will halt at > R0 before the simulation reaches 2^128 base steps.
+
+So two ways forward for this:
+1. re-fit the simulation to use arbitrary width integers and simulate this for a longer amount of time and hope that it halts.
+2. hope to stumble upon a non-halting argument that uses modular arithmetic.
