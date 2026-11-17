@@ -38,6 +38,10 @@ y^3n J^2n -> Y^3n
 y^n F^4n -> Y^n
 y^2n J Y^n -> Y^n J
 
+L U^k > Y^m J^2n  -> L U^k+3n > Y^m+3n
+L U^k > Y^m F^4n  -> L U^k+n  > Y^m+n
+L U^k > Y^m J Y^n -> L U^k+2n > Y^m+n J
+
 y X -> X y (10) (not needed?)
 
 L z
@@ -168,3 +172,17 @@ If I change the 131245843096 to any one of the following: {4, 7, 10}, it will ha
 So two ways forward for this:
 1. re-fit the simulation to use arbitrary width integers and simulate this for a longer amount of time and hope that it halts.
 2. hope to stumble upon a non-halting argument that uses modular arithmetic.
+
+For arbitrary width integer, maybe use the dashu-int crate?
+
+Implemented simulation with bigints. It isn't halting any time soon, since one of the exponents is counting down from above 1.31e11, and is presently still above 1.31e11. RAM consumption so far is still small but doing math with ~million-bit integers is relatively slow. (Or maybe it's just heap allocations being slow???)
+
+dfgih has simulated this with quick sim https://discord.com/channels/960643023006490684/1239205785913790465/1569717637573779536
+
+my simulation:
+after 3 hours 48 minutes
+32900000 | 0x48a653bb..b8f2b097(>2^1112734): L U^0xcbb1ad04..bcd97cd1(>2^556363) V^0x8d141c72..d2f5687c(>2^556367) > Q Y^131245498547 W Y^103352228710 R
+after 5 hours 46 minutes
+38100000 | 0x51df4909..634d654f(>2^1288866): L U^0x4d6e697f..feaaa549(>2^644430) > Y^0x4d6e697f..feaaa547(>2^644430) J F^0x19cf787f..f8e3717d(>2^644432) Q Y^0x44d3ebff..fed092e6(>2^644430) X Y^131245444111 Q Y^103352228710 R
+after 11 hours 27 minutes
+52700000 | 0x3384793d..28753139(>2^1783605): L U^0x1697e956..76fab507(>2^891800) V^0x2d2fd2ad..edf56a10(>2^891801) T V^0x1e1fe1c9..f3f8f15c(>2^891800) < X Y^131245291238 Q Y^103352228710 R

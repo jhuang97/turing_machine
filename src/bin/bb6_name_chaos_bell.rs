@@ -795,8 +795,8 @@ fn main() {
 
     let mut sim = BlockSimulator::new(true);
     println!("{sim}");
-    // let max_steps = 1000;
-    let max_steps = 10000;
+    // let max_steps = 503;
+    let max_steps = 5000;
     // let max_steps = 10000000_000u64;
     for k in 1..=max_steps {
         let res = sim.step();
