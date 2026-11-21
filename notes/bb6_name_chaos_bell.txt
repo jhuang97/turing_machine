@@ -177,6 +177,10 @@ For arbitrary width integer, maybe use the dashu-int crate?
 
 Implemented simulation with bigints. It isn't halting any time soon, since one of the exponents is counting down from above 1.31e11, and is presently still above 1.31e11. RAM consumption so far is still small but doing math with ~million-bit integers is relatively slow. (Or maybe it's just heap allocations being slow???)
 
+Prior work:
+name has analyzed this, e.g., https://discord.com/channels/960643023006490684/1239205785913790465/1566423105180668077
+I also enjoyed their running commentary https://discord.com/channels/960643023006490684/1026577255754903572/1564767651836727308
+
 dfgih has simulated this with quick sim https://discord.com/channels/960643023006490684/1239205785913790465/1569717637573779536
 
 my simulation:
@@ -186,3 +190,93 @@ after 5 hours 46 minutes
 38100000 | 0x51df4909..634d654f(>2^1288866): L U^0x4d6e697f..feaaa549(>2^644430) > Y^0x4d6e697f..feaaa547(>2^644430) J F^0x19cf787f..f8e3717d(>2^644432) Q Y^0x44d3ebff..fed092e6(>2^644430) X Y^131245444111 Q Y^103352228710 R
 after 11 hours 27 minutes
 52700000 | 0x3384793d..28753139(>2^1783605): L U^0x1697e956..76fab507(>2^891800) V^0x2d2fd2ad..edf56a10(>2^891801) T V^0x1e1fe1c9..f3f8f15c(>2^891800) < X Y^131245291238 Q Y^103352228710 R
+
+Result of
+L U^a V^b T < Y^2
+seems to depend on a mod 4 and b mod 2.
+
+Try removing the following from the block analysis:
+W = 11110
+K = 111110
+and just replace with F^4 Q or F^4 S
+try removing > W -> < Y Q
+try replacing > K -> < J
+with > F F F F S -> < J
+try removing
+> J W -> < Y F F F F X
+
+This seems to make things messier, not cleaner. Reverting?
+
+try removing
+L U <w F F F F Q -> L U > Y Y Y Y
+
+Rules regarding the left most block of U and V:
+L U^a+1 V^2m+1 < -> L U^a T V^2m+2 >
+L U^a V^2m < -> L U^a+1 V^2m >
+---
+L U^4k+1 T V^2m+3 T V < -> L U^3k+2m+1 V^6k+2m+6  U >
+L U^4k+4 T V^2m+3 T V < -> L U^3k+2m+5 V^6k+2m+10 U >
+
+L U^4k+2 T V^2m+3 T V < Y -> L U^3k+5 T V^6k+2m+10 U >
+L U^4k+3 T V^2m+3 T V < Y -> L U^3k+4 T V^6k+2m+12 U >
+
+L U^4k+1 T V^2m+6 T V < Y -> L U^3k+7 T V^6k+12 T V^2m+2 U >
+L U^4k+2 T V^2m+6 T V < Y -> L U^3k+6 T V^6k+14 T V^2m+2 U >
+L U^4k+3 T V^2m+6 T V < Y -> L U^3k+5 V^6k+12 T V^2m+4 U >
+L U^4k+4 T V^2m+6 T V < Y -> L U^3k+4 V^6k+14 T V^2m+4 U >
+---
+L U^a+1 T V^2m+5 < -> L U^a T V^8 U V^2m >
+
+L U^4k+1 T V^2m+4 < -> L U^3k+2m+1 V^6k+2m+4 > J
+L U^4k+4 T V^2m+4 < -> L U^3k+2m+5 V^6k+2m+8 > J
+
+L U^4k+2 T V^2m+4 < -> L U^3k+5 V^6k+2m+8 >
+L U^4k+3 T V^2m+4 < -> L U^3k+4 V^6k+2m+10 >
+---
+L U^a+1 T V^2m+1 T < Y^2 -> L U^a+m+4 V^2m+6 >
+L U^a+1 T V^2m+2 T < Y^3 -> L U^a+m+7 V^2m+6 > J
+---
+L U^4k+1 V^2m+1 T < Y^2 -> L U^3k+m+1 V^6k+2m+8 >
+L U^4k+4 V^2m+1 T < Y^2 -> L U^3k+m+5 V^6k+2m+12 >
+L U^4k+2 V^2m+2 T < Y^2 -> L U^3k+m+6 V^6k+2m+10 >
+L U^4k+3 V^2m+2 T < Y^2 -> L U^3k+m+5 V^6k+2m+12 >
+
+L U^4k+2 V^2m+1 T < Y^3 -> L U^3k+m+8 V^6k+2m+8 > J
+L U^4k+3 V^2m+1 T < Y^3 -> L U^3k+m+7 V^6k+2m+10 > J
+L U^4k+1 V^2m+2 T < Y^3 -> L U^3k+m+4 V^6k+2m+8 > J
+L U^4k+4 V^2m+2 T < Y^3 -> L U^3k+m+8 V^6k+2m+12 > J
+---
+L U^a+1 V^2m+1 T V < Y -> L U^a+2 T V^2m+4 U >
+
+L U^4k+1 V^2m+2 T V < -> L U^3k+2m+2 V^6k+2m+2 > J Q
+L U^4k+2 V^2m+2 T V < -> L U^3k+2m+1 V^6k+2m+4 > J Q
+
+L U^4k+3 V^2m+2 T V < Y -> L U^3k+4 T V^6k+2m+10 U >
+L U^4k+4 V^2m+2 T V < Y -> L U^3k+3 T V^6k+2m+12 U >
+
+Most of the rules above were deduced empirically. I could be wrong.
+
+To do this more manually would require stepping through a simulation with variables in the exponents...
+L U^4k+5 T V^2m+7 T V <
+L U^4k+5 T V^2m+6 < W
+L U^4k+5 T < Y^m+3 W
+L U^4k+5 <w F F Q Y^m+1 W
+L U^4k+3 <c J Y^m+1 W
+L U <c J^2k+2 Y^m+1 W
+L V > J Y J^2k+2 Y^m+1 W
+L V < Y K J^2k+2 Y^m+1 W
+L > Y^2 K J^2k+2 Y^m+1 W
+L V^4 > K J^2k+2 Y^m+1 W
+L V^4 < J^2k+3 Y^m+1 W
+L < Y^2 J^2k+3 Y^m+1 W
+L > X Y^2 J^2k+3 Y^m+1 W
+L U > Y^2 J^2k+3 Y^m+1 W
+L U^3k+4 > Y^3k+5 J Y^m+1 W
+L U^3k+2m+6 > Y^3k+m+6 J W
+L U^3k+2m+6 V^6k+2m+12 > J W
+L U^3k+2m+6 V^6k+2m+12 < Y F^4 X
+L < X^3k+2m+6 Y^3k+m+7 F^4 X
+L > X^3k+2m+7 Y^3k+m+7 F^4 X
+L U^3k+2m+7 > Y^3k+m+7 F^4 X
+L U^3k+2m+8 > Y^3k+m+8 X
+L U^3k+2m+8 V^6k+2m+16 U >

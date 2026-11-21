@@ -770,13 +770,13 @@ fn main() {
 
     let mut sim = BlockSimulator::new(true);
     println!("{sim}");
-    // let max_steps = 5001;
-    let max_steps = 100000000;
+    let max_steps = 3000;
+    // let max_steps = 100000000;
     for k in 1..=max_steps {
         let res = sim.step();
-        if k % 100000 == 0 {
-            println!("{sim}");
-        }
+        // if k % 100000 == 0 {
+        println!("{sim}");
+        // }
         if let Err(e) = res {
             println!("{sim} {e}");
             break;

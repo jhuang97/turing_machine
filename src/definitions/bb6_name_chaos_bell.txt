@@ -72,3 +72,12 @@ V > Q W -> < Y Y
 
 > F F F F -> V V <
 > F Q Y -> < K
+
+> J W -> < Y F F F F X
+U T < Y W -> V V V < F F F F X
+L U <w F F Q -> L > X Y Y J
+L U <w F F F -> L U > Y Y Y F F
+L U T V < -> L > J Q
+U U T V < -> V > J Q
+U T < Y -> V > J
+U T < W -> V > Y X

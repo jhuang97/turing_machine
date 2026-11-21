@@ -513,6 +513,122 @@ impl BlockSimulator {
                 self.right_tape.push(K);
                 6u128
             }
+            // > J W -> < Y F F F F X
+            (Right, _, [.., W, Run(J, 1)]) => {
+                self.state = Left;
+                self.right_tape.pop();
+                self.right_tape.pop();
+                add_or_merge_run(&mut self.right_tape, X, 1u128);
+                self.right_tape.push(Run(F, 4u128));
+                self.right_tape.push(Run(Y, 1u128));
+                16u128
+            }
+            // U T < Y W -> V V V < F F F F X
+            (Left, [.., Run(U, _), T], [.., W, Run(Y, 1)]) => {
+                self.left_tape.pop();
+                decrement_run(&mut self.left_tape, U);
+                self.right_tape.pop();
+                self.right_tape.pop();
+                add_or_merge_run(&mut self.left_tape, V, 3u128);
+                add_or_merge_run(&mut self.right_tape, X, 1u128);
+                self.right_tape.push(Run(F, 4u128));
+                20u128
+            }
+            // L U <w F F Q -> L > X Y Y J (1/2)
+            (LeftWide, [.., L, Run(U, 1)], [.., Q, Run(F, 2u128)]) => {
+                self.state = Right;
+                self.left_tape.pop();
+                self.right_tape.pop();
+                self.right_tape.pop();
+                add_or_merge_run(&mut self.right_tape, J, 1u128);
+                self.right_tape.push(Run(Y, 2u128));
+                self.right_tape.push(Run(X, 1u128));
+                58u128
+            }
+            // L U <w F F Q -> L > X Y Y J (2/2)
+            (LeftWide, [.., L, Run(U, 1)], [.., Q, Run(F, 1), Run(F, 1)]) => {
+                self.state = Right;
+                self.left_tape.pop();
+                self.right_tape.pop();
+                self.right_tape.pop();
+                self.right_tape.pop();
+                add_or_merge_run(&mut self.right_tape, J, 1u128);
+                self.right_tape.push(Run(Y, 2u128));
+                self.right_tape.push(Run(X, 1u128));
+                58u128
+            }
+            // L U <w F F F -> L U > Y Y Y F F (1/2)
+            (LeftWide, [.., L, Run(U, 1)], [.., Run(F, 3u128..)]) => {
+                self.state = Right;
+                decrease_run_by(&mut self.right_tape, F, 3u128);
+                add_or_merge_run(&mut self.right_tape, F, 2u128);
+                self.right_tape.push(Run(Y, 3u128));
+                63u128
+            }
+            // L U <w F F F -> L U > Y Y Y F F (2/2)
+            (LeftWide, [.., L, Run(U, 1)], [.., Run(F, _), Run(F, 1), Run(F, 1)]) => {
+                self.state = Right;
+                self.right_tape.pop();
+                self.right_tape.pop();
+                decrement_run(&mut self.right_tape, F);
+                add_or_merge_run(&mut self.right_tape, F, 2u128);
+                self.right_tape.push(Run(Y, 3u128));
+                63u128
+            }
+            // L U T V < -> L > J Q
+            (Left, [.., L, Run(U, 1), T, Run(V, 1)], _) => {
+                self.state = Right;
+                self.left_tape.pop();
+                self.left_tape.pop();
+                self.left_tape.pop();
+                self.right_tape.push(Q);
+                self.right_tape.push(Run(J, 1u128));
+                27u128
+            }
+            // U U T V < -> V > J Q (1/2)
+            (Left, [.., Run(U, 2u128..), T, Run(V, 1u128)], _) => {
+                self.state = Right;
+                self.left_tape.pop();
+                self.left_tape.pop();
+                decrease_run_by(&mut self.left_tape, U, 2u128);
+                add_or_merge_run(&mut self.left_tape, V, 1u128);
+                self.right_tape.push(Q);
+                self.right_tape.push(Run(J, 1u128));
+                27u128
+            }
+            // U U T V < -> V > J Q (2/2)
+            (Left, [.., Run(U, _), Run(U, 1), T, Run(V, 1)], _) => {
+                self.state = Right;
+                self.left_tape.pop();
+                self.left_tape.pop();
+                self.left_tape.pop();
+                decrement_run(&mut self.left_tape, U);
+                add_or_merge_run(&mut self.left_tape, V, 1u128);
+                self.right_tape.push(Q);
+                self.right_tape.push(Run(J, 1u128));
+                27u128
+            }
+            // U T < Y -> V > J
+            (Left, [.., Run(U, _), T], [.., Run(Y, _)]) => {
+                self.state = Right;
+                self.left_tape.pop();
+                decrement_run(&mut self.left_tape, U);
+                decrement_run(&mut self.right_tape, Y);
+                add_or_merge_run(&mut self.left_tape, V, 1u128);
+                add_or_merge_run(&mut self.right_tape, J, 1u128);
+                10u128
+            }
+            // U T < W -> V > Y X
+            (Left, [.., Run(U, _), T], [.., W]) => {
+                self.state = Right;
+                self.left_tape.pop();
+                decrement_run(&mut self.left_tape, U);
+                self.right_tape.pop();
+                add_or_merge_run(&mut self.left_tape, V, 1u128);
+                add_or_merge_run(&mut self.right_tape, X, 1u128);
+                self.right_tape.push(Run(Y, 1u128));
+                10u128
+            }
             _ => return Err(SimError::UndefinedTransition),
         };
         Ok(n_steps)
@@ -575,6 +691,7 @@ impl fmt::Display for BlockSimulator {
 
 // Start of customizable code
 use num_bigint::BigUint;
+use syn::Block;
 type Exp = u128;
 struct BlockSimulator {
     pub left_tape: Vec<BlockSymbol>,
@@ -779,6 +896,64 @@ impl BlockSimulator {
     }
 }
 
+enum LeftResult {
+    Right,
+    RightFQ,
+    RightQ,
+    RightJQ,
+    RightJ,
+}
+
+impl fmt::Display for LeftResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self {
+            LeftResult::Right => write!(f, ">"),
+            LeftResult::RightFQ => write!(f, ">FQ"),
+            LeftResult::RightQ => write!(f, ">Q"),
+            LeftResult::RightJQ => write!(f, ">JQ"),
+            LeftResult::RightJ => write!(f, ">J"),
+        }
+    }
+}
+
+fn run_left_sim(mut sim: BlockSimulator, verbose: bool) -> (u64, LeftResult, BlockSimulator) {
+    use BlockSymbol::*;
+    use RunSymbolType::*;
+
+    if verbose {
+        println!("{sim}");
+    }
+    loop {
+        if sim.state == HigherState::Right && sim.right_tape.is_empty() {
+            return (sim.self_steps, LeftResult::Right, sim);
+        } else if sim.state == HigherState::Right
+            && matches!(sim.right_tape.as_slice(), [Q, Run(F, 1)])
+        {
+            return (sim.self_steps, LeftResult::RightFQ, sim);
+        } else if sim.state == HigherState::Right && matches!(sim.right_tape.as_slice(), [Q]) {
+            return (sim.self_steps, LeftResult::RightQ, sim);
+        } else if sim.state == HigherState::Right
+            && matches!(sim.right_tape.as_slice(), [Q, Run(J, 1)])
+        {
+            return (sim.self_steps, LeftResult::RightJQ, sim);
+        } else if sim.state == HigherState::Right
+            && matches!(sim.right_tape.as_slice(), [Run(J, 1)])
+        {
+            return (sim.self_steps, LeftResult::RightJ, sim);
+        }
+        let res = sim.step();
+
+        if verbose {
+            println!("{sim}");
+        }
+
+        if let Err(e) = res {
+            println!("{e}");
+            panic!();
+        }
+    }
+}
+
 fn run_basic_sim() {
     use turing_machine::{BasicSimulator, TuringMachine};
     let tm = TuringMachine::from_standard_notation("1RB1RF_1LC1LB_1RD1LD_1RE0RA_---0LB_0LF0RC");
@@ -790,13 +965,25 @@ fn run_basic_sim() {
     }
 }
 
-fn main() {
-    // run_basic_sim();
+fn check_bell_accel() {
+    let mut sim = BlockSimulator::new(false);
+    let mut sim_b = BlockSimulator::new(true);
+    for k in 1..=1400 {
+        sim_b.step().unwrap();
+        while sim.base_steps < sim_b.base_steps {
+            sim.step().unwrap();
+        }
+        println!("{sim_b}");
+        println!("{sim}");
+    }
+}
 
+fn run_block_sim() {
     let mut sim = BlockSimulator::new(true);
     println!("{sim}");
     // let max_steps = 503;
-    let max_steps = 5000;
+    let max_steps = 3000;
+    // let max_steps = 5000;
     // let max_steps = 10000000_000u64;
     for k in 1..=max_steps {
         let res = sim.step();
@@ -808,7 +995,6 @@ fn main() {
             println!("{e}");
             break;
         }
-
         // {
         //     use BlockSymbol::*;
         //     use RunSymbolType::*;
@@ -820,15 +1006,102 @@ fn main() {
         //     }
         // }
     }
+}
 
-    // let mut sim = BlockSimulator::new(false);
-    // let mut sim_b = BlockSimulator::new(true);
-    // for k in 1..=1400 {
-    //     sim_b.step().unwrap();
-    //     while sim.base_steps < sim_b.base_steps {
-    //         sim.step().unwrap();
-    //     }
-    //     println!("{sim_b}");
-    //     println!("{sim}");
-    // }
+fn main() {
+    // run_basic_sim();
+    // check_bell_accel();
+    run_block_sim();
+
+    let sim = {
+        use BlockSymbol::*;
+        use RunSymbolType::*;
+        BlockSimulator {
+            left_tape: vec![L, Run(U, 10007), Run(V, 30), T],
+            right_tape: vec![Run(Y, 2)],
+            state: HigherState::Left,
+            base_steps: BigUint::ZERO,
+            self_steps: 0,
+            accelerate_bells: true,
+        }
+    };
+
+    let (n_steps, res, _) = run_left_sim(sim, true);
+    println!("{}({})", res, n_steps);
+
+    for n_u in 1..=24 {
+        for n_v in 1..=15 {
+            let sim = {
+                use BlockSymbol::*;
+                use RunSymbolType::*;
+                BlockSimulator {
+                    left_tape: vec![L, Run(U, n_u), Run(V, n_v)],
+                    right_tape: vec![],
+                    // left_tape: vec![L, Run(U, n_u), T, Run(V, n_v)],
+                    // right_tape: vec![],
+                    // left_tape: vec![L, Run(U, n_u), T, Run(V, n_v), T],
+                    // right_tape: vec![Run(Y, 3)], // Y^2
+                    // left_tape: vec![L, Run(U, n_u), T, Run(V, n_v), T, Run(V, 1)],
+                    // right_tape: vec![Run(Y, 1)], // []
+                    // left_tape: vec![L, Run(U, n_u), Run(V, n_v), T],
+                    // right_tape: vec![Run(Y, 3)], // Y^2
+                    // left_tape: vec![L, Run(U, n_u), Run(V, n_v), T, Run(V, 1)],
+                    // right_tape: vec![], // if add Y's then not periodic
+                    state: HigherState::Left,
+                    // state: HigherState::LeftWide,
+                    base_steps: BigUint::ZERO,
+                    self_steps: 0,
+                    accelerate_bells: true,
+                }
+            };
+            let (n_steps, res, _) = run_left_sim(sim, false);
+            print!("{:>3}({:>2}) ", format!("{}", res), n_steps);
+        }
+        println!();
+    }
+
+    let u0 = 1;
+    let v0 = 1;
+    let p_u = 1; // 4
+    let p_v = 2;
+    for m_v in 0..p_v {
+        for m_u in 0..p_u {
+            for r_u in 0..5 {
+                for r_v in 0..5 {
+                    let n_u = u0 + r_u * p_u + m_u;
+                    let n_v = v0 + r_v * p_v + m_v;
+                    let sim = {
+                        use BlockSymbol::*;
+                        use RunSymbolType::*;
+                        BlockSimulator {
+                            left_tape: vec![L, Run(U, n_u), Run(V, n_v)],
+                            right_tape: vec![],
+                            // left_tape: vec![L, Run(U, n_u), T, Run(V, n_v)],
+                            // right_tape: vec![],
+                            // left_tape: vec![L, Run(U, n_u), T, Run(V, n_v), T],
+                            // right_tape: vec![Run(Y, 3)], // Y^2
+                            // left_tape: vec![L, Run(U, n_u), T, Run(V, n_v), T, Run(V, 1)],
+                            // right_tape: vec![Run(Y, 1)], // []
+                            // left_tape: vec![L, Run(U, n_u), Run(V, n_v), T],
+                            // right_tape: vec![Run(Y, 3)], // Y^2
+                            // left_tape: vec![L, Run(U, n_u), Run(V, n_v), T, Run(V, 1)],
+                            // right_tape: vec![Run(Y, 1)], // if add Y's then not periodic in two cases
+                            state: HigherState::Left,
+                            // state: HigherState::LeftWide,
+                            base_steps: BigUint::ZERO,
+                            self_steps: 0,
+                            accelerate_bells: true,
+                        }
+                    };
+                    let s0: String = format!("{}", &sim);
+                    let (n_steps, res, sim_end) = run_left_sim(sim, false);
+                    let s1: String = format!("{sim_end}");
+                    println!("{s0} ---> {s1}");
+                }
+            }
+            println!();
+        }
+        println!();
+        println!();
+    }
 }
