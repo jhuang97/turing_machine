@@ -21,9 +21,9 @@ I have implemented a series of simulators for increasingly accelerated simulatio
 
 Previously, it was not known when exactly Skelet 1 enters into the infinite loop, as it is kind of tedious to figure out how many base steps it takes to complete one stride or one set of uni-cycles.  This is what I worked on: if my math is not wrong, then Skelet 1 enters into the infinite cycle at around 
 
-$$5418883027667422764169643414989497193809945789706483 \approx 5.42 \times 10^{51} \text{ base steps,}$$
+$$5418883027667422764169643752383445156657991258435112 \approx 5.42 \times 10^{51} \text{ base steps,}$$
 
-give or take one or two cycle periods.
+give or take one or two cycle periods. UPDATE: Reid Messer has computed the exact preperiod of Skelet 1 and also pointed out a mistake in my calculation ([Github](https://github.com/messerdsp/skelet1-preperiod)).
 
 The main method of `skelet1_research.rs` is currently set to run an accelerated simulator all the way to the translated cycle.
 

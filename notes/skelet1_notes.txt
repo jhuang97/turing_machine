@@ -407,3 +407,49 @@ C X C X^8 y^16
 However, rightward long. analysis alone does not seem to be enough, as it cannot express the uni-cycle...?
 
 Maximum length of right tape in the forward simulation is 1390 blocks?
+
+=====
+Reid Messer / Claude pointed out a bug in my uni-cycle acceleration code. See https://github.com/messerdsp/skelet1-preperiod
+
+To see this in action, compare the simulation with and without uni-cycle acceleration:
+0 | 0 | 0: L [J] x^377632 C1 D > x^1078905 R
+0 | 0 | 0: L [J] x^377632 C1 D > x^1078905 R
+   1 | 6825020133064 | 36400107879429: L [a]^7 [J] x^10 C1 D < [G]^7 x^1078905 R
+7609 | 6825020133064 | 36400107879429: L [a]^7 [J] x^10 C1 D > [G]^7 x^1078905 R
+   2 | 6825020133066 | 36400107879438: L [a]^7 [J] x^10 C1 < D [G]^7 x^1078905 R
+7610 | 6825025635407 | 36400137225262: L [a]^7 [J] x^10 C1 D < [G]^7 x^1078905 R
+   4 | 6825025635415 | 36400137225298: L [a]^7 [J] x^10 C2 < D [G]^7 x^1078905 R
+7613 | 6825031137758 | 36400166571131: L [a]^7 [J] x^10 C2 < D [G]^7 x^1078905 R
+   6 | 6825031137764 | 36400166571164: L [a]^7 [J] x^10 C x < D [G]^7 x^1078905 R
+7615 | 6825036640107 | 36400195916997: L [a]^7 [J] x^10 C x < D [G]^7 x^1078905 R
+
+The uni-cycle acceleration incorrectly sets the head to <.  Actually, the following steps still need to be simulated:
+> [G]^7 x^1078905 R
+[G]^7 > x^1078905 R
+[G]^7 x^1078905 > R
+[G]^7 x^1078905 < R
+[G]^7 < x^1078905 R
+[G]^7 < x^1078905 R
+< [G]^7 x^1078905 R
+
+So with this bug, the tape will be the same but the step count is too low.
+
+Simulations after this is fixed:
+0 | 0 | 0: L [J] x^377632 C1 D > x^1078905 R
+0 | 0 | 0: L [J] x^377632 C1 D > x^1078905 R
+   1 | 6825020133064 | 36400107879429: L [a]^7 [J] x^10 C1 D > [G]^7 x^1078905 R
+7609 | 6825020133064 | 36400107879429: L [a]^7 [J] x^10 C1 D > [G]^7 x^1078905 R
+   2 | 6825025635407 | 36400137225262: L [a]^7 [J] x^10 C1 D < [G]^7 x^1078905 R
+7610 | 6825025635407 | 36400137225262: L [a]^7 [J] x^10 C1 D < [G]^7 x^1078905 R
+
+simulation of Skelet 1:
+85256377 | 1016040567687641768281808167068218141394963264787808 | 5418883027667422764169643752383445156657991258435108: L [debris 2] C1 x^3000 D x^2916 D x^1458 D x^262 D x^10344 C2 x^7640 D x^10345 > C x^7639 D x^10347 C x^7635 D x^10355 C x^7619 D x^10387 C x^7555 D x^10515 C x^7299 D x^11027 C x^6275 D x^13075 C x^2179 D D x^7088 C x C x^3849 R
+85256378 | 1016040567687641768281808167068218141394963264787809 | 5418883027667422764169643752383445156657991258435112: L [debris 2] C1 x^3000 D x^2916 D x^1458 D x^262 D x^10344 [a] C0 > x^7639 D x^10347 C x^7635 D x^10355 C x^7619 D x^10387 C x^7555 D x^10515 C x^7299 D x^11027 C x^6275 D x^13075 C x^2179 D D x^7088 C x C x^3849 R
+...85257354 | 1016040567687641768281808167068218141394964852617694 | 5418883027667422764169643752383445156657999727004971: L [debris 2] C1 x^3000 D x^2916 D x^1458 D x^262 D x^10344 [a] C2 x^7640 D x^10345 > C x^7639 D x^10347 C x^7635 D x^10355 C x^7619 D x^10387 C x^7555 D x^10515 C x^7299 D x^11027 C x^6275 D x^13075 C x^2179 D D x^7088 C x C x^3849 R
+85257355 | 1016040567687641768281808167068218141394964852617695 | 5418883027667422764169643752383445156657999727004975: L [debris 2] C1 x^3000 D x^2916 D x^1458 D x^262 D x^10344 [a]^2 C0 > x^7639 D x^10347 C x^7635 D x^10355 C x^7619 D x^10387 C x^7555 D x^10515 C x^7299 D x^11027 C x^6275 D x^13075 C x^2179 D D x^7088 C x C x^3849 R
+
+1st a block:
+85256378 simulator steps, 5418883027667422764169643752383445156657991258435112 base steps
+2nd a block:
+85257355 simulator steps, 5418883027667422764169643752383445156657999727004975 base steps
+(this is 977 simulator steps, 8468569863 base steps later)

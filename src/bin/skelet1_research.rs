@@ -65,6 +65,7 @@ fn compare_counter_unicycle_skelet_set_position(
     extra_left: u128,
     n_cycle_right: u128,
     extra_right: u128,
+    no_C_right: bool,
 ) {
     use CounterBlockType::*;
     use CounterSymbol::*;
@@ -81,14 +82,18 @@ fn compare_counter_unicycle_skelet_set_position(
     ]
     .concat();
 
-    let mut rtape = vec![
-        X(100),
-        D,
-        X(UNI_CYCLE_T * n_cycle_right + extra_right),
-        C,
-        X(1000000),
-        R,
-    ];
+    let mut rtape = if no_C_right {
+        vec![X(UNI_CYCLE_T * n_cycle_right + extra_right), R]
+    } else {
+        vec![
+            X(100),
+            D,
+            X(UNI_CYCLE_T * n_cycle_right + extra_right),
+            C,
+            X(1000000),
+            R,
+        ]
+    };
     rtape.reverse();
 
     let mut sim_uni = skelet1::CounterSimulator {
@@ -292,7 +297,12 @@ fn run_to_tc() {
 
     let mut num_uni_cycle_rules = 0;
 
-    for i in 0..85257400 {
+    let t0 = 85255000;
+    let t1_low = 85256351;
+    let t1_high = 85256401;
+    // let t0 = 85255300;
+
+    for i in 0..t0 + 3400 {
         let res = sim_uni.step().unwrap();
 
         let is_uni = matches!(res, CounterStepInfo::UniCycle(_));
@@ -301,7 +311,7 @@ fn run_to_tc() {
         }
 
         if (i > 71678 && i % 5000000 == 0)
-            || (is_uni && num_uni_cycle_rules % 1000 == 0)
+            || (is_uni && (num_uni_cycle_rules % 1000 == 0 || num_uni_cycle_rules == 11602))
             || [1, 10, 100, 1000, 10000, 100000, 1000000].contains(&i)
         {
             let mut sim_uni_p = sim_uni.clone();
@@ -313,10 +323,11 @@ fn run_to_tc() {
             // println!("{sim_uni_p2}");
         } else if num_uni_cycle_rules >= 11602 {
             let mut sim_uni_p = sim_uni.clone();
+            assert!(num_uni_cycle_rules == 11602);
             // let mut sim_uni_p2 = sim_uni.clone();
             // sim_uni_p2.rewrite_with_blocks(&vec![LeftDebris, A, J, G], &vec![G]);
             // println!("{sim_uni_p2}");
-            if i > 85255000 && (i % 50 == 0) {
+            if i > t0 && (i % 50 == 0) || (i > t1_low && i < t1_high + 1000) {
                 //i % 1000 == 0 || (85256360 < i && i < 85256370) || (85257337 < i && i < 85257347) {
                 sim_uni_p.rewrite_with_blocks(&vec![Debris2], &vec![]);
                 // println!("uni cycle rule applied {num_uni_cycle_rules} times");
@@ -491,12 +502,13 @@ fn main() {
     // skelet1::count_G_block_steps();
     // skelet1::add_up_steps_for_one_uni_cycle();
 
-    // compare_counter_unicycle_skelet_set_position(5, 1, 0, 1, 0);
-    // compare_counter_unicycle_skelet_set_position(5, 1, 1, 1, 1);
-    // compare_counter_unicycle_skelet_set_position(5, 5, 0, 7, 1);
-    // compare_counter_unicycle_skelet_set_position(5, 5, 1, 7, 0);
-    // compare_counter_unicycle_skelet_set_position(5, 5, 1, 7, 1);
-    // compare_counter_unicycle_skelet_set_position(5, 7, 10, 5, 10);
+    // compare_counter_unicycle_skelet_set_position(5, 1, 0, 1, 0, false);
+    // compare_counter_unicycle_skelet_set_position(5, 1, 1, 1, 1, false);
+    // compare_counter_unicycle_skelet_set_position(5, 5, 0, 7, 1, false);
+    // compare_counter_unicycle_skelet_set_position(5, 5, 1, 7, 0, false);
+    // compare_counter_unicycle_skelet_set_position(5, 5, 1, 7, 1, false);
+    // compare_counter_unicycle_skelet_set_position(5, 7, 10, 5, 10, false);
+    // compare_counter_unicycle_skelet_set_position(5, 7, 10, 5, 10, true);
 
     // compare_counter_unicycle_skelet(68705);
 
@@ -508,8 +520,8 @@ fn main() {
     // test_H_block_creation_set_position(3, 4);
     // test_H_block_creation_set_position(3, 5);
 
-    // run_to_tc();
-    run_to_tc2();
+    run_to_tc();
+    // run_to_tc2();
 
     // dbg!(skelet1::left_block_definition()[&CounterBlockType::Debris2].len());
 
